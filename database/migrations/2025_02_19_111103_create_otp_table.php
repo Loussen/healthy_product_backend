@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('otp')->nullable();
             $table->tinyInteger('verified')->nullable()->default(0);
+            $table->json('user_data')->nullable();
             $table->timestamp('expire_at');
             $table->timestamps();
         });

@@ -17,34 +17,37 @@ class AuthController extends BaseController
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'surname' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:customers',
+            'email' => 'required|string|email|max:255',
             'password' => 'required|string|min:8',
             'password_confirmation' => 'required|string|min:8|same:password'
         ]);
 
         if ($validator->fails()) {
-            return $this->sendError('error',$validator->errors(),400);
+            return $this->sendError('error', $validator->errors(), 400);
         }
 
+        $existingCustomer = Customers::where('email', $request->email)->first();
+        if ($existingCustomer) {
+            return $this->sendError('error', 'Email already registered', 400);
+        }
+
+        Otp::where('email', $request->email)->delete();
+
         $otp = rand(100000, 999999);
+
+        $userData = $request->only(['name', 'surname', 'email', 'password']);
 
         Otp::create([
             'email' => $request->email,
             'otp' => $otp,
-            'expire_at' => now()->addMinutes(10)
+            'expire_at' => now()->addMinutes(10),
+            'user_data' => json_encode($userData)
         ]);
 
-        Customers::create([
-            'name' => $request->name,
-            'surname' => $request->surname,
-            'email' => $request->email,
-            'password' => $request->password,
-        ]);
+        // Send the OTP via SMS/Email
+        // $this->sendVerifyCode($request->email, $otp);
 
-        // Send the OTP via SMS
-//        $createCustomer->sendVerifyCode($createCustomer, $otp);
-
-        return $this->sendResponse('success','OTP sent to email address',201);
+        return $this->sendResponse('success', 'OTP sent to email address', 201);
     }
 
     public function verifyOtp(Request $request): JsonResponse
@@ -55,28 +58,35 @@ class AuthController extends BaseController
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()]);
+            return $this->sendError('validation', $validator->errors(), 400);
         }
 
-        $otpRecord = Otp::where('phone', $request->phone)
+        $otpRecord = Otp::where('email', $request->email)
             ->where('otp', $request->otp)
             ->where('expire_at', '>', now())
             ->first();
 
         if (!$otpRecord) {
-            return response()->json(['message' => 'Invalid or expired OTP'], 400);
+            return $this->sendError('invalid otp', "Invalid or expired OTP", 400);
         }
 
-        $customer = Customers::where('email',$request->email)->first();
+        $userData = json_decode($otpRecord->user_data, true);
 
-        if(!$customer) {
-            return response()->json(['message' => 'Invalid email address'], 400);
+        $existingCustomer = Customers::where('email', $userData['email'])->first();
+        if ($existingCustomer) {
+            return $this->sendError('error', 'Email already verified', 400);
         }
+
+        $customer = Customers::create([
+            'name' => $userData['name'],
+            'surname' => $userData['surname'],
+            'email' => $userData['email'],
+            'password' => $userData['password'],
+        ]);
 
         $otpRecord->verified = 1;
         $otpRecord->save();
 
-        // Create authentication token for the customer
         $token = $customer->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -97,7 +107,7 @@ class AuthController extends BaseController
             ->where('verified', 1)
             ->first();
 
-        if(!$otpRecord) {
+        if (!$otpRecord) {
             return response()->json(['message' => 'Email is not verified'], 401);
         }
 

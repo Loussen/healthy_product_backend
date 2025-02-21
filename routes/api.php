@@ -17,7 +17,7 @@ use App\Http\Controllers\AuthController;
 */
 
 //Route::post('register', [AuthController::class, 'register']);
-//Route::post('login', [AuthController::class, 'login']);
+Route::get('login', [AuthController::class, 'login'])->name('login');
 
 Route::controller(AuthController::class)->name('auth.')->group(function(){
     Route::post('register', 'register')->name('register');
@@ -25,7 +25,9 @@ Route::controller(AuthController::class)->name('auth.')->group(function(){
     Route::post('login', 'login')->name('login');
 });
 
-Route::middleware('auth:sanctum')->prefix('v1')->controller(AuthController::class)->group(function() {
+Route::middleware('auth:sanctum')->controller(AuthController::class)->group(function() {
+    Route::get('validate-token', 'validateToken');
+
     Route::post('logout', 'logout');
 });
 

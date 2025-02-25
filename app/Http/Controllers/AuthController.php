@@ -28,7 +28,7 @@ class AuthController extends BaseController
 
         $existingCustomer = Customers::where('email', $request->email)->first();
         if ($existingCustomer) {
-            return $this->sendError('error', 'Email already registered', 400);
+            return $this->sendError('email', 'Email already registered', 400);
         }
 
         Otp::where('email', $request->email)->delete();
@@ -89,16 +89,13 @@ class AuthController extends BaseController
 
         $token = $customer->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-        ]);
+        return $this->sendResponse(['access_token' => $token, 'token_type' => 'Bearer'],'Success login', 201);
     }
 
     public function login(Request $request): JsonResponse
     {
         if (!Auth::guard('customer')->attempt($request->only('email', 'password'))) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+            return $this->sendError('unauthorized', "Login failed", 401);
         }
 
         $customer = Customers::where('email', $request->email)->firstOrFail();
@@ -108,22 +105,19 @@ class AuthController extends BaseController
             ->first();
 
         if (!$otpRecord) {
-            return response()->json(['message' => 'Email is not verified'], 401);
+            return $this->sendError('email not verified', "Email is not verified", 401);
         }
 
         $token = $customer->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-        ]);
+        return $this->sendResponse(['access_token' => $token, 'token_type' => 'Bearer'],'Success login');
     }
 
     public function logout(Request $request): JsonResponse
     {
         $request->user()->tokens()->delete();
 
-        return response()->json(['message' => 'Successfully logged out']);
+        return $this->sendResponse('logout','Success logout');
     }
 
     public function validateToken(Request $request): JsonResponse

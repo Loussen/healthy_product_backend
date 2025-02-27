@@ -31,7 +31,7 @@ Route::middleware('auth:sanctum')->controller(AuthController::class)->group(func
     Route::post('logout', 'logout');
 });
 
-Route::middleware('external.api')->prefix('v1')->controller(MainController::class)->group(function(){
-
+Route::middleware('external.api')->name('main.')->controller(MainController::class)->group(function(){
+    Route::get('categories', 'categories')->name('categories');
 });
 

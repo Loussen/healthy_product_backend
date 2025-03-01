@@ -23,8 +23,10 @@ Route::controller(AuthController::class)->name('auth.')->group(function(){
     Route::post('register', 'register')->name('register');
     Route::post('verify-otp', 'verifyOtp')->name('verifyOtp');
     Route::post('login', 'login')->name('login');
-    Route::get('google', 'redirectToGoogle');
-    Route::get('google/callback', 'handleGoogleCallback');
+//    Route::get('google', 'redirectToGoogle');
+//    Route::get('google/callback', 'handleGoogleCallback');
+
+    Route::post('/google/sign_in', 'signInWithGoogle');
 });
 
 Route::middleware('auth:sanctum')->controller(AuthController::class)->group(function() {

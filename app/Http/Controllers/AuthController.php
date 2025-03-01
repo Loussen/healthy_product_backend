@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Api\BaseController;
 use App\Models\Customers;
 use App\Models\Otp;
+use Google_Client;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -134,7 +135,7 @@ class AuthController extends BaseController
                 ->stateless()
                 ->redirect()
                 ->getTargetUrl();
-            
+
             return $this->sendResponse(['url' => $url], 'Login URL generated');
         } catch (\Exception $e) {
             return $this->sendError('google_auth_error', $e->getMessage(), 500);
@@ -143,16 +144,16 @@ class AuthController extends BaseController
 
     public function handleGoogleCallback(): JsonResponse
     {
-        try {
+       try {
             $googleUser = Socialite::driver('google')->stateless()->user();
-            
+
             // Email zaten kayıtlı mı kontrol et
             $existingCustomer = Customers::where('email', $googleUser->email)->first();
-            
+
             if ($existingCustomer) {
                 // Kullanıcı zaten varsa, direkt giriş yap
                 $token = $existingCustomer->createToken('auth_token')->plainTextToken;
-                
+
                 return $this->sendResponse([
                     'access_token' => $token,
                     'token_type' => 'Bearer'
@@ -164,6 +165,7 @@ class AuthController extends BaseController
                 'name' => explode(' ', $googleUser->name)[0] ?? $googleUser->name,
                 'surname' => explode(' ', $googleUser->name)[1] ?? '',
                 'email' => $googleUser->email,
+                'email_verified_at' => now(),
                 'password' => bcrypt(Str::random(16)),
                 'google_id' => $googleUser->id
             ]);
@@ -188,8 +190,65 @@ class AuthController extends BaseController
                 'token_type' => 'Bearer'
             ], 'Success login', 201);
 
+       } catch (\Exception $e) {
+           return $this->sendError('google_auth_error', $e->getMessage(), 500);
+       }
+    }
+
+    public function signInWithGoogle(Request $request): JsonResponse
+    {
+        try {
+            $client = new Google_Client([
+                'client_id' => config('services.google.client_id')
+            ]);
+
+            // Google'dan gelen token'ı doğrula
+            $payload = $client->verifyIdToken($request->token);
+
+            if (!$payload) {
+                return $this->sendError('google_auth_error', 'Invalid token', 401);
+            }
+
+            // Kullanıcıyı bul veya oluştur
+            $customer = Customers::updateOrCreate(
+                ['email' => $request->email],
+                [
+                    'name' => $request->name,
+                    'surname' => $request->surname,
+                    'google_id' => $request->google_id,
+                    'email_verified_at' => now(),
+                    'password' => bcrypt(Str::random(16)),
+                ]
+            );
+
+            // JWT token oluştur
+            $token = $customer->createToken('auth_token')->plainTextToken;
+
+            // Google ile giriş yapan kullanıcılar için otomatik verify
+            Otp::create([
+                'email' => $request->email,
+                'otp' => '000000', // Dummy OTP
+                'expire_at' => now()->addYears(10),
+                'verified' => 1,
+                'user_data' => json_encode([
+                    'name' => $customer->name,
+                    'surname' => $customer->surname,
+                    'email' => $customer->email
+                ])
+            ]);
+
+            return $this->sendResponse([
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'user' => $customer
+            ], 'Success login');
+
         } catch (\Exception $e) {
-            return $this->sendError('google_auth_error', $e->getMessage(), 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication failed',
+                'response' => $e->getMessage()
+            ], 500);
         }
     }
 }

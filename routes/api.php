@@ -23,6 +23,8 @@ Route::controller(AuthController::class)->name('auth.')->group(function(){
     Route::post('register', 'register')->name('register');
     Route::post('verify-otp', 'verifyOtp')->name('verifyOtp');
     Route::post('login', 'login')->name('login');
+    Route::get('google', 'redirectToGoogle');
+    Route::get('google/callback', 'handleGoogleCallback');
 });
 
 Route::middleware('auth:sanctum')->controller(AuthController::class)->group(function() {
@@ -33,5 +35,26 @@ Route::middleware('auth:sanctum')->controller(AuthController::class)->group(func
 
 Route::middleware('external.api')->name('main.')->controller(MainController::class)->group(function(){
     Route::get('categories', 'categories')->name('categories');
+});
+
+Route::get('/test-openai', function () {
+    $image = base64_encode(file_get_contents(public_path('images/image.png')));
+    $category = 'general';
+    $language = 'en';
+
+    $openai = OpenAI::client(env('OPENAI_API_KEY'));
+
+    $response = $openai->chat()->create([
+        'model' => env('OPENAI_MODEL'),
+        'messages' => [
+            ['role' => 'system', 'content' => "Bu bir yiyecek analiz sistemidir. Kategori: $category, Dil: $language"],
+            ['role' => 'user', 'content' => [['type' => 'image', 'image' => "data:image/png;base64,$image"]]]
+        ],
+        'max_tokens' => 500,
+    ]);
+
+    return response()->json($response->choices[0]->message->content);
+
+
 });
 

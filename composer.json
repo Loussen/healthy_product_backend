@@ -11,9 +11,12 @@
         "backpack/pro": "^2.2",
         "backpack/theme-tabler": "^1.2",
         "cviebrock/eloquent-sluggable": "^11.0",
+        "guzzlehttp/guzzle": "^7.9",
         "laravel/framework": "^11.31",
         "laravel/sanctum": "^4.0",
+        "laravel/socialite": "^5.18",
         "laravel/tinker": "^2.9",
+        "openai-php/client": "^0.10.3",
         "spatie/laravel-translatable": "^6.11"
     },
     "require-dev": {

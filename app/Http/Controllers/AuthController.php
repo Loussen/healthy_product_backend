@@ -9,6 +9,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Str;
 
 class AuthController extends BaseController
 {
@@ -123,5 +125,71 @@ class AuthController extends BaseController
     public function validateToken(Request $request): JsonResponse
     {
         return response()->json(['message' => 'Token is valid'], 200);
+    }
+
+    public function redirectToGoogle(): JsonResponse
+    {
+        try {
+            $url = Socialite::driver('google')
+                ->stateless()
+                ->redirect()
+                ->getTargetUrl();
+            
+            return $this->sendResponse(['url' => $url], 'Login URL generated');
+        } catch (\Exception $e) {
+            return $this->sendError('google_auth_error', $e->getMessage(), 500);
+        }
+    }
+
+    public function handleGoogleCallback(): JsonResponse
+    {
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
+            
+            // Email zaten kayıtlı mı kontrol et
+            $existingCustomer = Customers::where('email', $googleUser->email)->first();
+            
+            if ($existingCustomer) {
+                // Kullanıcı zaten varsa, direkt giriş yap
+                $token = $existingCustomer->createToken('auth_token')->plainTextToken;
+                
+                return $this->sendResponse([
+                    'access_token' => $token,
+                    'token_type' => 'Bearer'
+                ], 'Success login');
+            }
+
+            // Yeni kullanıcı oluştur
+            $customer = Customers::create([
+                'name' => explode(' ', $googleUser->name)[0] ?? $googleUser->name,
+                'surname' => explode(' ', $googleUser->name)[1] ?? '',
+                'email' => $googleUser->email,
+                'password' => bcrypt(Str::random(16)),
+                'google_id' => $googleUser->id
+            ]);
+
+            // Google ile giriş yapan kullanıcılar için otomatik verify
+            Otp::create([
+                'email' => $googleUser->email,
+                'otp' => '000000', // Dummy OTP
+                'expire_at' => now()->addYears(10),
+                'verified' => 1,
+                'user_data' => json_encode([
+                    'name' => $customer->name,
+                    'surname' => $customer->surname,
+                    'email' => $customer->email
+                ])
+            ]);
+
+            $token = $customer->createToken('auth_token')->plainTextToken;
+
+            return $this->sendResponse([
+                'access_token' => $token,
+                'token_type' => 'Bearer'
+            ], 'Success login', 201);
+
+        } catch (\Exception $e) {
+            return $this->sendError('google_auth_error', $e->getMessage(), 500);
+        }
     }
 }

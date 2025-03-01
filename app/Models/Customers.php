@@ -27,7 +27,10 @@ class Customers extends Authenticatable
     // protected $primaryKey = 'id';
     // public $timestamps = false;
     protected $guarded = ['id'];
-    // protected $fillable = [];
+    protected $fillable = [
+        // ... existing fields ...
+        'google_id'
+    ];
     // protected $hidden = [];
 
     /*

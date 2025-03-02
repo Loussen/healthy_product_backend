@@ -39,6 +39,10 @@ Route::middleware('external.api')->name('main.')->controller(MainController::cla
     Route::get('categories', 'categories')->name('categories');
 });
 
+Route::middleware('auth:sanctum')->name('main.')->controller(MainController::class)->group(function(){
+    Route::get('customer', 'customer')->name('customer');
+});
+
 Route::get('/test-openai', function () {
     $image = base64_encode(file_get_contents(public_path('images/image.png')));
     $category = 'general';

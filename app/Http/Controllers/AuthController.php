@@ -97,6 +97,15 @@ class AuthController extends BaseController
 
     public function login(Request $request): JsonResponse
     {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|string|email|max:255',
+            'password' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('error', $validator->errors(), 400);
+        }
+
         if (!Auth::guard('customer')->attempt($request->only('email', 'password'))) {
             return $this->sendError('unauthorized', "Login failed", 401);
         }

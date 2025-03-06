@@ -41,26 +41,53 @@ Route::middleware('external.api')->name('main.')->controller(MainController::cla
 
 Route::middleware('auth:sanctum')->name('main.')->controller(MainController::class)->group(function(){
     Route::get('customer', 'customer')->name('customer');
+
+    Route::post('scan', 'scan')->name('scan');
 });
 
 Route::get('/test-openai', function () {
-    $image = base64_encode(file_get_contents(public_path('images/image.png')));
-    $category = 'general';
-    $language = 'en';
+    $imagePath = public_path('images/image.png');
+    if (!file_exists($imagePath)) {
+        return response()->json(['error' => 'Resim bulunamadı'], 400);
+    }
+
+    $image = base64_encode(file_get_contents($imagePath));
+    $category = request()->input('category', 'children');
+    $language = request()->input('language', 'ru');
 
     $openai = OpenAI::client(env('OPENAI_API_KEY'));
 
     $response = $openai->chat()->create([
-        'model' => env('OPENAI_MODEL'),
+        'model' => 'gpt-4o',
         'messages' => [
-            ['role' => 'system', 'content' => "Bu bir yiyecek analiz sistemidir. Kategori: $category, Dil: $language"],
-            ['role' => 'user', 'content' => [['type' => 'image', 'image' => "data:image/png;base64,$image"]]]
+            [
+                'role' => 'system',
+                'content' => "Bu bir ürün analiz sistemidir. Resimde görülen içerikleri analiz et.
+                Kullanıcının belirttiği kategoriye göre sağlık puanını dinamik olarak değiştir.
+                Sonucu kesinlikle JSON formatında döndür:
+                {
+                  \"ingredients\": [\"Liste olarak tüm içerikler\"],
+                  \"worst_ingredients\": [\"Sağlık açısından en kötü içerikler\"],
+                  \"best_ingredients\": [\"Sağlık açısından en iyi içerikler\"],
+                  \"health_score\": \"Yüzde olarak sağlık puanı, kategoriye göre değişebilir\",
+                  \"detail_text\": \"Ürün hakkında detaylı bilgi\"
+                }"
+            ],
+            [
+                'role' => 'user',
+                'content' => [
+                    ['type' => 'text', 'text' => "Bu ürünün içeriklerini analiz et ve belirtilen JSON formatında cevap ver.
+                    Kategori: $category, Dil: $language"],
+                    ['type' => 'image_url', 'image_url' => ["url" => "data:image/png;base64,$image"]]
+                ]
+            ]
         ],
-        'max_tokens' => 500,
+        'max_tokens' => 1000,
+        'response_format' => ['type' => 'json_object'],
     ]);
 
-    return response()->json($response->choices[0]->message->content);
+    $data = json_decode($response->choices[0]->message->content, true);
 
-
+    return response()->json($data, 200, [], JSON_UNESCAPED_UNICODE);
 });
 

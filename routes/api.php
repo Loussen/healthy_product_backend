@@ -58,7 +58,7 @@ Route::get('/test-openai', function () {
     $openai = OpenAI::client(env('OPENAI_API_KEY'));
 
     $response = $openai->chat()->create([
-        'model' => 'gpt-4o',
+        'model' => env('OPENAI_MODEL'),
         'messages' => [
             [
                 'role' => 'system',

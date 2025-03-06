@@ -20,6 +20,7 @@ class MainController extends BaseController
 
             $categories = Categories::all()->map(function ($category) use ($locale) {
                 return [
+                    'id' => $category->id,
                     'name' => $category->getTranslation('name',$locale) ?? 'Unknown',
                     'icon' => $category->icon ?? 'category',
                     'slug' => $category->getTranslation('slug',$locale) ?? 'unknown',
@@ -57,7 +58,7 @@ class MainController extends BaseController
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
-            $language = request()->input('language', 'en');
+            $language = request()->input('language', 'tr');
 
             if ($validator->fails()) {
                 return $this->sendError('validation_error', $validator->errors(), 400);

@@ -37,6 +37,8 @@ Route::middleware('auth:sanctum')->controller(AuthController::class)->group(func
 
 Route::middleware('external.api')->name('main.')->controller(MainController::class)->group(function(){
     Route::get('categories', 'categories')->name('categories');
+    Route::get('page/{page}', ['uses' => '\App\Http\Controllers\Api\MainController@getPage'])
+        ->where(['page' => '^(((?=(?!admin))(?=(?!\/)).))*$']);
 });
 
 Route::middleware('auth:sanctum')->name('main.')->controller(MainController::class)->group(function(){

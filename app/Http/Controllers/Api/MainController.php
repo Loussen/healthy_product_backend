@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Categories;
 use App\Models\Customers;
+use App\Models\Page;
 use App\Models\ScanResults;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -135,5 +136,20 @@ class MainController extends BaseController
         } catch (\Exception $e) {
             return $this->sendError('upload_error', "Upload error - " . $e->getMessage(), 500);
         }
+    }
+
+    public function getPage($slug): JsonResponse
+    {
+        $page = Page::findBySlug($slug);
+
+        if (!$page)
+        {
+            return $this->sendError('page_not_found', 'This page not found', 404);
+        }
+
+        return $this->sendResponse([
+            'title' => $page->title,
+            'content' => $page->content
+        ], $page->title . ' page returned');
     }
 }

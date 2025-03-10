@@ -9,3 +9,4 @@
 <x-backpack::menu-item title="Scan results" icon="la la-question" :link="backpack_url('scan-results')" />
 <x-backpack::menu-item title='Pages' icon='la la-file-o' :link="backpack_url('page')" />
 <x-backpack::menu-item :title="trans('backpack::crud.file_manager')" icon="la la-files-o" :link="backpack_url('elfinder')" />
+<x-backpack::menu-item title="Bug reports" icon="la la-question" :link="backpack_url('bug-reports')" />

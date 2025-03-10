@@ -43,8 +43,8 @@ Route::middleware('external.api')->name('main.')->controller(MainController::cla
 
 Route::middleware('auth:sanctum')->name('main.')->controller(MainController::class)->group(function(){
     Route::get('customer', 'customer')->name('customer');
-
     Route::post('scan', 'scan')->name('scan');
+    Route::post('bug-report', 'bugReport')->name('bugReport');
 });
 
 Route::get('/test-openai', function () {

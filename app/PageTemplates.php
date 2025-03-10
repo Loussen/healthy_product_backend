@@ -64,7 +64,7 @@ trait PageTemplates
         $this->crud->addField([
             'name' => 'content',
             'label' => trans('backpack::pagemanager.content'),
-            'type' => 'tinymce',
+            'type' => 'summernote',
             'placeholder' => trans('backpack::pagemanager.content_placeholder'),
         ]);
     }

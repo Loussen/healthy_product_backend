@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\BugReports;
 use App\Models\Categories;
 use App\Models\Customers;
 use App\Models\Page;
@@ -134,22 +135,70 @@ class MainController extends BaseController
             return $this->sendError('upload_error', 'No image file provided', 400);
 
         } catch (\Exception $e) {
-            return $this->sendError('upload_error', "Upload error - " . $e->getMessage(), 500);
+            return $this->sendError('scan_result_error', "Scan result error - " . $e->getMessage(), 500);
         }
     }
 
     public function getPage($slug): JsonResponse
     {
+        $locale = request()->header('Accept-Language', 'en');
+
         $page = Page::findBySlug($slug);
 
-        if (!$page)
-        {
-            return $this->sendError('page_not_found', 'This page not found', 404);
+        if (!$page) {
+            return $this->sendError('page_not_found', 'This page not found');
         }
 
         return $this->sendResponse([
-            'title' => $page->title,
-            'content' => $page->content
-        ], $page->title . ' page returned');
+            'title' => $page->getTranslation('title', $locale),
+            'content' => $page->getTranslation('content', $locale),
+            'language' => $locale
+        ], $page->getTranslation('title', $locale) . ' page returned');
+    }
+
+    public function bugReport(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            // Validate the request
+            $validator = Validator::make($request->all(), [
+                'title' => 'required|string|min:3|max:100',
+                'type' => 'required|string',
+                'description' => 'required|string|min:5|max:250',
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                return $this->sendError('validation_error', $validator->errors(), 400);
+            }
+
+            // Handle file upload
+            if ($request->hasFile('image')) {
+                // Store the image
+                $path = $request->file('image')->store('bug_reports', 'public');
+
+                // Get image content as base64
+                $image = base64_encode(file_get_contents($request->file('image')));
+
+                // Create bug report record
+                $bugReport = BugReports::create([
+                    'customer_id' => $user->id,
+                    'title' => $request->title,
+                    'type' => $request->type,
+                    'screenshot' => $path,
+                    'description' => $request->description
+                ]);
+
+                return $this->sendResponse([
+                    $bugReport
+                ], 'Bug report created successfully');
+            }
+
+            return $this->sendError('upload_error', 'No image file provided', 400);
+
+        } catch (\Exception $e) {
+            return $this->sendError('bug_report_error', "Bug report error - " . $e->getMessage(), 500);
+        }
     }
 }

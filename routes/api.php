@@ -45,6 +45,7 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::get('customer', 'customer')->name('customer');
     Route::post('scan', 'scan')->name('scan');
     Route::post('bug-report', 'bugReport')->name('bugReport');
+    Route::post('contact-us', 'contactUs')->name('contactUs');
 });
 
 Route::get('/test-openai', function () {

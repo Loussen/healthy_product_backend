@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\BugReports;
 use App\Models\Categories;
+use App\Models\ContactUs;
 use App\Models\Customers;
 use App\Models\Page;
 use App\Models\ScanResults;
@@ -199,6 +200,41 @@ class MainController extends BaseController
 
         } catch (\Exception $e) {
             return $this->sendError('bug_report_error', "Bug report error - " . $e->getMessage(), 500);
+        }
+    }
+
+    public function contactUs(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            // Validate the request
+            $validator = Validator::make($request->all(), [
+                'full_name' => 'required|string|min:3|max:100',
+                'email' => 'required|email',
+                'subject' => 'required|string|min:3|max:50',
+                'message' => 'required|string|min:3|max:150',
+            ]);
+
+            if ($validator->fails()) {
+                return $this->sendError('validation_error', $validator->errors(), 400);
+            }
+
+
+            // Create contact us record
+            $bugReport = ContactUs::create([
+                'full_name' => $request->full_name,
+                'email' => $request->email,
+                'subject' => $request->subject,
+                'message' => $request->message,
+            ]);
+
+            return $this->sendResponse([
+                $bugReport
+            ], 'Contact us created successfully');
+
+        } catch (\Exception $e) {
+            return $this->sendError('contact_us_error', "Contact us error - " . $e->getMessage(), 500);
         }
     }
 }

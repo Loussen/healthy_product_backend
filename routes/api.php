@@ -40,6 +40,8 @@ Route::middleware('external.api')->name('main.')->controller(MainController::cla
     Route::get('categories', 'categories')->name('categories');
     Route::get('page/{page}', ['uses' => '\App\Http\Controllers\Api\MainController@getPage'])
         ->where(['page' => '^(((?=(?!admin))(?=(?!\/)).))*$']);
+
+    Route::get('packages', 'packages')->name('packages');
 });
 
 Route::middleware('auth:sanctum')->name('main.')->controller(MainController::class)->group(function(){

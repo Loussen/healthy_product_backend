@@ -6,6 +6,7 @@ use App\Models\BugReports;
 use App\Models\Categories;
 use App\Models\ContactUs;
 use App\Models\Customers;
+use App\Models\Packages;
 use App\Models\Page;
 use App\Models\ScanResults;
 use Illuminate\Http\JsonResponse;
@@ -300,6 +301,31 @@ class MainController extends BaseController
 
         } catch (\Exception $e) {
             return $this->sendError('contact_us_error', "Contact us error - " . $e->getMessage(), 500);
+        }
+    }
+
+    public function packages(Request $request): JsonResponse
+    {
+        try {
+            $locale = $request->header('Accept-Language', 'en');
+
+            $packages = Packages::all()->map(function ($package) use ($locale) {
+                return [
+                    'id' => $package->id,
+                    'name' => $package->getTranslation('name',$locale) ?? 'Unknown',
+                    'color' => $package->color,
+                    'price' => $package->price,
+                    'scan_count' => $package->scan_count,
+                    'per_scan' => $package->per_scan,
+                    'saving' => $package->saving,
+                    'is_popular' => $package->is_popular,
+                ];
+            });
+
+            return $this->sendResponse($packages,'success');
+
+        } catch (\Exception $e) {
+            return $this->sendError('get_package_error', "Package error - ".$e->getMessage(), 500);
         }
     }
 }

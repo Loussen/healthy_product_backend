@@ -58,7 +58,7 @@ class PackagesCrudController extends CrudController
         CRUD::setValidation(PackagesRequest::class);
 
         CRUD::field('name');
-        CRUD::field('price')->type('number');
+        CRUD::field('price');
         CRUD::field('scan_count')->type('number');
         CRUD::field('per_scan');
         CRUD::field('saving')->type('number');

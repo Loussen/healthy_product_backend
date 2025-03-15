@@ -48,7 +48,10 @@ class MainController extends BaseController
         }
 
         $highestScoreScan = $getCustomer->scan_results()->orderByDesc('product_score')->first();
-        $lowestScoreScan = $getCustomer->scan_results()->orderBy('product_score')->first();
+        $lowestScoreScan = $getCustomer->scan_results()
+            ->where('product_score', '>', 0)
+            ->orderBy('product_score')
+            ->first();
 
         $thisMonthScans = $getCustomer->scan_results()
             ->whereYear('created_at', now()->year)
@@ -93,6 +96,20 @@ class MainController extends BaseController
 
             if ($validator->fails()) {
                 return $this->sendError('validation_error', $validator->errors(), 400);
+            }
+
+            $activePackage = $user->packages()
+                ->where('remaining_scans', '>', 0)
+                ->orderBy('id')
+                ->first();
+
+            if(!$activePackage) {
+                $allScans = $user->scan_results()
+                    ->count();
+
+                if($allScans >= config('services.free_package_limit')) {
+                    return $this->sendError('out_of_scan_limit', 'Out of scan limit');
+                }
             }
 
             // Handle file upload
@@ -158,6 +175,8 @@ class MainController extends BaseController
                     'product_name_ai' => $aiResponseData['product_name'] ?? '',
                     'product_score' => str_replace('%','',$aiResponseData['health_score']) ?? '',
                 ]);
+
+                $activePackage->decrement('remaining_scans');
 
                 return $this->sendResponse([
                     'scan_id' => $scanResult->id,

@@ -3,19 +3,15 @@
 namespace App\Models;
 
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
+use Backpack\CRUD\app\Models\Traits\SpatieTranslatable\HasTranslations;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Hash;
-use Laravel\Sanctum\HasApiTokens;
 
-class Customers extends Authenticatable
+class Packages extends Model
 {
     use CrudTrait;
-    use HasApiTokens, HasFactory, Notifiable;
-    use SoftDeletes;
+    use HasFactory;
+    use HasTranslations;
 
     /*
     |--------------------------------------------------------------------------
@@ -23,12 +19,14 @@ class Customers extends Authenticatable
     |--------------------------------------------------------------------------
     */
 
-    protected $table = 'customers';
+    protected $table = 'packages';
     // protected $primaryKey = 'id';
     // public $timestamps = false;
     protected $guarded = ['id'];
     // protected $fillable = [];
     // protected $hidden = [];
+
+    public $translatable = ['name'];
 
     /*
     |--------------------------------------------------------------------------
@@ -42,7 +40,7 @@ class Customers extends Authenticatable
     |--------------------------------------------------------------------------
     */
 
-    public function packages()
+    public function customerPackages()
     {
         return $this->hasMany(CustomerPackages::class);
     }
@@ -64,9 +62,4 @@ class Customers extends Authenticatable
     | MUTATORS
     |--------------------------------------------------------------------------
     */
-
-    public function setPasswordAttribute($value): void
-    {
-        $this->attributes['password'] = Hash::make($value);
-    }
 }

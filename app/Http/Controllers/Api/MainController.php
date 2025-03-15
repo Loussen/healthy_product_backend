@@ -90,6 +90,8 @@ class MainController extends BaseController
                             Kullanıcının belirttiği kategoriye göre sağlık puanını dinamik olarak değiştir.
                             Sonucu kesinlikle JSON formatında döndür:
                             {
+                              \"product_name\": \"Ürünün adı\",
+                              \"category\": \"Ürünün kategorisi\",
                               \"ingredients\": [\"Liste olarak tüm içerikler\"],
                               \"worst_ingredients\": [\"Sağlık açısından en kötü içerikler\"],
                               \"best_ingredients\": [\"Sağlık açısından en iyi içerikler\"],
@@ -102,7 +104,8 @@ class MainController extends BaseController
                             'content' => [
                                 [
                                     'type' => 'text',
-                                    'text' => "Bu ürünün içeriklerini analiz et ve belirtilen JSON formatında cevap ver. Kategori: $categoryName, Dil: $language"
+                                    'text' => "Bu ürünün içeriklerini analiz et ve belirtilen JSON formatında cevap ver.
+                                    Kategori: $categoryName, Dil: $language"
                                 ],
                                 [
                                     'type' => 'image_url',
@@ -122,7 +125,9 @@ class MainController extends BaseController
                     'customer_id' => $user->id,
                     'category_id' => $request->category_id,
                     'image' => $path,
-                    'response' => $aiResponseData
+                    'response' => $aiResponseData,
+                    'category_name_ai' => $aiResponseData['category'] ?? '',
+                    'product_name_ai' => $aiResponseData['product_name'] ?? '',
                 ]);
 
                 return $this->sendResponse([

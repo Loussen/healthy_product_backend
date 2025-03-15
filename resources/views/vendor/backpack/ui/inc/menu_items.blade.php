@@ -11,3 +11,5 @@
 <x-backpack::menu-item :title="trans('backpack::crud.file_manager')" icon="la la-files-o" :link="backpack_url('elfinder')" />
 <x-backpack::menu-item title="Bug reports" icon="la la-question" :link="backpack_url('bug-reports')" />
 <x-backpack::menu-item title="Contact us" icon="la la-question" :link="backpack_url('contact-us')" />
+<x-backpack::menu-item title="Packages" icon="la la-question" :link="backpack_url('packages')" />
+<x-backpack::menu-item title="Customer packages" icon="la la-question" :link="backpack_url('customer-packages')" />

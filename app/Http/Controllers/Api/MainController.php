@@ -74,7 +74,8 @@ class MainController extends BaseController
                 'monthly_scans' => $thisMonthScans,
                 'daily_scans' => $todayScans,
                 'free_scan_limit' => config('services.free_package_limit'),
-                'usage_limit' => $allScans > config('services.free_package_limit') ? config('services.free_package_limit') : $allScans
+                'usage_limit' => $allScans > config('services.free_package_limit') ? config('services.free_package_limit') : $allScans,
+                'active_package' => ''
             ]),
             'success'
         );
@@ -100,6 +101,7 @@ class MainController extends BaseController
 
             $activePackage = $user->packages()
                 ->where('remaining_scans', '>', 0)
+                ->where('created_at', '>=', now()->subMonth())
                 ->orderBy('id')
                 ->first();
 

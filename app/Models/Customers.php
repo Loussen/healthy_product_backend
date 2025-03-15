@@ -44,7 +44,7 @@ class Customers extends Authenticatable
 
     public function packages()
     {
-        return $this->hasMany(CustomerPackages::class);
+        return $this->hasMany(CustomerPackages::class,'customer_id');
     }
 
     public function scan_results()

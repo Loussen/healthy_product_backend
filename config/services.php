@@ -45,4 +45,6 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
     ],
 
+    'free_package_limit' => 10
+
 ];

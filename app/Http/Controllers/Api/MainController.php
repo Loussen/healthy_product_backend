@@ -59,15 +59,22 @@ class MainController extends BaseController
             ->whereDate('created_at', now()->toDateString())
             ->count();
 
+        $allScans = $getCustomer->scan_results()
+            ->count();
+
         $getCustomer->makeHidden(['scan_results']);
 
-        return $this->sendResponse([
-            'customer' => $getCustomer,
-            'highest_score_scan' => $highestScoreScan,
-            'lowest_score_scan' => $lowestScoreScan,
-            'monthly_scans' => $thisMonthScans,
-            'daily_scans' => $todayScans,
-        ], 'success');
+        return $this->sendResponse(
+            array_merge($getCustomer->toArray(), [
+                'highest_score_scan' => $highestScoreScan,
+                'lowest_score_scan' => $lowestScoreScan,
+                'monthly_scans' => $thisMonthScans,
+                'daily_scans' => $todayScans,
+                'free_scan_limit' => config('services.free_package_limit'),
+                'usage_limit' => $allScans > config('services.free_package_limit') ? config('services.free_package_limit') : $allScans
+            ]),
+            'success'
+        );
     }
 
 

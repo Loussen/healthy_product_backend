@@ -260,4 +260,16 @@ class AuthController extends BaseController
             ], 500);
         }
     }
+
+    public function getBearerToken(Request $request)
+    {
+        $customer = Customers::where('email',$request->email)->first();
+        $token = $customer->createToken('auth_token')->plainTextToken;
+
+        return $this->sendResponse([
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'user' => $customer
+        ], 'Success token');
+    }
 }

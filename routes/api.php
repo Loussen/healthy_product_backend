@@ -27,6 +27,7 @@ Route::controller(AuthController::class)->name('auth.')->group(function(){
 //    Route::get('google/callback', 'handleGoogleCallback');
 
     Route::post('/google/sign_in', 'signInWithGoogle');
+    Route::post('get-bearer-token', 'getBearerToken');
 });
 
 Route::middleware('auth:sanctum')->controller(AuthController::class)->group(function() {

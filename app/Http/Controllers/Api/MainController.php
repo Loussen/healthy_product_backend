@@ -41,14 +41,35 @@ class MainController extends BaseController
     public function customer(Request $request): JsonResponse
     {
         $user = $request->user();
-        $getCustomer = Customers::find($user->id);
+        $getCustomer = Customers::with('scan_results')->find($user->id);
 
         if (is_null($getCustomer)) {
-            return $this->sendError('customer_not_found','Customer not found');
+            return $this->sendError('customer_not_found', 'Customer not found');
         }
 
-        return $this->sendResponse($getCustomer,'success');
+        $highestScoreScan = $getCustomer->scan_results()->orderByDesc('product_score')->first();
+        $lowestScoreScan = $getCustomer->scan_results()->orderBy('product_score')->first();
+
+        $thisMonthScans = $getCustomer->scan_results()
+            ->whereYear('created_at', now()->year)
+            ->whereMonth('created_at', now()->month)
+            ->count();
+
+        $todayScans = $getCustomer->scan_results()
+            ->whereDate('created_at', now()->toDateString())
+            ->count();
+
+        $getCustomer->makeHidden(['scan_results']);
+
+        return $this->sendResponse([
+            'customer' => $getCustomer,
+            'highest_score_scan' => $highestScoreScan,
+            'lowest_score_scan' => $lowestScoreScan,
+            'monthly_scans' => $thisMonthScans,
+            'daily_scans' => $todayScans,
+        ], 'success');
     }
+
 
     public function scan(Request $request): JsonResponse
     {

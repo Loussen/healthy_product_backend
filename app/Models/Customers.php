@@ -47,6 +47,11 @@ class Customers extends Authenticatable
         return $this->hasMany(CustomerPackages::class);
     }
 
+    public function scan_results()
+    {
+        return $this->hasMany(ScanResults::class,'customer_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

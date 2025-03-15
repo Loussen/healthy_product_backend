@@ -9,6 +9,7 @@ use App\Models\Customers;
 use App\Models\Packages;
 use App\Models\Page;
 use App\Models\ScanResults;
+use App\Services\DebugWithTelegramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -202,6 +203,8 @@ class MainController extends BaseController
             return $this->sendError('upload_error', 'No image file provided', 400);
 
         } catch (\Exception $e) {
+            $log = new DebugWithTelegramService();
+            $log->debug($e->getMessage());
             return $this->sendError('scan_result_error', "Scan result error - " . $e->getMessage(), 500);
         }
     }
@@ -314,7 +317,7 @@ class MainController extends BaseController
                     'id' => $package->id,
                     'name' => $package->getTranslation('name',$locale) ?? 'Unknown',
                     'color' => $package->color,
-                    'price' => $package->price,
+                    'price' => number_format($package->price,2),
                     'scan_count' => $package->scan_count,
                     'per_scan' => $package->per_scan,
                     'saving' => $package->saving,

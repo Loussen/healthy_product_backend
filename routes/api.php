@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\MainController;
+use App\Services\DebugWithTelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -52,6 +53,9 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
 });
 
 Route::get('/test-openai', function () {
+    $log = new DebugWithTelegramService();
+    $log->debug('error');
+    exit;
     $imagePath = public_path('images/image.png');
     if (!file_exists($imagePath)) {
         return response()->json(['error' => 'Resim bulunamadı'], 400);

@@ -90,8 +90,8 @@ class MainController extends BaseController
                             Kullanıcının belirttiği kategoriye göre sağlık puanını dinamik olarak değiştir.
                             Sonucu kesinlikle JSON formatında döndür:
                             {
-                              \"product_name\": \"Ürünün adı\",
-                              \"category\": \"Ürünün kategorisi\",
+                              \"product_name\": \"Ürünün adı AI tarafından belirlenecek\",
+                              \"category\": \"Ürünün AI tarafından belirlenen kategorisi\",
                               \"ingredients\": [\"Liste olarak tüm içerikler\"],
                               \"worst_ingredients\": [\"Sağlık açısından en kötü içerikler\"],
                               \"best_ingredients\": [\"Sağlık açısından en iyi içerikler\"],
@@ -128,6 +128,7 @@ class MainController extends BaseController
                     'response' => $aiResponseData,
                     'category_name_ai' => $aiResponseData['category'] ?? '',
                     'product_name_ai' => $aiResponseData['product_name'] ?? '',
+                    'product_score' => str_replace('%','',$aiResponseData['health_score']) ?? '',
                 ]);
 
                 return $this->sendResponse([

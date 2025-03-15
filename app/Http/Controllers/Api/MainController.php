@@ -67,6 +67,14 @@ class MainController extends BaseController
 
         $getCustomer->makeHidden(['scan_results']);
 
+        $activePackage = $user->packages()
+            ->where('created_at', '>=', now()->subMonth())
+            ->orderBy('id')
+            ->first();
+
+        if($activePackage)
+            $activePackage['package'] = $activePackage->package;
+
         return $this->sendResponse(
             array_merge($getCustomer->toArray(), [
                 'highest_score_scan' => $highestScoreScan,
@@ -75,7 +83,8 @@ class MainController extends BaseController
                 'daily_scans' => $todayScans,
                 'free_scan_limit' => config('services.free_package_limit'),
                 'usage_limit' => $allScans > config('services.free_package_limit') ? config('services.free_package_limit') : $allScans,
-                'active_package' => ''
+                'active_package' => $activePackage,
+                'permit_scan' => ($activePackage && $activePackage->remaining_scans > 0) || $allScans < config('services.free_package_limit')
             ]),
             'success'
         );
@@ -135,6 +144,7 @@ class MainController extends BaseController
                             'role' => 'system',
                             'content' => "Bu bir ürün analiz sistemidir. Resimde görülen içerikleri analiz et.
                             Kullanıcının belirttiği kategoriye göre sağlık puanını dinamik olarak değiştir.
+                            Eğer ürün adı veya kategori belirlenemiyorsa, 'Bilinmiyor' veya 'Belirtilmemiş Ürün' yazmak yerine 'null' döndür.
                             Sonucu kesinlikle JSON formatında döndür:
                             {
                               \"product_name\": \"Ürünün adı AI tarafından belirlenecek\",

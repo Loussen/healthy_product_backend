@@ -57,6 +57,14 @@ class MainController extends BaseController
             ->orderBy('product_score')
             ->first();
 
+        if ($highestScoreScan) {
+            $highestScoreScan->product_name_ai = $highestScoreScan->product_name_ai ?: ($highestScoreScan->category_name_ai ?: 'Unspecified');
+        }
+
+        if ($lowestScoreScan) {
+            $lowestScoreScan->product_name_ai = $lowestScoreScan->product_name_ai ?: ($lowestScoreScan->category_name_ai ?: 'Unspecified');
+        }
+
         $thisMonthScans = $getCustomer->scan_results()
             ->whereYear('created_at', now()->year)
             ->whereMonth('created_at', now()->month)

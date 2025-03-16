@@ -36,6 +36,8 @@ class MainController extends BaseController
             return $this->sendResponse($categories,'success');
 
         } catch (\Exception $e) {
+            $log = new DebugWithTelegramService();
+            $log->debug($e->getMessage());
             return $this->sendError('get_category_error', "Category error - ".$e->getMessage(), 500);
         }
     }
@@ -187,7 +189,7 @@ class MainController extends BaseController
                     'response' => $aiResponseData,
                     'category_name_ai' => $aiResponseData['category'] ?? '',
                     'product_name_ai' => $aiResponseData['product_name'] ?? '',
-                    'product_score' => str_replace('%','',$aiResponseData['health_score']) ?? '',
+                    'product_score' => $aiResponseData['health_score'] ? str_replace('%','',$aiResponseData['health_score']) ?? '' : 0,
                 ]);
 
                 $activePackage->decrement('remaining_scans');
@@ -268,6 +270,8 @@ class MainController extends BaseController
             return $this->sendError('upload_error', 'No image file provided', 400);
 
         } catch (\Exception $e) {
+            $log = new DebugWithTelegramService();
+            $log->debug($e->getMessage());
             return $this->sendError('bug_report_error', "Bug report error - " . $e->getMessage(), 500);
         }
     }
@@ -303,6 +307,8 @@ class MainController extends BaseController
             ], 'Contact us created successfully');
 
         } catch (\Exception $e) {
+            $log = new DebugWithTelegramService();
+            $log->debug($e->getMessage());
             return $this->sendError('contact_us_error', "Contact us error - " . $e->getMessage(), 500);
         }
     }
@@ -328,6 +334,8 @@ class MainController extends BaseController
             return $this->sendResponse($packages,'success');
 
         } catch (\Exception $e) {
+            $log = new DebugWithTelegramService();
+            $log->debug($e->getMessage());
             return $this->sendError('get_package_error', "Package error - ".$e->getMessage(), 500);
         }
     }

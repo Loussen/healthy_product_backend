@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('scan_results', function (Blueprint $table) {
-            $table->integer('product_score')->nullable();
+            $table->integer('product_score')->nullable()->default(0);
         });
     }
 

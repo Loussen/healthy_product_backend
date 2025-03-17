@@ -352,12 +352,54 @@ class MainController extends BaseController
     {
         $user = $request->user();
 
-        $getScanResults = ScanResults::where('customer_id',$user->id)->all();
+        $getScanResults = ScanResults::where('customer_id',$user->id)->get();
 
         if(!$getScanResults) {
             return $this->sendError('not_found_history', 'No history', 400);
         }
 
         return $this->sendResponse($getScanResults,'success');
+    }
+
+    public function toggleFavorite(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validator = validator($request->all(), [
+            'scan_result_id' => 'required|exists:scan_results,id',
+            'action' => 'required|in:favorite,unfavorite',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('validation_error', $validator->errors()->first(), 422);
+        }
+
+        $scanResultId = $request->scan_result_id;
+        $action = $request->action;
+
+        $scanResult = ScanResults::where($scanResultId);
+
+        if (!$scanResult) {
+            return $this->sendError('not_found', 'Scan result not found');
+        }
+
+        if ($scanResult->customer_id !== $user->id) {
+            return $this->sendError('unauthorized', 'You are not authorized to perform this action', 403);
+        }
+
+        if ($action === 'favorite') {
+            if (!$user->favoriteScanResults()->where('scan_result_id', $scanResultId)->exists()) {
+                $user->favoriteScanResults()->attach($scanResultId);
+                return $this->sendResponse(['favorited' => true], 'Scan result added to favorites');
+            }
+            return $this->sendResponse(['favorited' => true], 'Scan result already in favorites');
+
+        } else {
+            if ($user->favoriteScanResults()->where('scan_result_id', $scanResultId)->exists()) {
+                $user->favoriteScanResults()->detach($scanResultId);
+                return $this->sendResponse(['favorited' => false], 'Scan result removed from favorites');
+            }
+            return $this->sendResponse(['favorited' => false], 'Scan result was not in favorites');
+        }
     }
 }

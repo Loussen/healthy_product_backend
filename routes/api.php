@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::post('bug-report', 'bugReport')->name('bugReport');
     Route::post('contact-us', 'contactUs')->name('contactUs');
     Route::get('get-scan-history', 'getScanHistory')->name('getScanHistory');
+    Route::get('favorite-scans', 'toggleFavorite')->name('toggleFavorite');
 });
 
 Route::get('/test-openai', function () {

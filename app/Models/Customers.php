@@ -52,6 +52,12 @@ class Customers extends Authenticatable
         return $this->hasMany(ScanResults::class,'customer_id');
     }
 
+    public function favoriteScanResults()
+    {
+        return $this->belongsToMany(ScanResults::class, 'customer_favorites', 'customer_id', 'scan_result_id')
+            ->withTimestamps();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

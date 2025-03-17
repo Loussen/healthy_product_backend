@@ -347,4 +347,17 @@ class MainController extends BaseController
             return $this->sendError('get_package_error', "Package error - ".$e->getMessage(), 500);
         }
     }
+
+    public function getScanHistory(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $getScanResults = ScanResults::where('customer_id',$user->id)->all();
+
+        if(!$getScanResults) {
+            return $this->sendError('not_found_history', 'No history', 400);
+        }
+
+        return $this->sendResponse($getScanResults,'success');
+    }
 }

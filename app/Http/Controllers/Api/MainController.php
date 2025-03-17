@@ -352,13 +352,23 @@ class MainController extends BaseController
     {
         $user = $request->user();
 
-        $getScanResults = ScanResults::where('customer_id',$user->id)->get();
+        $getScanResults = ScanResults::where('customer_id', $user->id)->get();
 
-        if(!$getScanResults) {
+        if ($getScanResults->isEmpty()) {
             return $this->sendError('not_found_history', 'No history', 400);
         }
 
-        return $this->sendResponse($getScanResults,'success');
+        $favoritedScanIds = $user->favoriteScanResults()
+            ->pluck('scan_result_id')
+            ->toArray();
+
+        // Add is_favorite flag to each scan result
+        $resultsWithFavorites = $getScanResults->map(function ($scanResult) use ($favoritedScanIds) {
+            $scanResult->is_favorite = in_array($scanResult->id, $favoritedScanIds);
+            return $scanResult;
+        });
+
+        return $this->sendResponse($resultsWithFavorites, 'success');
     }
 
     public function toggleFavorite(Request $request): JsonResponse
@@ -377,7 +387,7 @@ class MainController extends BaseController
         $scanResultId = $request->scan_result_id;
         $action = $request->action;
 
-        $scanResult = ScanResults::where($scanResultId);
+        $scanResult = ScanResults::find($scanResultId);
 
         if (!$scanResult) {
             return $this->sendError('not_found', 'Scan result not found');

@@ -10,6 +10,7 @@ use App\Models\Packages;
 use App\Models\Page;
 use App\Models\ScanResults;
 use App\Services\DebugWithTelegramService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -29,7 +30,8 @@ class MainController extends BaseController
                     'name' => $category->getTranslation('name',$locale) ?? 'Unknown',
                     'icon' => $category->icon ?? 'category',
                     'slug' => $category->getTranslation('slug',$locale) ?? 'unknown',
-                    'color' => hexToMaterialColor($category->color ?? '#9E9E9E')
+                    'color' => hexToMaterialColor($category->color ?? '#9E9E9E'),
+                    'main_color' => $category->color ?? '#9E9E9E',
                 ];
             });
 
@@ -51,10 +53,11 @@ class MainController extends BaseController
             return $this->sendError('customer_not_found', 'Customer not found');
         }
 
-        $highestScoreScan = $getCustomer->scan_results()->orderByDesc('product_score')->first();
+        $highestScoreScan = $getCustomer->scan_results()->orderByDesc('product_score')->with('category')->first();
         $lowestScoreScan = $getCustomer->scan_results()
             ->where('product_score', '>', 0)
             ->orderBy('product_score')
+            ->with('category')
             ->first();
 
         if ($highestScoreScan) {
@@ -159,8 +162,8 @@ class MainController extends BaseController
                             Eğer ürün adı veya kategori belirlenemiyorsa, 'Bilinmiyor' veya 'Belirtilmemiş Ürün' yazmak yerine 'null' döndür.
                             Sonucu kesinlikle JSON formatında döndür:
                             {
-                              \"product_name\": \"Ürünün adı AI tarafından belirlenecek\",
-                              \"category\": \"Ürünün AI tarafından belirlenen kategorisi\",
+                              \"product_name\": \"Ürünün adı AI tarafından belirlenecek (Mesela: Tütün)\",
+                              \"category\": \"Ürünün AI tarafından belirlenen kategorisi (Mesela: Tütün ürünü)\",
                               \"ingredients\": [\"Liste olarak tüm içerikler\"],
                               \"worst_ingredients\": [\"Sağlık açısından en kötü içerikler\"],
                               \"best_ingredients\": [\"Sağlık açısından en iyi içerikler\"],
@@ -196,7 +199,7 @@ class MainController extends BaseController
                     'image' => $path,
                     'response' => $aiResponseData,
                     'category_name_ai' => $aiResponseData['category'] ?? '',
-                    'product_name_ai' => $aiResponseData['product_name'] ?? '',
+                    'product_name_ai' => $aiResponseData['product_name'] && $aiResponseData['product_name'] != 'null' ? $aiResponseData['product_name'] : '',
                     'product_score' => $aiResponseData['health_score'] ? str_replace('%','',$aiResponseData['health_score']) ?? '' : 0,
                 ]);
 
@@ -352,23 +355,106 @@ class MainController extends BaseController
     {
         $user = $request->user();
 
-        $getScanResults = ScanResults::where('customer_id', $user->id)->get();
+        // Filtreleme parametrelerini al
+        $scoreFilter = $request->input('score_filter'); // 'high', 'low', 'all'
+        $dateFilter = $request->input('date_filter'); // 'today', 'week', 'month', 'all'
+        $favoritesOnly = $request->boolean('favorites_only', false);
+        $categoryId = $request->input('category_id'); // Kategori filtresi eklendi
 
-        if ($getScanResults->isEmpty()) {
-            return $this->sendError('not_found_history', 'No history', 400);
+        // Sıralama parametrelerini al
+        $sortBy = $request->input('sort_by', 'date'); // 'date' veya 'score'
+        $sortOrder = $request->input('sort_order', 'desc'); // 'asc' veya 'desc'
+
+        // Sayfalama parametrelerini al
+        $perPage = $request->input('per_page', 10);
+        $page = $request->input('page', 1);
+
+        // Ana sorguyu oluştur
+        $query = ScanResults::where('customer_id', $user->id)
+            ->where('product_score', '!=', 0)
+            ->with('category');
+
+        // Kategori filtresini uygula
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
         }
 
+        // Skor filtresini uygula
+        if ($scoreFilter) {
+            switch ($scoreFilter) {
+                case 'high':
+                    $query->where('product_score', '>', 50);
+                    break;
+                case 'low':
+                    $query->where('product_score', '<=', 50);
+                    break;
+            }
+        }
+
+        // Tarih filtresini uygula
+        if ($dateFilter) {
+            switch ($dateFilter) {
+                case 'today':
+                    $query->whereDate('created_at', Carbon::today());
+                    break;
+                case 'week':
+                    $query->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]);
+                    break;
+                case 'month':
+                    $query->whereBetween('created_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()]);
+                    break;
+            }
+        }
+
+        // Favorileri filtrele
+        if ($favoritesOnly) {
+            $favoritedIds = $user->favoriteScanResults()->pluck('scan_result_id');
+            $query->whereIn('id', $favoritedIds);
+        }
+
+        switch ($sortBy) {
+            case 'score':
+                $query->orderBy('product_score', $sortOrder);
+                break;
+            case 'date':
+            default:
+                $query->orderBy('created_at', $sortOrder);
+                break;
+        }
+
+        // Sonuçları en yeniden en eskiye doğru sırala
+        $query->orderBy('created_at', 'desc');
+
+        // Sayfalama uygula
+        $getScanResults = $query->paginate($perPage, ['*'], 'page', $page);
+
+        if ($getScanResults->isEmpty()) {
+            return $this->sendError('not_found_history', 'Tarama geçmişi bulunamadı', 400);
+        }
+
+        // Favori taramaları getir
         $favoritedScanIds = $user->favoriteScanResults()
             ->pluck('scan_result_id')
             ->toArray();
 
-        // Add is_favorite flag to each scan result
+        // Her tarama sonucuna is_favorite flag'ini ekle
         $resultsWithFavorites = $getScanResults->map(function ($scanResult) use ($favoritedScanIds) {
             $scanResult->is_favorite = in_array($scanResult->id, $favoritedScanIds);
             return $scanResult;
         });
 
-        return $this->sendResponse($resultsWithFavorites, 'success');
+        // Sayfalama bilgilerini response'a ekle
+        $response = [
+            'data' => $resultsWithFavorites,
+            'pagination' => [
+                'current_page' => $getScanResults->currentPage(),
+                'last_page' => $getScanResults->lastPage(),
+                'per_page' => $getScanResults->perPage(),
+                'total' => $getScanResults->total(),
+            ]
+        ];
+
+        return $this->sendResponse($response, 'success');
     }
 
     public function toggleFavorite(Request $request): JsonResponse
@@ -411,5 +497,18 @@ class MainController extends BaseController
             }
             return $this->sendResponse(['favorited' => false], 'Scan result was not in favorites');
         }
+    }
+
+    public function getScanResult($scanId,Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $getScan = ScanResults::find($scanId);
+
+        if($getScan->customer_id !== $user->id) {
+            return $this->sendError('not_found_auth', 'Failed authorization', 401);
+        }
+
+        return $this->sendResponse($getScan, 'Scan result uploaded successfully');
     }
 }

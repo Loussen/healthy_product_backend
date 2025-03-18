@@ -175,7 +175,7 @@ class AuthController extends BaseController
                 'surname' => explode(' ', $googleUser->name)[1] ?? '',
                 'email' => $googleUser->email,
                 'email_verified_at' => now(),
-                'password' => bcrypt(Str::random(16)),
+                'password' => Str::random(16),
                 'google_id' => $googleUser->id
             ]);
 
@@ -226,7 +226,7 @@ class AuthController extends BaseController
                     'surname' => $request->surname,
                     'google_id' => $request->google_id,
                     'email_verified_at' => now(),
-                    'password' => bcrypt(Str::random(16)),
+                    'password' => Str::random(16),
                 ]
             );
 

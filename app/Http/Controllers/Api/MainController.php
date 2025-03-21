@@ -102,7 +102,7 @@ class MainController extends BaseController
                 'usage_limit' => $allScans > config('services.free_package_limit') ? config('services.free_package_limit') : $allScans,
                 'active_package' => $activePackage,
                 'permit_scan' => ($activePackage && $activePackage->remaining_scans > 0) || $allScans < config('services.free_package_limit'),
-                'average_health_score' => round($averageHealthScore)
+                'average_health_score' => round($averageHealthScore) ?? 0,
             ]),
             'success'
         );
@@ -513,18 +513,34 @@ class MainController extends BaseController
         return $this->sendResponse($getScan, 'Scan result uploaded successfully');
     }
 
-    public function setDefaultCategory(Request $request)
+    public function setDefaultCategory(Request $request): JsonResponse
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
 
-        $validator = validator($request->all(), [
-            'category_id' => 'required|exists:categories,id',
-        ]);
+            $validator = validator($request->all(), [
+                'category_id' => 'required|exists:categories,id',
+            ]);
 
-        if ($validator->fails()) {
-            return $this->sendError('validation_error', $validator->errors()->first(), 422);
+            if ($validator->fails()) {
+                return $this->sendError('validation_error', $validator->errors()->first(), 422);
+            }
+
+            $user->default_category_id = $request->category_id;
+            $user->save();
+
+            return $this->sendResponse('success', 'Scan result uploaded successfully');
+        } catch (\Exception $e) {
+            $log = new DebugWithTelegramService();
+            $log->debug($e->getMessage());
+            return $this->sendError('set_default_category', "Set default category error - ".$e->getMessage(), 500);
         }
+    }
 
+    public function getLanguages(): JsonResponse
+    {
+        $languages = config('backpack.crud.locales');
 
+        return $this->sendResponse($languages,'success');
     }
 }

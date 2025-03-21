@@ -43,6 +43,7 @@ Route::middleware('external.api')->name('main.')->controller(MainController::cla
         ->where(['page' => '^(((?=(?!admin))(?=(?!\/)).))*$']);
 
     Route::get('packages', 'packages')->name('packages');
+    Route::get('get-languages', 'getLanguages')->name('getLanguages');
 });
 
 Route::middleware('auth:sanctum')->name('main.')->controller(MainController::class)->group(function(){

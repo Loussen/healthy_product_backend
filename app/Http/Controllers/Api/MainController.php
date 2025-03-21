@@ -529,7 +529,7 @@ class MainController extends BaseController
             $user->default_category_id = $request->category_id;
             $user->save();
 
-            return $this->sendResponse('success', 'Scan result uploaded successfully');
+            return $this->sendResponse('success', 'Set default category successfully');
         } catch (\Exception $e) {
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
@@ -542,5 +542,29 @@ class MainController extends BaseController
         $languages = config('backpack.crud.locales');
 
         return $this->sendResponse($languages,'success');
+    }
+
+    public function setDefaultLanguage(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            $validator = validator($request->all(), [
+                'language' => 'required|in:'.implode(',', array_keys(config('backpack.crud.locales'))),
+            ]);
+
+            if ($validator->fails()) {
+                return $this->sendError('validation_error', $validator->errors()->first(), 422);
+            }
+
+            $user->language = $request->language;
+            $user->save();
+
+            return $this->sendResponse('success', 'Set default language successfully');
+        } catch (\Exception $e) {
+            $log = new DebugWithTelegramService();
+            $log->debug($e->getMessage());
+            return $this->sendError('set_default_category', "Set default language error - ".$e->getMessage(), 500);
+        }
     }
 }

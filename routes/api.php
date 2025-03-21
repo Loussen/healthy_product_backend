@@ -55,6 +55,7 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::post('favorite-scans', 'toggleFavorite')->name('toggleFavorite');
     Route::get('get-scan-result/{scan_id}', 'getScanResult')->name('getScanResult');
     Route::post('set-default-category', 'setDefaultCategory')->name('setDefaultCategory');
+    Route::post('set-default-language', 'setDefaultLanguage')->name('setDefaultLanguage');
 });
 
 Route::get('/test-openai', function () {

@@ -53,9 +53,9 @@ class MainController extends BaseController
             return $this->sendError('customer_not_found', 'Customer not found');
         }
 
-        $highestScoreScan = $getCustomer->scan_results()->orderByDesc('product_score')->with('category')->first();
+        $highestScoreScan = $getCustomer->scan_results()->where('product_score','>',0)->orderByDesc('product_score')->with('category')->first();
         $lowestScoreScan = $getCustomer->scan_results()
-            ->where('product_score', '>', 0)
+            ->where('product_score','>',0)
             ->orderBy('product_score')
             ->with('category')
             ->first();
@@ -80,6 +80,8 @@ class MainController extends BaseController
         $allScans = $getCustomer->scan_results()
             ->count();
 
+        $averageHealthScore = $getCustomer->scan_results()->where('product_score', '>', 0)->avg('product_score');
+
         $getCustomer->makeHidden(['scan_results']);
 
         $activePackage = $user->packages()
@@ -99,12 +101,12 @@ class MainController extends BaseController
                 'free_scan_limit' => config('services.free_package_limit'),
                 'usage_limit' => $allScans > config('services.free_package_limit') ? config('services.free_package_limit') : $allScans,
                 'active_package' => $activePackage,
-                'permit_scan' => ($activePackage && $activePackage->remaining_scans > 0) || $allScans < config('services.free_package_limit')
+                'permit_scan' => ($activePackage && $activePackage->remaining_scans > 0) || $allScans < config('services.free_package_limit'),
+                'average_health_score' => round($averageHealthScore)
             ]),
             'success'
         );
     }
-
 
     public function scan(Request $request): JsonResponse
     {
@@ -371,7 +373,6 @@ class MainController extends BaseController
 
         // Ana sorguyu oluştur
         $query = ScanResults::where('customer_id', $user->id)
-            ->where('product_score', '!=', 0)
             ->with('category');
 
         // Kategori filtresini uygula
@@ -510,5 +511,20 @@ class MainController extends BaseController
         }
 
         return $this->sendResponse($getScan, 'Scan result uploaded successfully');
+    }
+
+    public function setDefaultCategory(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = validator($request->all(), [
+            'category_id' => 'required|exists:categories,id',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('validation_error', $validator->errors()->first(), 422);
+        }
+
+
     }
 }

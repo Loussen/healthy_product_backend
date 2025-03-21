@@ -44,6 +44,7 @@ Route::middleware('external.api')->name('main.')->controller(MainController::cla
 
     Route::get('packages', 'packages')->name('packages');
     Route::get('get-languages', 'getLanguages')->name('getLanguages');
+    Route::get('get-countries', 'getCountries')->name('getCountries');
 });
 
 Route::middleware('auth:sanctum')->name('main.')->controller(MainController::class)->group(function(){
@@ -56,6 +57,7 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::get('get-scan-result/{scan_id}', 'getScanResult')->name('getScanResult');
     Route::post('set-default-category', 'setDefaultCategory')->name('setDefaultCategory');
     Route::post('set-default-language', 'setDefaultLanguage')->name('setDefaultLanguage');
+    Route::post('set-default-country', 'setDefaultCountry')->name('setDefaultCountry');
 });
 
 Route::get('/test-openai', function () {

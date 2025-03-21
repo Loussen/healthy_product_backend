@@ -14,3 +14,4 @@
 <x-backpack::menu-item title="Packages" icon="la la-question" :link="backpack_url('packages')" />
 <x-backpack::menu-item title="Customer packages" icon="la la-question" :link="backpack_url('customer-packages')" />
 <x-backpack::menu-item title="Customer favorites" icon="la la-question" :link="backpack_url('customer-favorites')" />
+<x-backpack::menu-item title="Countries" icon="la la-question" :link="backpack_url('countries')" />

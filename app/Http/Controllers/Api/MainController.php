@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\BugReports;
 use App\Models\Categories;
 use App\Models\ContactUs;
+use App\Models\Countries;
 use App\Models\Customers;
 use App\Models\Packages;
 use App\Models\Page;
@@ -565,6 +566,37 @@ class MainController extends BaseController
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
             return $this->sendError('set_default_category', "Set default language error - ".$e->getMessage(), 500);
+        }
+    }
+
+    public function getCountries(): JsonResponse
+    {
+        $countries = Countries::all();
+
+        return $this->sendResponse($countries,'success');
+    }
+
+    public function setDefaultCountry(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            $validator = validator($request->all(), [
+                'country_id' => 'required|exists:countries,id',
+            ]);
+
+            if ($validator->fails()) {
+                return $this->sendError('validation_error', $validator->errors()->first(), 422);
+            }
+
+            $user->country_id = $request->country_id;
+            $user->save();
+
+            return $this->sendResponse('success', 'Set default country successfully');
+        } catch (\Exception $e) {
+            $log = new DebugWithTelegramService();
+            $log->debug($e->getMessage());
+            return $this->sendError('set_default_country', "Set default country error - ".$e->getMessage(), 500);
         }
     }
 }

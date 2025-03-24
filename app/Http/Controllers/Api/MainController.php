@@ -599,4 +599,35 @@ class MainController extends BaseController
             return $this->sendError('set_default_country', "Set default country error - ".$e->getMessage(), 500);
         }
     }
+
+    public function changePassword(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            $validator = Validator::make($request->all(), [
+                'password' => 'required|string|min:8',
+                'password_confirmation' => 'required|string|min:8|same:password'
+            ]);
+
+            if ($validator->fails()) {
+                return $this->sendError('error', $validator->errors(), 400);
+            }
+
+            $existingCustomer = Customers::find($user->id);
+            if (!$existingCustomer) {
+                return $this->sendError('not_found_user', 'User not found', 400);
+            }
+
+            $existingCustomer->password = $request->password;
+            $existingCustomer->save();
+
+            return $this->sendResponse('success', 'Password changed', 201);
+
+        } catch (\Exception $e) {
+            $log = new DebugWithTelegramService();
+            $log->debug($e->getMessage());
+            return $this->sendError('change_password', "Change password error - ".$e->getMessage(), 500);
+        }
+    }
 }

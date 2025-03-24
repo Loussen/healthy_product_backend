@@ -58,6 +58,8 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::post('set-default-category', 'setDefaultCategory')->name('setDefaultCategory');
     Route::post('set-default-language', 'setDefaultLanguage')->name('setDefaultLanguage');
     Route::post('set-default-country', 'setDefaultCountry')->name('setDefaultCountry');
+
+    Route::post('change-password', 'changePassword')->name('changePassword');
 });
 
 Route::get('/test-openai', function () {

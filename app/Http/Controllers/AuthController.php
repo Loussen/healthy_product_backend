@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Api\BaseController;
 use App\Models\Customers;
 use App\Models\Otp;
+use App\Services\DebugWithTelegramService;
 use Google_Client;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -215,6 +216,8 @@ class AuthController extends BaseController
             $payload = $client->verifyIdToken($request->token);
 
             if (!$payload) {
+                $log = new DebugWithTelegramService();
+                $log->debug('google_auth_error - Invalid Token - 401');
                 return $this->sendError('google_auth_error', 'Invalid token', 401);
             }
 
@@ -237,7 +240,7 @@ class AuthController extends BaseController
             Otp::create([
                 'email' => $request->email,
                 'otp' => '000000', // Dummy OTP
-                'expire_at' => now()->addYears(10),
+                'expire_at' => now()->addMinutes(10),
                 'verified' => 1,
                 'user_data' => json_encode([
                     'name' => $customer->name,
@@ -253,6 +256,8 @@ class AuthController extends BaseController
             ], 'Success login');
 
         } catch (\Exception $e) {
+            $log = new DebugWithTelegramService();
+            $log->debug($e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Authentication failed',

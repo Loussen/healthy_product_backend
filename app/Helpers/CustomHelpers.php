@@ -20,7 +20,8 @@ if (!function_exists('hexToMaterialColor')) {
             '673AB7' => 'Colors.deepPurple',
             '795548' => 'Colors.brown',
             'EF5350' => 'Colors.red[300]',
-            'FF5722' => 'Colors.deepOrange'
+            'FF5722' => 'Colors.deepOrange',
+            '77DD77' => 'Colors.pastel_green'
         ];
 
         return $materialColors[strtoupper($hex)] ?? 'Colors.grey';

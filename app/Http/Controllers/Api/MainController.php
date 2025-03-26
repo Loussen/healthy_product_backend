@@ -120,7 +120,7 @@ class MainController extends BaseController
                 'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
-            $language = request()->input('language', 'tr');
+            $language = $user->language ?? 'en';
 
             if ($validator->fails()) {
                 return $this->sendError('validation_error', $validator->errors(), 400);
@@ -161,18 +161,20 @@ class MainController extends BaseController
                         [
                             'role' => 'system',
                             'content' => "Bu bir ürün analiz sistemidir. Resimde görülen içerikleri analiz et.
-                            Kullanıcının belirttiği kategoriye göre sağlık puanını dinamik olarak değiştir.
-                            Eğer ürün adı veya kategori belirlenemiyorsa, 'Bilinmiyor' veya 'Belirtilmemiş Ürün' yazmak yerine 'null' döndür.
-                            Sonucu kesinlikle JSON formatında döndür:
-                            {
-                              \"product_name\": \"Ürünün adı AI tarafından belirlenecek (Mesela: Tütün)\",
-                              \"category\": \"Ürünün AI tarafından belirlenen kategorisi (Mesela: Tütün ürünü)\",
-                              \"ingredients\": [\"Liste olarak tüm içerikler\"],
-                              \"worst_ingredients\": [\"Sağlık açısından en kötü içerikler\"],
-                              \"best_ingredients\": [\"Sağlık açısından en iyi içerikler\"],
-                              \"health_score\": \"Yüzde olarak sağlık puanı, kategoriye göre değişebilir\",
-                              \"detail_text\": \"Ürün hakkında detaylı bilgi\"
-                            }"
+            Kullanıcının belirttiği kategoriye göre sağlık puanını dinamik olarak değiştir.
+            Eğer ürün adı veya kategori belirlenemiyorsa, 'null' döndür.
+            Sonucu kesinlikle JSON formatında döndür.
+            Kullanıcının belirttiği dilde yanıt ver. Yanıttaki tüm içerikleri (ürün adı, kategori, bileşenler, sağlık puanı, açıklamalar) kullanıcının belirttiği dilde yaz.
+            JSON formatı şu şekilde olmalıdır:
+            {
+              \"product_name\": \"Ürünün adı AI tarafından belirlenen dilde (Mesela: Tütün)\",
+              \"category\": \"Ürünün AI tarafından belirlenen dilde kategorisi (Mesela: Tütün ürünü)\",
+              \"ingredients\": [\"Liste olarak tüm içerikler, kullanıcının belirttiği dilde\"],
+              \"worst_ingredients\": [\"Sağlık açısından en kötü içerikler, kullanıcının belirttiği dilde\"],
+              \"best_ingredients\": [\"Sağlık açısından en iyi içerikler, kullanıcının belirttiği dilde\"],
+              \"health_score\": \"Yüzde olarak sağlık puanı, kategoriye göre değişebilir\",
+              \"detail_text\": \"Ürün hakkında detaylı bilgi, kullanıcının belirttiği dilde (Belirtilmemiş içerik olursa, uygun cevap ver)\"
+            }"
                         ],
                         [
                             'role' => 'user',
@@ -180,7 +182,8 @@ class MainController extends BaseController
                                 [
                                     'type' => 'text',
                                     'text' => "Bu ürünün içeriklerini analiz et ve belirtilen JSON formatında cevap ver.
-                                    Kategori: $categoryName, Dil: $language"
+                    Ingredientleri (hepsi, kötü, iyi), ürün adını, ürün kategorisini ve detaylı metni **$language** dilinde yaz.
+                    Kategori: **$categoryName**, Dil: **$language**"
                                 ],
                                 [
                                     'type' => 'image_url',
@@ -193,6 +196,7 @@ class MainController extends BaseController
                     'response_format' => ['type' => 'json_object'],
                 ]);
 
+
                 $aiResponseData = json_decode($aiResponse->choices[0]->message->content, true);
 
                 // Create scan result record
@@ -203,7 +207,9 @@ class MainController extends BaseController
                     'response' => $aiResponseData,
                     'category_name_ai' => $aiResponseData['category'] ?? '',
                     'product_name_ai' => $aiResponseData['product_name'] && $aiResponseData['product_name'] != 'null' ? $aiResponseData['product_name'] : '',
-                    'product_score' => $aiResponseData['health_score'] ? str_replace('%','',$aiResponseData['health_score']) ?? '' : 0,
+                    'product_score' => isset($aiResponseData['health_score']) && $aiResponseData['health_score'] !== 'null'
+                        ? (int) str_replace('%', '', $aiResponseData['health_score'])
+                        : null,
                 ]);
 
                 $activePackage->decrement('remaining_scans');

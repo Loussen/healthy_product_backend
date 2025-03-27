@@ -13,7 +13,6 @@
         "backpack/theme-tabler": "^1.2",
         "cviebrock/eloquent-sluggable": "^11.0",
         "google/apiclient": "^2.18",
-        "google/cloud-ai-platform": "^1.22",
         "guzzlehttp/guzzle": "^7.9",
         "intervention/image": "^2",
         "laravel/framework": "^11.31",

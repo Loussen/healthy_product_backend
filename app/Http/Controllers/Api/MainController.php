@@ -12,11 +12,25 @@ use App\Models\Page;
 use App\Models\ScanResults;
 use App\Services\DebugWithTelegramService;
 use Carbon\Carbon;
+use Google\Cloud\AIPlatform\V1\Client\PredictionServiceClient;
+use Google\Cloud\AIPlatform\V1\PredictRequest;
+use Google\Protobuf\Struct;
+use Google\Protobuf\Value;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use OpenAI;
+use Google\Cloud\AIPlatform\V1\Content;
+use Google\Cloud\AIPlatform\V1\GenerationConfig;
+use Google\Cloud\AIPlatform\V1\Part;
+use Google\Cloud\AIPlatform\V1\Types\InlineData;
+use Google\Cloud\AIPlatform\V1\Types\GenerateContentRequest;
+use Google\Cloud\AIPlatform\V1\Types\GenerateContentResponse;
+use Google\Cloud\AIPlatform\V1\Types\Part\Data;
+use Google\Cloud\AIPlatform\V1\Types\Part\InlineData\MimeType;
+use Google\Cloud\AIPlatform\V1\GenerativeServiceClient;
 
 class MainController extends BaseController
 {
@@ -213,129 +227,6 @@ class MainController extends BaseController
                 ]);
 
                 $activePackage->decrement('remaining_scans');
-
-                return $this->sendResponse([
-                    'scan_id' => $scanResult->id,
-                    'image_path' => Storage::url($path),
-                    'category_id' => $scanResult->category_id,
-                    'response' => $scanResult->response
-                ], 'Scan result uploaded successfully');
-            }
-
-            return $this->sendError('upload_error', 'No image file provided', 400);
-
-        } catch (\Exception $e) {
-            $log = new DebugWithTelegramService();
-            $log->debug($e->getMessage());
-            return $this->sendError('scan_result_error', "Scan result error - " . $e->getMessage(), 500);
-        }
-    }
-
-    public function scanNew(Request $request): JsonResponse
-    {
-        try {
-            $user = $request->user();
-
-            // Validate the request
-            $validator = Validator::make($request->all(), [
-                'category_id' => 'required|numeric|exists:categories,id',
-                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            ]);
-
-            $language = $user->language ?? 'en';
-
-            if ($validator->fails()) {
-                return $this->sendError('validation_error', $validator->errors(), 400);
-            }
-
-            $activePackage = $user->packages()
-                ->where('remaining_scans', '>', 0)
-                ->where('created_at', '>=', now()->subMonth())
-                ->orderBy('id')
-                ->first();
-
-            if (!$activePackage) {
-                $allScans = $user->scan_results()
-                    ->count();
-
-                if ($allScans >= config('services.free_package_limit')) {
-                    return $this->sendError('out_of_scan_limit', 'Out of scan limit');
-                }
-            }
-
-            // Handle file upload
-            if ($request->hasFile('image')) {
-                // Store the image
-                $path = $request->file('image')->store('scan_results', 'public');
-
-                // Get category name
-                $category = Categories::find($request->category_id);
-                $categoryName = $category->getTranslation('name', 'en');
-
-                // Get image content as base64
-                $image = base64_encode(file_get_contents($request->file('image')));
-
-                // Call Gemini AI API
-                $client = new PublisherModelServiceClient([
-                    'credentials' => json_decode(file_get_contents(storage_path('app/google-cloud-credentials.json')), true), // Google Cloud kimlik bilgilerinizin yolu
-                ]);
-                $modelName = 'projects/YOUR_PROJECT_ID/locations/YOUR_LOCATION/publishers/google/models/gemini-pro-vision';
-
-                $contents = [
-                    (new Content())
-                        ->setParts([
-                            (new Part())
-                                ->setInlineData((new InlineData())
-                                    ->setMimeType(MimeType::IMAGE_JPEG)
-                                    ->setData($image)),
-                            (new Part())
-                                ->setText("Bu ürünün içeriklerini analiz et ve belirtilen JSON formatında cevap ver.
-                Ingredientleri (hepsi, kötü, iyi), ürün adını, ürün kategorisini ve detaylı metni **$language** dilinde yaz.
-                Kategori: **$categoryName**, Dil: **$language**. Sonucu kesinlikle JSON formatında döndür.
-        JSON formatı şu şekilde olmalıdır:
-        {
-          \"product_name\": \"Ürünün adı AI tarafından belirlenen dilde (Mesela: Tütün)\",
-          \"category\": \"Ürünün AI tarafından belirlenen dilde kategorisi (Mesela: Tütün ürünü)\",
-          \"ingredients\": [\"Liste olarak tüm içerikler, kullanıcının belirttiği dilde\"],
-          \"worst_ingredients\": [\"Sağlık açısından en kötü içerikler, kullanıcının belirttiği dilde\"],
-          \"best_ingredients\": [\"Sağlık açısından en iyi içerikler, kullanıcının belirttiği dilde\"],
-          \"health_score\": \"Yüzde olarak sağlık puanı, kategoriye göre değişebilir\",
-          \"detail_text\": \"Ürün hakkında detaylı bilgi, kullanıcının belirttiği dilde (Belirtilmemiş içerik olursa, uygun cevap ver)\"
-        }")
-                        ])
-                ];
-
-                $generationConfig = (new GenerationConfig())
-                    ->setTemperature(0.4)
-                    ->setTopP(1)
-                    ->setTopK(32)
-                    ->setCandidateCount(1)
-                    ->setMaxOutputTokens(500);
-
-                $requestGemini = (new GenerateContentRequest())
-                    ->setModel($modelName)
-                    ->setContents($contents)
-                    ->setGenerationConfig($generationConfig);
-
-                $responseGemini = $client->generateContent($requestGemini);
-                $aiResponseData = json_decode($responseGemini->getCandidates()[0]->getContent()->getParts()[0]->getText(), true);
-
-                // Create scan result record
-                $scanResult = ScanResults::create([
-                    'customer_id' => $user->id,
-                    'category_id' => $request->category_id,
-                    'image' => $path,
-                    'response' => $aiResponseData,
-                    'category_name_ai' => $aiResponseData['category'] ?? '',
-                    'product_name_ai' => $aiResponseData['product_name'] && $aiResponseData['product_name'] != 'null' ? $aiResponseData['product_name'] : '',
-                    'product_score' => isset($aiResponseData['health_score']) && $aiResponseData['health_score'] !== 'null'
-                        ? (int)str_replace('%', '', $aiResponseData['health_score'])
-                        : null,
-                ]);
-
-                if($activePackage){
-                    $activePackage->decrement('remaining_scans');
-                }
 
                 return $this->sendResponse([
                     'scan_id' => $scanResult->id,

@@ -229,7 +229,7 @@ class AuthController extends BaseController
                     'surname' => $request->surname,
                     'google_id' => $request->google_id,
                     'email_verified_at' => now(),
-                    'password' => Str::random(16),
+//                    'password' => Str::random(16),
                 ]
             );
 

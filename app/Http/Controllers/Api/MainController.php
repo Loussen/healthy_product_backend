@@ -174,20 +174,22 @@ class MainController extends BaseController
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => "Bu bir ürün analiz sistemidir. Resimde görülen içerikleri analiz et.
-            Kullanıcının belirttiği kategoriye göre sağlık puanını dinamik olarak değiştir.
-            Eğer ürün adı veya kategori belirlenemiyorsa, 'null' döndür.
-            Sonucu kesinlikle JSON formatında döndür.
-            Kullanıcının belirttiği dilde yanıt ver. Yanıttaki tüm içerikleri (ürün adı, kategori, bileşenler, sağlık puanı, açıklamalar) kullanıcının belirttiği dilde yaz.
-            JSON formatı şu şekilde olmalıdır:
+                            'content' => "This is a product analysis system. Analyze the contents seen in the image.
+            Dynamically change the health score according to the category specified by the user.
+            If the product name or category cannot be determined, return 'null'.
+            Always return the result in JSON format.
+            Respond in the language specified by the user. Write all content (product name, category, ingredients, health score, explanations) in the user's specified language.
+            If no valid information is found or if there is an error, include \"check\": false in the response. Otherwise, include \"check\": true.
+            The JSON format should be as follows:
             {
-              \"product_name\": \"Ürünün adı AI tarafından belirlenen dilde (Mesela: Tütün)\",
-              \"category\": \"Ürünün AI tarafından belirlenen dilde kategorisi (Mesela: Tütün ürünü)\",
-              \"ingredients\": [\"Liste olarak tüm içerikler, kullanıcının belirttiği dilde\"],
-              \"worst_ingredients\": [\"Sağlık açısından en kötü içerikler, kullanıcının belirttiği dilde\"],
-              \"best_ingredients\": [\"Sağlık açısından en iyi içerikler, kullanıcının belirttiği dilde\"],
-              \"health_score\": \"Yüzde olarak sağlık puanı, kategoriye göre değişebilir\",
-              \"detail_text\": \"Ürün hakkında detaylı bilgi, kullanıcının belirttiği dilde (Belirtilmemiş içerik olursa, uygun cevap ver)\"
+              \"check\": true or false,
+              \"product_name\": \"The name of the product in the language determined by AI (e.g., Tobacco)\",
+              \"category\": \"The category of the product in the language determined by AI (e.g., Tobacco product)\",
+              \"ingredients\": [\"List all ingredients in the language specified by the user\"],
+              \"worst_ingredients\": [\"The worst ingredients in terms of health, in the language specified by the user\"],
+              \"best_ingredients\": [\"The best ingredients in terms of health, in the language specified by the user\"],
+              \"health_score\": \"Health score as a percentage, which may vary depending on the category\",
+              \"detail_text\": \"Detailed information about the product in the language specified by the user (If some content is not specified, respond appropriately)\"
             }"
                         ],
                         [
@@ -195,9 +197,9 @@ class MainController extends BaseController
                             'content' => [
                                 [
                                     'type' => 'text',
-                                    'text' => "Bu ürünün içeriklerini analiz et ve belirtilen JSON formatında cevap ver.
-                    Ingredientleri (hepsi, kötü, iyi), ürün adını, ürün kategorisini ve detaylı metni **$language** dilinde yaz.
-                    Kategori: **$categoryName**, Dil: **$language**"
+                                    'text' => "Analyze the contents of this product and respond in the specified JSON format.
+            Write the ingredients (all, worst, best), product name, product category, and detailed text in **$language**.
+            Category: **$categoryName**, Language: **$language**."
                                 ],
                                 [
                                     'type' => 'image_url',
@@ -206,7 +208,7 @@ class MainController extends BaseController
                             ]
                         ]
                     ],
-                    'max_tokens' => 500,
+//                    'max_tokens' => 500,
                     'response_format' => ['type' => 'json_object'],
                 ]);
 

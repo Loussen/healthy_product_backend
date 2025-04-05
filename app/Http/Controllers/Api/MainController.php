@@ -160,6 +160,8 @@ class MainController extends BaseController
                 // Store the image
                 $path = $request->file('image')->store('scan_results', 'public');
 
+                $fullUrl = asset('storage/' . $path);
+
                 // Get category name
                 $category = Categories::find($request->category_id);
                 $categoryName = $category->getTranslation('name', 'en');
@@ -203,7 +205,8 @@ class MainController extends BaseController
                                 ],
                                 [
                                     'type' => 'image_url',
-                                    'image_url' => ["url" => "data:image/png;base64,$image"]
+//                                    'image_url' => ["url" => "data:image/png;base64,$image"]
+                                    'image_url' => ["url" => $fullUrl]
                                 ]
                             ]
                         ]
@@ -226,9 +229,11 @@ class MainController extends BaseController
                     'product_score' => isset($aiResponseData['health_score']) && $aiResponseData['health_score'] !== 'null'
                         ? (int) str_replace('%', '', $aiResponseData['health_score'])
                         : null,
+                    'check' => $aiResponseData['check']
                 ]);
 
-                $activePackage->decrement('remaining_scans');
+                if($aiResponseData['check'])
+                    $activePackage->decrement('remaining_scans');
 
                 return $this->sendResponse([
                     'scan_id' => $scanResult->id,

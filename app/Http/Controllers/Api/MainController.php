@@ -106,27 +106,26 @@ class MainController extends BaseController
             ->orderBy('id')
             ->first();
 
-//        $activePackageArray = $activePackage ? $activePackage->toArray() : null;
+        $activePackageArray = $activePackage ? $activePackage->toArray() : null;
 
         if($activePackage)
         {
-            $activePackage['package'] = $activePackage->package;
+//            $activePackage['package'] = $activePackage->package;
 
-//            $activePackageArray['package'] = [
-//                'id' => $activePackage->package->id,
-//                'name' => $activePackage->package->getTranslation('name', $locale) ?? 'Unknown',
-//                'color' => $activePackage->package->color,
-//                'price' => $activePackage->package->price,
-//                'scan_count' => $activePackage->package->scan_count,
-//                'per_scan' => $activePackage->package->per_scan,
-//                'saving' => $activePackage->package->saving,
-//                'is_popular' => $activePackage->package->is_popular,
-//                'created_at' => $activePackage->package->created_at,
-//                'updated_at' => $activePackage->package->updated_at
-//            ];
+            $activePackageArray['package'] = [
+                'id' => $activePackage->package->id,
+                'name' => $activePackage->package->getTranslation('name', $locale) ?? 'Unknown',
+                'color' => $activePackage->package->color,
+                'price' => $activePackage->package->price,
+                'scan_count' => $activePackage->package->scan_count,
+                'per_scan' => $activePackage->package->per_scan,
+                'saving' => $activePackage->package->saving,
+                'is_popular' => $activePackage->package->is_popular,
+                'created_at' => $activePackage->package->created_at,
+                'updated_at' => $activePackage->package->updated_at
+            ];
         }
-
-
+        
         return $this->sendResponse(
             array_merge($getCustomer->toArray(), [
                 'highest_score_scan' => $highestScoreScan,
@@ -135,7 +134,7 @@ class MainController extends BaseController
                 'daily_scans' => $todayScans,
                 'free_scan_limit' => config('services.free_package_limit'),
                 'usage_limit' => $allScans > config('services.free_package_limit') ? config('services.free_package_limit') : $allScans,
-                'active_package' => $activePackage,
+                'active_package' => $activePackageArray,
                 'permit_scan' => ($activePackage && $activePackage->remaining_scans > 0) || $allScans < config('services.free_package_limit'),
                 'average_health_score' => round($averageHealthScore) ?? 0,
             ]),

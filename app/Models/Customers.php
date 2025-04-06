@@ -49,7 +49,7 @@ class Customers extends Authenticatable
 
     public function scan_results()
     {
-        return $this->hasMany(ScanResults::class,'customer_id');
+        return $this->hasMany(ScanResults::class,'customer_id')->where('check', 1);
     }
 
     public function favoriteScanResults()

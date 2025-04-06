@@ -61,6 +61,8 @@ class MainController extends BaseController
 
     public function customer(Request $request): JsonResponse
     {
+        $locale = $request->header('Accept-Language', 'en');
+
         $user = $request->user();
         $getCustomer = Customers::with('scan_results')->find($user->id);
 
@@ -104,8 +106,26 @@ class MainController extends BaseController
             ->orderBy('id')
             ->first();
 
+//        $activePackageArray = $activePackage ? $activePackage->toArray() : null;
+
         if($activePackage)
+        {
             $activePackage['package'] = $activePackage->package;
+
+//            $activePackageArray['package'] = [
+//                'id' => $activePackage->package->id,
+//                'name' => $activePackage->package->getTranslation('name', $locale) ?? 'Unknown',
+//                'color' => $activePackage->package->color,
+//                'price' => $activePackage->package->price,
+//                'scan_count' => $activePackage->package->scan_count,
+//                'per_scan' => $activePackage->package->per_scan,
+//                'saving' => $activePackage->package->saving,
+//                'is_popular' => $activePackage->package->is_popular,
+//                'created_at' => $activePackage->package->created_at,
+//                'updated_at' => $activePackage->package->updated_at
+//            ];
+        }
+
 
         return $this->sendResponse(
             array_merge($getCustomer->toArray(), [
@@ -232,8 +252,10 @@ class MainController extends BaseController
                     'check' => $aiResponseData['check']
                 ]);
 
-                if($aiResponseData['check'])
+                if($aiResponseData['check'] && $activePackage)
+                {
                     $activePackage->decrement('remaining_scans');
+                }
 
                 return $this->sendResponse([
                     'scan_id' => $scanResult->id,

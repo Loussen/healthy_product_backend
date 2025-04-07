@@ -3,5 +3,14 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('index');
+});
+
+Route::get('/test-mail', function () {
+    \Illuminate\Support\Facades\Mail::raw('Test mesajı', function ($message) {
+        $message->to('fhesenli92@gmail.com')
+            ->subject('Test Email');
+    });
+
+    return 'Mail gönderildi!';
 });

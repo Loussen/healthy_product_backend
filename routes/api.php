@@ -45,9 +45,9 @@ Route::middleware('external.api')->name('main.')->controller(MainController::cla
     Route::get('packages', 'packages')->name('packages');
     Route::get('get-languages', 'getLanguages')->name('getLanguages');
     Route::get('get-countries', 'getCountries')->name('getCountries');
-
-    Route::post('resend-otp', 'resendOtp')->name('resendOtp');
 });
+
+Route::post('resend-otp', [AuthController::class,'resendOtp'])->name('resendOtp')->middleware('external.api');
 
 Route::middleware('auth:sanctum')->name('main.')->controller(MainController::class)->group(function(){
     Route::get('customer', 'customer')->name('customer');

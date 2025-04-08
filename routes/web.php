@@ -8,7 +8,7 @@ Route::get('/', function () {
 
 Route::get('/test-mail', function () {
     \Illuminate\Support\Facades\Mail::raw('Test mesajı', function ($message) {
-        $message->to('fhesenli92@gmail.com')
+        $message->to('fhesenli55@gmail.com')
             ->subject('Test Email');
     });
 

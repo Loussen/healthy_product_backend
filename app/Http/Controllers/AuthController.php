@@ -6,17 +6,19 @@ use App\Http\Controllers\Api\BaseController;
 use App\Models\Customers;
 use App\Models\Otp;
 use App\Services\DebugWithTelegramService;
+use App\Services\OtpService;
 use Google_Client;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
 
 class AuthController extends BaseController
 {
-    public function register(Request $request): JsonResponse
+    public function register(Request $request, OtpService $otpService): JsonResponse
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -49,7 +51,7 @@ class AuthController extends BaseController
         ]);
 
         // Send the OTP via SMS/Email
-        // $this->sendVerifyCode($request->email, $otp);
+        $otpService->sendOtpEmail($request->email, $otp);
 
         return $this->sendResponse('success', 'OTP sent to email address', 201);
     }
@@ -94,6 +96,46 @@ class AuthController extends BaseController
         $token = $customer->createToken('auth_token')->plainTextToken;
 
         return $this->sendResponse(['access_token' => $token, 'token_type' => 'Bearer'],'Success login', 201);
+    }
+
+    public function resendOtp(Request $request, OtpService $otpService): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('error', $validator->errors(), 400);
+        }
+
+        $email = $request->email;
+
+        // OTP limiti yoxla
+        $key = 'otp_limit:' . $email;
+        $attempts = Cache::get($key, 0);
+
+        if ($attempts >= 3) {
+            return $this->sendError('limit', 'The OTP limit has been exceeded. Please try again later or write message to us.', 429);
+        }
+
+        $otpRecord = Otp::where('email', $email)->latest()->first();
+
+        if (!$otpRecord) {
+            return $this->sendError('not_found', 'OTP not found or the user has not registered.', 404);
+        }
+
+        $otp = rand(100000, 999999);
+
+        $otpRecord->update([
+            'otp' => $otp,
+            'expire_at' => now()->addMinutes(10)
+        ]);
+
+        $otpService->sendOtpEmail($email, $otp);
+
+        Cache::put($key, $attempts + 1, now()->addMinutes(5));
+
+        return $this->sendResponse('success', 'A new OTP code has been sent to your email address.', 200);
     }
 
     public function login(Request $request): JsonResponse

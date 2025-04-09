@@ -67,6 +67,13 @@ class ScanResults extends Model
     |--------------------------------------------------------------------------
     */
 
+    protected static function booted()
+    {
+        static::addGlobalScope('checked', function ($query) {
+            $query->where('check', 1);
+        });
+    }
+
     /*
     |--------------------------------------------------------------------------
     | ACCESSORS

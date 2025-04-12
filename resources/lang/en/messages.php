@@ -3,7 +3,7 @@
 return [
     'menus' => [
         'top_menu' => [
-            'specifications' => 'Özellikler1',
+            'specifications' => 'Özellikler',
             'how_it_works' => 'Nasıl Çalışır',
             'download' => 'İndir',
             'start_now' => 'Hemen Başla'

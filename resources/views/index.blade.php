@@ -4,6 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vital Scan - Your vital scan compass</title>
+    <meta name="description" content="Your vital scan compass">
+    <meta name="keywords" content="vital scan, vital, scan, vscan, healthy product">
+    <meta name="author" content="Fuad Hasanli">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://vitalscan.app">
+    <meta property="og:title" content="Vital Scan - Your vital scan compass">
+    <meta property="og:description" content="Bu, sosyal medyada gösterilecek kısa açıklamadır.">
+    <meta property="og:image" content="https://seninsiten.com/images/og-image.jpg">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://vitalscan.app">
+    <meta name="twitter:title" content="Vital Scan - Your vital scan compass">
+    <meta name="twitter:description" content="Bu, Twitter’da gözükecek kısa açıklamadır.">
+    <meta name="twitter:image" content="https://seninsiten.com/images/twitter-image.jpg">
+
     <link href="{{ asset('assets/css/bootstrap.min.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('assets/css/bootstrap-icons.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
@@ -32,9 +48,9 @@
     <div class="container">
         <a class="navbar-brand" href="#">
             <img src="{{ asset('assets/images/logo.png') }}" alt="Vital Scan">
-            <span class="brand-text">Your vital scan compass</span>
+            <span class="brand-text d-none d-sm-inline">Your vital scan compass</span>
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
@@ -48,8 +64,11 @@
                 <li class="nav-item">
                     <a class="nav-link" href="#download">İndir</a>
                 </li>
+                <li class="nav-item d-lg-none">
+                    <a href="#download" class="btn btn-primary w-100">Hemen Başla</a>
+                </li>
             </ul>
-            <a href="#download" class="btn btn-primary ms-lg-3">Hemen Başla</a>
+            <a href="#download" class="btn btn-primary ms-lg-3 d-none d-lg-block">Hemen Başla</a>
         </div>
     </div>
 </nav>

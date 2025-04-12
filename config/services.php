@@ -35,16 +35,14 @@ return [
         ],
     ],
 
-//    'google' => [
-//        'client_id' => env('GOOGLE_CLIENT_ID'),
-//        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-//        'redirect' => env('GOOGLE_REDIRECT_URI'),
-//    ],
-
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
     ],
 
-    'free_package_limit' => 4
+    'free_package_limit' => 4,
+
+    'locales' => ['az' => 'Azərbaycan','en' => 'English', 'ru' => 'Русский', 'tr' => 'Türkçe'],
+
+    'default_locale' => 'az',
 
 ];

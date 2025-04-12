@@ -47,8 +47,8 @@
 <nav class="navbar navbar-expand-lg fixed-top">
     <div class="container">
         <a class="navbar-brand" href="#">
-            <img src="{{ asset('assets/images/logo.png') }}" alt="Vital Scan">
-            <span class="brand-text d-none d-sm-inline">Your vital scan compass</span>
+            <img src="{{ asset('assets/images/logo.png') }}" alt="VScan Vital Scan">
+            <span class="brand-text d-sm-inline">Vital Scan</span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -56,19 +56,19 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="#features">Özellikler</a>
+                    <a class="nav-link" href="#features">{{ __('messages.menus.top_menu.specifications') }}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#how-it-works">Nasıl Çalışır</a>
+                    <a class="nav-link" href="#how-it-works">{{ __('messages.menus.top_menu.how_it_works') }}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#download">İndir</a>
+                    <a class="nav-link" href="#download">{{ __('messages.menus.top_menu.download') }}</a>
                 </li>
                 <li class="nav-item d-lg-none">
-                    <a href="#download" class="btn btn-primary w-100">Hemen Başla</a>
+                    <a href="#download" class="btn btn-primary w-100">{{ __('messages.menus.top_menu.start_now') }}</a>
                 </li>
             </ul>
-            <a href="#download" class="btn btn-primary ms-lg-3 d-none d-lg-block">Hemen Başla</a>
+            <a href="#download" class="btn btn-primary ms-lg-3 d-none d-lg-block">{{ __('messages.menus.top_menu.start_now') }}</a>
         </div>
     </div>
 </nav>
@@ -78,19 +78,19 @@
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-6">
-                <h1>Sağlıklı yaşam için akıllı seçimler yapın</h1>
-                <p class="lead">Ürünleri tarayın, içeriklerini analiz edin ve sağlığınız için en iyi kararları verin. Yapay zeka destekli uygulamamız ile sağlıklı yaşam artık daha kolay!</p>
+                <h1>{{ __('messages.slogan') }}</h1>
+                <p class="lead">{{ __('messages.slogan_text') }}</p>
                 <div class="d-flex gap-3 mt-4">
                     <a href="#" class="">
-                        <img src="{{ asset('assets/images/playstore.png') }}" alt="Play Store VScan" class="playstore">
+                        <img src="{{ asset('assets/images/playstore.png') }}" alt="Play Store Vital Scan VScan" class="playstore">
                     </a>
                     <a href="#" class="">
-                        <img src="{{ asset('assets/images/appstore.png') }}" alt="App Store VScan" class="appstore">
+                        <img src="{{ asset('assets/images/appstore.png') }}" alt="App Store Vital Scan VScan" class="appstore">
                     </a>
                 </div>
             </div>
             <div class="col-lg-6 camera-content-div">
-                <img src="{{ asset('assets/images/screen_camera-portrait.png') }}" alt="Vital Scan" class="camera-content">
+                <img src="{{ asset('assets/images/screen_camera-portrait.png') }}" alt="VScan Vital Scan" class="camera-content">
             </div>
         </div>
     </div>
@@ -100,8 +100,8 @@
 <section id="features" class="features">
     <div class="container">
         <div class="text-center mb-5">
-            <h2>Neden Vital Scan?</h2>
-            <p class="lead">Your vital scan compass</p>
+            <h2>{{ __('messages.why_vital_scan') }}</h2>
+            <p class="lead">{{ __('messages.why_vital_scan_text') }}</p>
         </div>
         <div class="row g-4">
             <div class="col-md-4">
@@ -109,8 +109,8 @@
                     <div class="icon-wrapper bg-primary-soft">
                         <i class="bi bi-camera text-primary"></i>
                     </div>
-                    <h3>Hızlı Tarama</h3>
-                    <p>Ürünleri saniyeler içinde tarayın ve detaylı içerik analizine ulaşın.</p>
+                    <h3>{{ __('messages.fast_scan') }}</h3>
+                    <p>{{ __('messages.fast_scan_text') }}</p>
                 </div>
             </div>
             <div class="col-md-4">
@@ -118,8 +118,8 @@
                     <div class="icon-wrapper bg-success-soft">
                         <i class="bi bi-graph-up text-success"></i>
                     </div>
-                    <h3>Sağlık Skoru</h3>
-                    <p>Her ürün için özel sağlık skoru hesaplaması ve detaylı içerik analizi.</p>
+                    <h3>{{ __('messages.health_score') }}</h3>
+                    <p>{{ __('messages.health_score_text') }}</p>
                 </div>
             </div>
             <div class="col-md-4">
@@ -127,8 +127,8 @@
                     <div class="icon-wrapper bg-warning-soft">
                         <i class="bi bi-bookmark-heart text-warning"></i>
                     </div>
-                    <h3>Kişiselleştirme</h3>
-                    <p>Alerjilerinizi ve kategorinizi belirleyin, size özel öneriler alın.</p>
+                    <h3>{{ __('messages.personalization') }}</h3>
+                    <p>{{ __('messages.personalization_text') }}</p>
                 </div>
             </div>
         </div>
@@ -139,29 +139,29 @@
 <section id="how-it-works" class="how-it-works">
     <div class="container">
         <div class="text-center mb-5">
-            <h2>Nasıl Çalışır?</h2>
-            <p class="lead">3 basit adımda sağlıklı yaşama başlayın</p>
+            <h2>{{ __('messages.how_it_works') }}</h2>
+            <p class="lead">{{ __('messages.how_it_works_text') }}</p>
         </div>
         <div class="row g-4">
             <div class="col-md-4">
                 <div class="step-card">
                     <div class="step-number">1</div>
-                    <h4>Ürünü Tarayın</h4>
-                    <p>Ürünün barkodunu veya ambalajını kameranızla tarayın.</p>
+                    <h4>{{ __('messages.scan_the_product') }}</h4>
+                    <p>{{ __('messages.scan_the_product_text') }}</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="step-card">
                     <div class="step-number">2</div>
-                    <h4>Analizi İnceleyin</h4>
-                    <p>Yapay zeka destekli detaylı içerik analizini görüntüleyin.</p>
+                    <h4>{{ __('messages.check_the_analysis') }}</h4>
+                    <p>{{ __('messages.check_the_analysis_text') }}</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="step-card">
                     <div class="step-number">3</div>
-                    <h4>Karar Verin</h4>
-                    <p>Sağlık skoruna göre en doğru kararı verin.</p>
+                    <h4>{{ __('messages.decide') }}</h4>
+                    <p>{{ __('messages.decide_text') }}</p>
                 </div>
             </div>
         </div>
@@ -173,20 +173,20 @@
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-6">
-                <h2>Hemen İndirin</h2>
-                <p class="lead">Sağlıklı yaşam için ilk adımı atın. Uygulamayı indirin ve ürünleri analiz etmeye başlayın.</p>
+                <h2>{{ __('messages.download_now') }}</h2>
+                <p class="lead">{{ __('messages.download_now_text') }}</p>
                 <div class="d-flex gap-3 mt-4">
                     <a href="#" class="store-badge">
-                        <img src="{{ asset('assets/images/playstore.png') }}" alt="App Store VScan">
+                        <img src="{{ asset('assets/images/playstore.png') }}" alt="App Store Vital Scan VScan">
                     </a>
                     <a href="#" class="store-badge">
-                        <img src="{{ asset('assets/images/appstore.png') }}" alt="Google Play VScan">
+                        <img src="{{ asset('assets/images/appstore.png') }}" alt="Google Play Vital Scan VScan">
                     </a>
                 </div>
             </div>
             <div class="col-lg-6">
                 <div class="download-image">
-                    <img src="{{ asset('assets/images/splash_screen-left.png') }}" alt="App Screenshots" class="img-fluid">
+                    <img src="{{ asset('assets/images/splash_screen-left.png') }}" alt="App Screenshots Vital Scan VScan" class="img-fluid">
                 </div>
             </div>
         </div>
@@ -199,33 +199,32 @@
         <div class="row">
             <div class="col-lg-4">
                 <h5>Vital Scan</h5>
-                <p>Sağlıklı yaşam için akıllı seçimler yapın.</p>
+                <p>{{ __('messages.footer_slogan') }}</p>
             </div>
             <div class="col-lg-2">
-                <h5>Ürün</h5>
+                <h5>{{ __('messages.menus.footer_menu.product') }}</h5>
                 <ul class="list-unstyled">
-                    <li><a href="#features">Özellikler</a></li>
-                    <li><a href="#how-it-works">Nasıl Çalışır</a></li>
-                    <li><a href="#download">İndir</a></li>
+                    <li><a href="#features">{{ __('messages.menus.footer_menu.specifications') }}</a></li>
+                    <li><a href="#how-it-works">{{ __('messages.menus.footer_menu.how_it_works') }}</a></li>
+                    <li><a href="#download">{{ __('messages.menus.footer_menu.download') }}</a></li>
                 </ul>
             </div>
             <div class="col-lg-2">
-                <h5>Şirket</h5>
+                <h5>{{ __('messages.menus.footer_menu.company') }}</h5>
                 <ul class="list-unstyled">
-                    <li><a href="#">Hakkımızda</a></li>
-                    <li><a href="#">İletişim</a></li>
-                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">{{ __('messages.menus.footer_menu.about_us') }}</a></li>
+                    <li><a href="#">{{ __('messages.menus.footer_menu.contact') }}</a></li>
                 </ul>
             </div>
             <div class="col-lg-2">
-                <h5>Yasal</h5>
+                <h5>{{ __('messages.menus.footer_menu.legal') }}</h5>
                 <ul class="list-unstyled">
-                    <li><a href="#">Gizlilik</a></li>
-                    <li><a href="#">Koşullar</a></li>
+                    <li><a href="#">{{ __('messages.menus.footer_menu.privacy') }}</a></li>
+                    <li><a href="#">{{ __('messages.menus.footer_menu.conditions') }}</a></li>
                 </ul>
             </div>
             <div class="col-lg-2">
-                <h5>Sosyal</h5>
+                <h5>{{ __('messages.menus.footer_menu.social') }}</h5>
                 <div class="social-links">
                     <a href="#"><i class="bi bi-twitter"></i></a>
                     <a href="#"><i class="bi bi-facebook"></i></a>
@@ -236,7 +235,7 @@
         <hr>
         <div class="row">
             <div class="col-12 text-center">
-                <p class="mb-0">&copy; 2025 Vital Scan. Tüm hakları saklıdır.</p>
+                <p class="mb-0">&copy; 2025 Vital Scan. {{ __('messages.copywriter') }}</p>
             </div>
         </div>
     </div>

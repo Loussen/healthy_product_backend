@@ -4,6 +4,7 @@
             <div class="col-lg-4">
                 <h5>Vital Scan</h5>
                 <p>{{ __('messages.footer_slogan') }}</p>
+                <p>📧 Email: <a href="mailto:info@vitalscan.app">info@vitalscan.app</a></p>
             </div>
             <div class="col-lg-2">
                 <h5>{{ __('messages.menus.footer_menu.product') }}</h5>
@@ -17,7 +18,7 @@
                 <h5>{{ __('messages.menus.footer_menu.company') }}</h5>
                 <ul class="list-unstyled">
                     <li><a href="{{ route('page',['slug' => 'about-us', 'locale' => \Illuminate\Support\Facades\App::getLocale()]) }}">{{ __('messages.menus.footer_menu.about_us') }}</a></li>
-                    <li><a href="#">{{ __('messages.menus.footer_menu.contact') }}</a></li>
+                    <li><a href="{{ route('home',['locale' => \Illuminate\Support\Facades\App::getLocale()]) }}#download">{{ __('messages.menus.footer_menu.contact') }}</a></li>
                 </ul>
             </div>
             <div class="col-lg-2">

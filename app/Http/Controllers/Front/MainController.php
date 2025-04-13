@@ -35,6 +35,11 @@ class MainController extends Controller
 
         $icon = '🛡️';
 
+        if($page->slug == 'terms-conditions')
+            $icon = '📝';
+        elseif($page->slug == 'about-us')
+            $icon = 'ℹ️';
+
         return view('page', ['page' => $page, 'icon' => $icon]);
     }
 }

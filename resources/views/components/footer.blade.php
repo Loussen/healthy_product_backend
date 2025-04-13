@@ -16,7 +16,7 @@
             <div class="col-lg-2">
                 <h5>{{ __('messages.menus.footer_menu.company') }}</h5>
                 <ul class="list-unstyled">
-                    <li><a href="#">{{ __('messages.menus.footer_menu.about_us') }}</a></li>
+                    <li><a href="{{ route('page',['slug' => 'about-us', 'locale' => \Illuminate\Support\Facades\App::getLocale()]) }}">{{ __('messages.menus.footer_menu.about_us') }}</a></li>
                     <li><a href="#">{{ __('messages.menus.footer_menu.contact') }}</a></li>
                 </ul>
             </div>

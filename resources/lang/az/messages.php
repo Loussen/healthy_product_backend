@@ -44,5 +44,9 @@ return [
     'download_now_text' => 'Sağlam həyat üçün ilk addımı atın. Tətbiqi yükləyin və məhsulları analiz etməyə başlayın.',
     'footer_slogan' => 'Your vital scan compass.',
     'copywriter' => 'Bütün hüquqlar qorunur.',
-    'last_updated' => 'Son yenilenmə tarixi'
+    'last_updated' => 'Son yenilenmə tarixi',
+    'meta' => [
+        'keywords' => 'vital scan, vital, skan, vscan, sağlam məhsul, kompas, sağlam',
+        'description' => 'Məhsul tərkibini analiz edin və daha məlumatlı alış-veriş qərarları verin! Vital Scan - Your vital scan compass - VScan'
+    ]
 ];

@@ -44,5 +44,9 @@ return [
     'download_now_text' => 'Take the first step towards a healthy life. Download the app and start analyzing products.',
     'footer_slogan' => 'Your vital scan compass',
     'copywriter' => 'All rights reserved.',
-    'last_updated' => 'Last updated'
+    'last_updated' => 'Last updated',
+    'meta' => [
+        'keywords' => 'vital scan, vital, scan, vscan, healthy product, compass, healthy',
+        'description' => 'Analyze product ingredients and make more informed shopping decisions! Vital Scan - Your vital scan compass - VScan'
+    ]
 ];

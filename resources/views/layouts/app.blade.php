@@ -4,21 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vital Scan - Your vital scan compass @yield('title', '')</title>
-    <meta name="description" content="Your vital scan compass">
-    <meta name="keywords" content="vital scan, vital, scan, vscan, healthy product, compass, healthy">
+    <meta name="description" content="{{ __('messages.meta.description') }}">
+    <meta name="keywords" content="{{ __('messages.meta.keywords') }}">
     <meta name="author" content="Fuad Hasanli">
 
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://vitalscan.app">
     <meta property="og:title" content="Vital Scan - Your vital scan compass">
-    <meta property="og:description" content="Bu, sosyal medyada gösterilecek kısa açıklamadır.">
-    <meta property="og:image" content="https://seninsiten.com/images/og-image.jpg">
+    <meta property="og:description" content="{{ __('messages.meta.description') }}">
+    <meta property="og:image" content="{{ asset('assets/images/graphic.jpeg') }}">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://vitalscan.app">
     <meta name="twitter:title" content="Vital Scan - Your vital scan compass">
-    <meta name="twitter:description" content="Bu, Twitter’da gözükecek kısa açıklamadır.">
-    <meta name="twitter:image" content="https://seninsiten.com/images/twitter-image.jpg">
+    <meta name="twitter:description" content="{{ __('messages.meta.description') }}">
+    <meta name="twitter:image" content="{{ asset('assets/images/graphic.jpeg') }}">
 
     <link href="{{ asset('assets/css/bootstrap.min.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('assets/css/bootstrap-icons.css') }}">

@@ -44,5 +44,9 @@ return [
     'download_now_text' => 'Sağlıklı yaşam için ilk adımı atın. Uygulamayı indirin ve ürünleri analiz etmeye başlayın.',
     'footer_slogan' => 'Your vital scan compass',
     'copywriter' => 'Tüm hakları saklıdır.',
-    'last_updated' => 'Son güncellenme tarihi'
+    'last_updated' => 'Son güncellenme tarihi',
+    'meta' => [
+        'keywords' => 'vital scan, vital, tarama, vscan, sağlıklı ürün, pusula, sağlıklı',
+        'description' => 'Ürün içeriklerini analiz edin, daha bilinçli alışveriş kararları verin! Vital Scan - Your vital scan compass - VScan'
+    ]
 ];

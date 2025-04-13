@@ -44,5 +44,9 @@ return [
     'download_now_text' => 'Сделайте первый шаг к здоровой жизни. Скачайте приложение и начните анализировать продукты.',
     'footer_slogan' => 'Your vital scan compass',
     'copywriter' => 'Все права защищены.',
-    'last_updated' => 'Дата последнего обновления'
+    'last_updated' => 'Дата последнего обновления',
+    'meta' => [
+        'keywords' => 'vital scan, vital, сканирование, vscan, полезный продукт, компас, здоровый',
+        'description' => 'Анализируйте состав продуктов и принимайте более обоснованные решения при покупке! Vital Scan - Your vital scan compass - VScan'
+    ]
 ];

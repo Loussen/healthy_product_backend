@@ -18,8 +18,55 @@
                     </div>
                 </div>
                 <div class="col-lg-6 camera-content-div">
-                    <img src="{{ asset('assets/images/screen_camera-portrait.png') }}" alt="VScan Vital Scan" class="camera-content">
+                    <div id="cameraCarousel" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            <div class="carousel-item active">
+                                <img src="{{ asset('assets/images/home-page-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                            </div>
+                            <div class="carousel-item">
+                                <img src="{{ asset('assets/images/screen_camera-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                            </div>
+                            <div class="carousel-item">
+                                <img src="{{ asset('assets/images/result-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                            </div>
+                            <div class="carousel-item">
+                                <img src="{{ asset('assets/images/ingredients-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                            </div>
+                            <div class="carousel-item">
+                                <img src="{{ asset('assets/images/history-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                            </div>
+                            <div class="carousel-item">
+                                <img src="{{ asset('assets/images/profile-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                            </div>
+                            <div class="carousel-item">
+                                <img src="{{ asset('assets/images/splash_screen-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                            </div>
+                        </div>
+
+                        <!-- Controls -->
+                        <button class="carousel-control-prev custom-carousel-control" type="button" data-bs-target="#cameraCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next custom-carousel-control" type="button" data-bs-target="#cameraCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
                 </div>
+
+                <style>
+                    .custom-carousel-control .carousel-control-prev-icon,
+                    .custom-carousel-control .carousel-control-next-icon {
+                        background-color: #DFE1E5;
+                        background-size: 100% 100%;
+                        border-radius: 50%;
+                        width: 3rem;
+                        height: 3rem;
+                    }
+                </style>
+
+
             </div>
         </div>
     </section>

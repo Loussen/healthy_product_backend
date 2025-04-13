@@ -25,7 +25,7 @@ return [
     'slogan' => 'Sağlam həyat üçün ağıllı seçimlər edin',
     'slogan_text' => 'Məhsulları skan edin, tərkibini analiz edin və sağlamlığınız üçün ən yaxşı qərarları verin. Süni intellektlə gücləndirilmiş tətbiqimizlə sağlam həyat artıq daha asandır!',
     'why_vital_scan' => 'Niyə Vital Scan?',
-    'why_vital_scan_text' => 'Sizin sağlamlıq kompasınız',
+    'why_vital_scan_text' => 'Sağlam həyat üçün ağıllı seçimlər edin.',
     'fast_scan' => 'Sürətli Skan',
     'fast_scan_text' => 'Məhsulları saniyələr ərzində skan edin və ətraflı tərkib analizinə baxın.',
     'health_score' => 'Sağlamlıq Balı',
@@ -42,7 +42,7 @@ return [
     'decide_text' => 'Sağlamlıq balına əsasən düzgün qərar verin.',
     'download_now' => 'İndi Yüklə',
     'download_now_text' => 'Sağlam həyat üçün ilk addımı atın. Tətbiqi yükləyin və məhsulları analiz etməyə başlayın.',
-    'footer_slogan' => 'Sağlam həyat üçün ağıllı seçimlər edin.',
+    'footer_slogan' => 'Your vital scan compass.',
     'copywriter' => 'Bütün hüquqlar qorunur.',
     'last_updated' => 'Son yenilenmə tarixi'
 ];

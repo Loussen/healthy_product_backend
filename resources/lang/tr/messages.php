@@ -25,7 +25,7 @@ return [
     'slogan' => 'Sağlıklı yaşam için akıllı seçimler yapın',
     'slogan_text' => 'Ürünleri tarayın, içeriklerini analiz edin ve sağlığınız için en iyi kararları verin. Yapay zeka destekli uygulamamız ile sağlıklı yaşam artık daha kolay!',
     'why_vital_scan' => 'Neden Vital Scan?',
-    'why_vital_scan_text' => 'Your vital scan compass',
+    'why_vital_scan_text' => 'Sağlıklı yaşam için akıllı seçimler yapın.',
     'fast_scan' => 'Hızlı Tarama',
     'fast_scan_text' => 'Ürünleri saniyeler içinde tarayın ve detaylı içerik analizine ulaşın.',
     'health_score' => 'Sağlık Skoru',
@@ -42,7 +42,7 @@ return [
     'decide_text' => 'Sağlık skoruna göre en doğru kararı verin.',
     'download_now' => 'Hemen İndirin',
     'download_now_text' => 'Sağlıklı yaşam için ilk adımı atın. Uygulamayı indirin ve ürünleri analiz etmeye başlayın.',
-    'footer_slogan' => 'Sağlıklı yaşam için akıllı seçimler yapın.',
+    'footer_slogan' => 'Your vital scan compass',
     'copywriter' => 'Tüm hakları saklıdır.',
     'last_updated' => 'Son güncellenme tarihi'
 ];

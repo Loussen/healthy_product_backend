@@ -25,7 +25,7 @@ return [
     'slogan' => 'Make smart choices for a healthy life',
     'slogan_text' => 'Scan products, analyze their contents, and make the best decisions for your health. With our AI-powered app, living healthy is now easier!',
     'why_vital_scan' => 'Why Vital Scan?',
-    'why_vital_scan_text' => 'Your vital scan compass',
+    'why_vital_scan_text' => 'Make smart choices for a healthy life.',
     'fast_scan' => 'Fast Scanning',
     'fast_scan_text' => 'Scan products within seconds and access detailed content analysis.',
     'health_score' => 'Health Score',
@@ -42,7 +42,7 @@ return [
     'decide_text' => 'Make the right decision based on the health score.',
     'download_now' => 'Download Now',
     'download_now_text' => 'Take the first step towards a healthy life. Download the app and start analyzing products.',
-    'footer_slogan' => 'Make smart choices for a healthy life.',
+    'footer_slogan' => 'Your vital scan compass',
     'copywriter' => 'All rights reserved.',
     'last_updated' => 'Last updated'
 ];

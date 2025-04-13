@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Vital Scan - Your vital scan compass')</title>
+    <title>Vital Scan - Your vital scan compass@yield('title', '')</title>
     <meta name="description" content="Your vital scan compass">
     <meta name="keywords" content="vital scan, vital, scan, vscan, healthy product, compass, healthy">
     <meta name="author" content="Fuad Hasanli">

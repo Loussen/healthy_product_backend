@@ -30,6 +30,8 @@ class MainController extends Controller
             abort(404);
         }
 
-        return view('page', ['page' => $page]);
+        $icon = '🛡️';
+
+        return view('page', ['page' => $page, 'icon' => $icon]);
     }
 }

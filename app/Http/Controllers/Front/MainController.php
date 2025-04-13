@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Front;
 
 use App\Http\Controllers\Controller;
 use App\Models\Page;
+use Carbon\Carbon;
 use Illuminate\View\View;
 
 class MainController extends Controller
@@ -29,6 +30,8 @@ class MainController extends Controller
         if (!$page) {
             abort(404);
         }
+
+        Carbon::setLocale(app()->getLocale());
 
         $icon = '🛡️';
 

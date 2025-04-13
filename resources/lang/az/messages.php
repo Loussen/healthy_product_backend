@@ -43,5 +43,6 @@ return [
     'download_now' => 'İndi Yüklə',
     'download_now_text' => 'Sağlam həyat üçün ilk addımı atın. Tətbiqi yükləyin və məhsulları analiz etməyə başlayın.',
     'footer_slogan' => 'Sağlam həyat üçün ağıllı seçimlər edin.',
-    'copywriter' => 'Bütün hüquqlar qorunur.'
+    'copywriter' => 'Bütün hüquqlar qorunur.',
+    'last_updated' => 'Son yenilenmə tarixi'
 ];

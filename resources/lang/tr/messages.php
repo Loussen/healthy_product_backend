@@ -43,5 +43,6 @@ return [
     'download_now' => 'Hemen İndirin',
     'download_now_text' => 'Sağlıklı yaşam için ilk adımı atın. Uygulamayı indirin ve ürünleri analiz etmeye başlayın.',
     'footer_slogan' => 'Sağlıklı yaşam için akıllı seçimler yapın.',
-    'copywriter' => 'Tüm hakları saklıdır.'
+    'copywriter' => 'Tüm hakları saklıdır.',
+    'last_updated' => 'Son güncellenme tarihi'
 ];

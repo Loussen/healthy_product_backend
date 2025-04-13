@@ -44,5 +44,5 @@ return [
     'download_now_text' => 'Take the first step towards a healthy life. Download the app and start analyzing products.',
     'footer_slogan' => 'Make smart choices for a healthy life.',
     'copywriter' => 'All rights reserved.',
-    'privacy_policy' => 'Privacy Policy'
+    'last_updated' => 'Last updated'
 ];

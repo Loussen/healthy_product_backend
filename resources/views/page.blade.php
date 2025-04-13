@@ -8,6 +8,11 @@
         <div class="container">
             <h1 class="text-center">{{ $icon." ".$page->title }}</h1>
             <div class="row mt-5">
+                <p>
+                    <span>{{ __('messages.last_updated') }}</span>
+                    <br>
+                    {{ \Carbon\Carbon::parse($page->updated_at)->translatedFormat('F d, Y') }}
+                </p>
                 {!! $page->content !!}
             </div>
         </div>

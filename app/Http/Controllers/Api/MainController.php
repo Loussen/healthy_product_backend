@@ -12,25 +12,28 @@ use App\Models\Page;
 use App\Models\ScanResults;
 use App\Services\DebugWithTelegramService;
 use Carbon\Carbon;
-use Google\Cloud\AIPlatform\V1\Client\PredictionServiceClient;
-use Google\Cloud\AIPlatform\V1\PredictRequest;
-use Google\Protobuf\Struct;
-use Google\Protobuf\Value;
+//use Google\Cloud\AIPlatform\V1\Client\PredictionServiceClient;
+//use Google\Cloud\AIPlatform\V1\PredictRequest;
+//use Google\Protobuf\Struct;
+//use Google\Protobuf\Value;
+use Google\Service\AndroidPublisher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use OpenAI;
-use Google\Cloud\AIPlatform\V1\Content;
-use Google\Cloud\AIPlatform\V1\GenerationConfig;
-use Google\Cloud\AIPlatform\V1\Part;
-use Google\Cloud\AIPlatform\V1\Types\InlineData;
-use Google\Cloud\AIPlatform\V1\Types\GenerateContentRequest;
-use Google\Cloud\AIPlatform\V1\Types\GenerateContentResponse;
-use Google\Cloud\AIPlatform\V1\Types\Part\Data;
-use Google\Cloud\AIPlatform\V1\Types\Part\InlineData\MimeType;
-use Google\Cloud\AIPlatform\V1\GenerativeServiceClient;
+//use Google\Cloud\AIPlatform\V1\Content;
+//use Google\Cloud\AIPlatform\V1\GenerationConfig;
+//use Google\Cloud\AIPlatform\V1\Part;
+//use Google\Cloud\AIPlatform\V1\Types\InlineData;
+//use Google\Cloud\AIPlatform\V1\Types\GenerateContentRequest;
+//use Google\Cloud\AIPlatform\V1\Types\GenerateContentResponse;
+//use Google\Cloud\AIPlatform\V1\Types\Part\Data;
+//use Google\Cloud\AIPlatform\V1\Types\Part\InlineData\MimeType;
+//use Google\Cloud\AIPlatform\V1\GenerativeServiceClient;
+use Google\Client as GoogleClient;
+
 
 class MainController extends BaseController
 {
@@ -125,7 +128,7 @@ class MainController extends BaseController
                 'updated_at' => $activePackage->package->updated_at
             ];
         }
-        
+
         return $this->sendResponse(
             array_merge($getCustomer->toArray(), [
                 'highest_score_scan' => $highestScoreScan,
@@ -390,6 +393,7 @@ class MainController extends BaseController
                     'per_scan' => $package->per_scan,
                     'saving' => $package->saving,
                     'is_popular' => $package->is_popular,
+                    'product_id_for_payment' => $package->product_id_for_payment,
                 ];
             });
 
@@ -676,6 +680,68 @@ class MainController extends BaseController
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
             return $this->sendError('change_password', "Change password error - ".$e->getMessage(), 500);
+        }
+    }
+
+    public function verifySubscription(Request $request)
+    {
+        try {
+            dd(file_get_contents(storage_path('app/vital-scan-vscan-946976e70313.json')));
+            // Request validation
+            $validated = $request->validate([
+                'product_id' => 'required|string',
+                'purchase_token' => 'required|string',
+                'transaction_date' => 'required|date',
+            ]);
+
+            // Google Client setup
+            $client = new GoogleClient();
+            $client->setAuthConfig(storage_path('app/vital-scan-vscan-946976e70313.json')); // Google Play Console'dan indirdiğiniz service account json
+            $client->addScope('https://www.googleapis.com/auth/androidpublisher');
+
+            // Android Publisher service
+            $androidPublisher = new AndroidPublisher($client);
+
+            // Subscription doğrulama
+            $result = $androidPublisher->purchases_subscriptions->get(
+                'com.healthyproduct.app', // Android uygulama package name
+                $validated['product_id'],
+                $validated['purchase_token']
+            );
+
+            // Subscription durumunu kontrol et
+            if ($result->paymentState == 1) { // 1 = payment received
+                // Subscription'ı veritabanına kaydet
+                $subscription = Subscription::updateOrCreate(
+                    ['user_id' => auth()->id()],
+                    [
+                        'product_id' => $validated['product_id'],
+                        'purchase_token' => $validated['purchase_token'],
+                        'start_date' => Carbon::createFromTimestamp($result->startTimeMillis / 1000),
+                        'expiry_date' => Carbon::createFromTimestamp($result->expiryTimeMillis / 1000),
+                        'status' => 'active',
+                        'auto_renewing' => $result->autoRenewing,
+                    ]
+                );
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Subscription verified and saved',
+                    'data' => $subscription
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid subscription payment state'
+            ], 400);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Verification failed',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }

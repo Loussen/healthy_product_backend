@@ -62,6 +62,8 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::post('set-default-country', 'setDefaultCountry')->name('setDefaultCountry');
 
     Route::post('change-password', 'changePassword')->name('changePassword');
+
+    Route::post('subscriptions/verify', 'verifySubscription')->name('verifySubscription');
 });
 
 Route::get('/test-openai', function () {

@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-lg fixed-top">
     <div class="container">
         <a class="navbar-brand" href="{{ route('home',['locale' => \Illuminate\Support\Facades\App::getLocale()]) }}">
-            <img src="{{ asset('assets/images/logo.png') }}" alt="VScan Vital Scan">
+            <img src="{{ asset('assets/images/logo_new.png') }}" alt="VScan Vital Scan">
             <span class="brand-text d-sm-inline">Vital Scan</span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">

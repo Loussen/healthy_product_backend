@@ -1,11 +1,18 @@
 <footer class="footer">
     <div class="container">
         <div class="row">
-            <div class="col-lg-4">
-                <h5>Vital Scan</h5>
+            <div class="col-lg-4 footer-contact">
+                <h5 class="mb-3">Vital Scan</h5>
                 <p>{{ __('messages.footer_slogan') }}</p>
-                <p>📧 Email: <a href="mailto:info@vitalscan.app">info@vitalscan.app</a></p>
+                <p>
+                    📧 <strong>Email:</strong>
+                    <a href="mailto:info@vitalscan.app">info@vitalscan.app</a>
+                </p>
+                    <img src="{{ asset('assets/images/logo_new.png') }}"
+                         alt="Vital Scan Logo"
+                         style="width: 20%; display: block;" />
             </div>
+
             <div class="col-lg-2">
                 <h5>{{ __('messages.menus.footer_menu.product') }}</h5>
                 <ul class="list-unstyled">

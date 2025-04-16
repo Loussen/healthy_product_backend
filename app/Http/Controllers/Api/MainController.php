@@ -6,10 +6,12 @@ use App\Models\BugReports;
 use App\Models\Categories;
 use App\Models\ContactUs;
 use App\Models\Countries;
+use App\Models\CustomerPackages;
 use App\Models\Customers;
 use App\Models\Packages;
 use App\Models\Page;
 use App\Models\ScanResults;
+use App\Models\Subscription;
 use App\Services\DebugWithTelegramService;
 use Carbon\Carbon;
 //use Google\Cloud\AIPlatform\V1\Client\PredictionServiceClient;
@@ -19,6 +21,7 @@ use Carbon\Carbon;
 use Google\Service\AndroidPublisher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -686,7 +689,8 @@ class MainController extends BaseController
     public function verifySubscription(Request $request)
     {
         try {
-            dd(file_get_contents(storage_path('app/vital-scan-vscan-946976e70313.json')));
+            $user = $request->user();
+
             // Request validation
             $validated = $request->validate([
                 'product_id' => 'required|string',
@@ -694,10 +698,20 @@ class MainController extends BaseController
                 'transaction_date' => 'required|date',
             ]);
 
+            $jsonPath = storage_path('app/vital-scan-vscan-908399013c6f.json');
+
+            if (!file_exists($jsonPath)) {
+                $log = new DebugWithTelegramService();
+                $log->debug('Json file not found');
+                throw new \Exception('Service account JSON file not found');
+            }
+
             // Google Client setup
             $client = new GoogleClient();
-            $client->setAuthConfig(storage_path('app/vital-scan-vscan-946976e70313.json')); // Google Play Console'dan indirdiğiniz service account json
+            $client->setAuthConfig($jsonPath); // Google Play Console'dan indirdiğiniz service account json
             $client->addScope('https://www.googleapis.com/auth/androidpublisher');
+            $client->setApplicationName('VScan');
+            $client->setAccessType('offline');
 
             // Android Publisher service
             $androidPublisher = new AndroidPublisher($client);
@@ -711,37 +725,55 @@ class MainController extends BaseController
 
             // Subscription durumunu kontrol et
             if ($result->paymentState == 1) { // 1 = payment received
+                DB::beginTransaction();
+
+                $package = Packages::where('product_id_for_payment', $validated['product_id'])->first();
+                if (!$package) {
+                    $log = new DebugWithTelegramService();
+                    $log->debug('Package not found for product ID: ' . $validated['product_id']);
+                    throw new \Exception('Package not found for product ID: ' . $validated['product_id']);
+                }
+
                 // Subscription'ı veritabanına kaydet
-                $subscription = Subscription::updateOrCreate(
-                    ['user_id' => auth()->id()],
+                $subscription = Subscription::create(
                     [
+                        'customer_id' => $user->id,
                         'product_id' => $validated['product_id'],
                         'purchase_token' => $validated['purchase_token'],
                         'start_date' => Carbon::createFromTimestamp($result->startTimeMillis / 1000),
                         'expiry_date' => Carbon::createFromTimestamp($result->expiryTimeMillis / 1000),
                         'status' => 'active',
                         'auto_renewing' => $result->autoRenewing,
+                        'payment_details' => $result,
+                        'amount' => $package->price,
                     ]
                 );
 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Subscription verified and saved',
-                    'data' => $subscription
+                $customerPackage = CustomerPackages::create([
+                    'customer_id' => $user->id,
+                    'package_id' => $package->id,
+                    'remaining_scans' => $package->scan_count,
+                    'subscription_id' => $subscription->id,
+                    'created_at' => now(),
+                    'updated_at' => now()
                 ]);
+
+                DB::commit();
+                return $this->sendResponse('success', 'Subscription verified and saved', 201);
             }
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid subscription payment state'
-            ], 400);
+            return $this->sendError('invalid_subscription', 'Invalid subscription payment state', 400);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Verification failed',
-                'error' => $e->getMessage()
-            ], 500);
+            $log = new DebugWithTelegramService();
+            $log->debug($e->getMessage());
+            return $this->sendError('payment_failed', "Payment error - ".$e->getMessage(), 500);
         }
+    }
+
+    public function webhookGoogleSubscription()
+    {
+        $log = new DebugWithTelegramService();
+        $log->debug('Google subscriptions');
     }
 }

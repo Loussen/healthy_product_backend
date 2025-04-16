@@ -66,6 +66,8 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::post('subscriptions/verify', 'verifySubscription')->name('verifySubscription');
 });
 
+Route::get('google/subscriptions/webhook', [MainController::class, 'webhookGoogleSubscription'])->name('webhookGoogleSubscription');
+
 Route::get('/test-openai', function () {
     $log = new DebugWithTelegramService();
     $log->debug('error');

@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'external.api' => ExternalApi::class,
             'locale' => \App\Http\Middleware\Locale::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            '/v1/google/subscriptions/webhook' // <-- exclude this route
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

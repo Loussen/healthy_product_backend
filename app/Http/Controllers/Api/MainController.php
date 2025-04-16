@@ -723,8 +723,20 @@ class MainController extends BaseController
                 $validated['purchase_token']
             );
 
+            $now = Carbon::now();
+            $expiry = Carbon::createFromTimestamp($result->expiryTimeMillis / 1000);
+            $start = Carbon::createFromTimestamp($result->startTimeMillis / 1000);
+
+            if ($now->greaterThanOrEqualTo($expiry)) {
+                return $this->sendError('expired', 'Subscription expired', 400);
+            }
+
+            if (isset($result->cancelReason)) {
+                return $this->sendError('cancelled', 'Subscription was cancelled', 400);
+            }
+
             // Subscription durumunu kontrol et
-            if ($result->paymentState == 1) { // 1 = payment received
+            if (isset($result->paymentState) && $result->paymentState == 1) {
                 DB::beginTransaction();
 
                 $package = Packages::where('product_id_for_payment', $validated['product_id'])->first();
@@ -771,9 +783,24 @@ class MainController extends BaseController
         }
     }
 
-    public function webhookGoogleSubscription()
+    public function webhookGoogleSubscription(Request $request)
     {
         $log = new DebugWithTelegramService();
-        $log->debug('Google subscriptions');
+        $rawBody = $request->getContent();
+
+        $data = json_decode($rawBody, true);
+
+        if (!isset($data['message']['data'])) {
+            $log->debug('No message data found');
+            return response()->json(['status' => 'error', 'message' => 'No message data'], 200); // 200 dön ki tekrar etmesin
+        }
+
+        $decodedMessage = base64_decode($data['message']['data']);
+        $decodedData = json_decode($decodedMessage, true);
+
+        $log->debug('Decoded Data: ' . json_encode($decodedData));
+
+        return response()->json(['status' => 'success'], 200); // Google memnun kalsın :)
     }
+
 }

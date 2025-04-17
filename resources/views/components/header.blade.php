@@ -10,16 +10,16 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="#features">{{ __('messages.menus.top_menu.specifications') }}</a>
+                    <a class="nav-link" href="{{ route('home',['locale' => \Illuminate\Support\Facades\App::getLocale()]) }}#features">{{ __('messages.menus.top_menu.specifications') }}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#how-it-works">{{ __('messages.menus.top_menu.how_it_works') }}</a>
+                    <a class="nav-link" href="{{ route('home',['locale' => \Illuminate\Support\Facades\App::getLocale()]) }}#how-it-works">{{ __('messages.menus.top_menu.how_it_works') }}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#download">{{ __('messages.menus.top_menu.download') }}</a>
+                    <a class="nav-link" href="{{ route('home',['locale' => \Illuminate\Support\Facades\App::getLocale()]) }}#download">{{ __('messages.menus.top_menu.download') }}</a>
                 </li>
                 <li class="nav-item d-lg-none">
-                    <a href="#download" class="btn btn-primary w-100">{{ __('messages.menus.top_menu.start_now') }}</a>
+                    <a href="{{ route('home',['locale' => \Illuminate\Support\Facades\App::getLocale()]) }}#download" class="btn btn-primary w-100">{{ __('messages.menus.top_menu.start_now') }}</a>
                 </li>
             </ul>
             <div class="dropdown">

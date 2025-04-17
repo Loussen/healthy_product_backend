@@ -787,6 +787,7 @@ class MainController extends BaseController
     {
         $log = new DebugWithTelegramService();
         $rawBody = $request->getContent();
+        $log->debug('Google Webhook Raw: ' . $rawBody);
 
         $data = json_decode($rawBody, true);
 

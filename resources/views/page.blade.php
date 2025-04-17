@@ -6,8 +6,8 @@
     <!-- Hero Section -->
     <section class="hero">
         <div class="container">
-            <h2 class="text-center">{{ $icon." ".$page->title }}</h2>
             <div class="row mt-5">
+                <h2 class="text-center mb-5">{{ $icon." ".$page->title }}</h2>
                 <p class="mb-3">
                     <span>{{ __('messages.last_updated') }}</span>
                     <br>

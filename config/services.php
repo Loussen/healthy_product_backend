@@ -39,7 +39,7 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
     ],
 
-    'free_package_limit' => 4,
+    'free_package_limit' => 5,
 
     'locales' => ['az' => 'Azərbaycan','en' => 'English', 'ru' => 'Русский', 'tr' => 'Türkçe'],
 

@@ -13,6 +13,7 @@ use App\Models\Page;
 use App\Models\ScanResults;
 use App\Models\Subscription;
 use App\Services\DebugWithTelegramService;
+use App\Services\GoogleVisionService;
 use Carbon\Carbon;
 //use Google\Cloud\AIPlatform\V1\Client\PredictionServiceClient;
 //use Google\Cloud\AIPlatform\V1\PredictRequest;
@@ -232,6 +233,138 @@ class MainController extends BaseController
                                     'type' => 'image_url',
 //                                    'image_url' => ["url" => "data:image/png;base64,$image"]
                                     'image_url' => ["url" => $fullUrl]
+                                ]
+                            ]
+                        ]
+                    ],
+//                    'max_tokens' => 500,
+                    'response_format' => ['type' => 'json_object'],
+                ]);
+
+
+                $aiResponseData = json_decode($aiResponse->choices[0]->message->content, true);
+
+                // Create scan result record
+                $scanResult = ScanResults::create([
+                    'customer_id' => $user->id,
+                    'category_id' => $request->category_id,
+                    'image' => $path,
+                    'response' => $aiResponseData,
+                    'category_name_ai' => $aiResponseData['category'] ?? '',
+                    'product_name_ai' => $aiResponseData['product_name'] && $aiResponseData['product_name'] != 'null' ? $aiResponseData['product_name'] : '',
+                    'product_score' => isset($aiResponseData['health_score']) && $aiResponseData['health_score'] !== 'null'
+                        ? (int) str_replace('%', '', $aiResponseData['health_score'])
+                        : null,
+                    'check' => $aiResponseData['check']
+                ]);
+
+                if($aiResponseData['check'] && $activePackage)
+                {
+                    $activePackage->decrement('remaining_scans');
+                }
+
+                return $this->sendResponse([
+                    'scan_id' => $scanResult->id,
+                    'image_path' => Storage::url($path),
+                    'category_id' => $scanResult->category_id,
+                    'response' => $scanResult->response
+                ], 'Scan result uploaded successfully');
+            }
+
+            return $this->sendError('upload_error', 'No image file provided', 400);
+
+        } catch (\Exception $e) {
+            $log = new DebugWithTelegramService();
+            $log->debug($e->getMessage());
+            return $this->sendError('scan_result_error', "Scan result error - " . $e->getMessage(), 500);
+        }
+    }
+
+    public function scanNew(Request $request, GoogleVisionService $googleVisionService): JsonResponse
+    {
+        try {
+            $user = $request->user();
+
+            // Validate the request
+            $validator = Validator::make($request->all(), [
+                'category_id' => 'required|numeric|exists:categories,id',
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
+
+            $language = $user->language ?? 'en';
+
+            if ($validator->fails()) {
+                return $this->sendError('validation_error', $validator->errors(), 400);
+            }
+
+            $activePackage = $user->packages()
+                ->where('remaining_scans', '>', 0)
+                ->where('created_at', '>=', now()->subMonth())
+                ->orderBy('id')
+                ->first();
+
+            if(!$activePackage) {
+                $allScans = $user->scan_results()
+                    ->count();
+
+                if($allScans >= config('services.free_package_limit')) {
+                    return $this->sendError('out_of_scan_limit', 'Out of scan limit');
+                }
+            }
+
+            // Handle file upload
+            if ($request->hasFile('image')) {
+                // Store the image
+                $path = $request->file('image')->store('scan_results', 'public');
+
+                $fullUrl = asset('storage/' . $path);
+
+                $content = $googleVisionService->extractText($fullUrl);
+
+                // Get category name
+                $category = Categories::find($request->category_id);
+                $categoryName = $category->getTranslation('name', 'en');
+
+                // Get image content as base64
+                $image = base64_encode(file_get_contents($request->file('image')));
+
+                // Call OpenAI API
+                $openai = OpenAI::client(env('OPENAI_API_KEY'));
+                $aiResponse = $openai->chat()->create([
+                    'model' => env('OPENAI_MODEL'),
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => "This is a product analysis system. Analyze the contents seen in the content.
+            Dynamically change the health score according to the category specified by the user.
+            If the product name or category cannot be determined, return 'null'.
+            Always return the result in JSON format.
+            Respond in the language specified by the user. Write all content (product name, category, ingredients, health score, explanations) in the user's specified language.
+            If no valid information is found or if there is an error, include \"check\": false in the response. Otherwise, include \"check\": true.
+            The JSON format should be as follows:
+            {
+              \"check\": true or false,
+              \"product_name\": \"The name of the product in the language determined by AI (e.g., Tobacco)\",
+              \"category\": \"The category of the product in the language determined by AI (e.g., Tobacco product)\",
+              \"ingredients\": [\"List all ingredients in the language specified by the user\"],
+              \"worst_ingredients\": [\"The worst ingredients in terms of health, in the language specified by the user\"],
+              \"best_ingredients\": [\"The best ingredients in terms of health, in the language specified by the user\"],
+              \"health_score\": \"Health score as a percentage, which may vary depending on the category\",
+              \"detail_text\": \"Detailed information about the product in the language specified by the user (If some content is not specified, respond appropriately)\"
+            }"
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => [
+                                [
+                                    'type' => 'text',
+                                    'text' => "Analyze the contents of this product and respond in the specified JSON format.
+            Write the ingredients (all, worst, best), product name, product category, and detailed text in **$language**.
+            Category: **$categoryName**, Language: **$language**."
+                                ],
+                                [
+                                    'type' => 'text',
+                                    'text' => $content
                                 ]
                             ]
                         ]

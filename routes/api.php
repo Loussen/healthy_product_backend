@@ -5,6 +5,7 @@ use App\Services\DebugWithTelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use Google\Cloud\Vision\V1\Client\ImageAnnotatorClient;
 
 /*
 |--------------------------------------------------------------------------
@@ -64,6 +65,8 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::post('change-password', 'changePassword')->name('changePassword');
 
     Route::post('subscriptions/verify', 'verifySubscription')->name('verifySubscription');
+
+    Route::post('scan-new', 'scanNew')->name('scanNew');
 });
 
 Route::post('google/subscriptions/webhook', [MainController::class, 'webhookGoogleSubscription'])->name('webhookGoogleSubscription');
@@ -117,3 +120,53 @@ Route::get('/test-openai', function () {
     return response()->json($data, 200, [], JSON_UNESCAPED_UNICODE);
 });
 
+Route::get('/vision-test', function () {
+    try {
+        // Google Cloud kimlik doğrulama
+        putenv('GOOGLE_APPLICATION_CREDENTIALS=' . storage_path('app/vital-scan-vscan-f84aa6680e43.json'));
+
+        // Client oluştur
+        $imageAnnotator = new \Google\Cloud\Vision\V1\Client\ImageAnnotatorClient();
+
+        // Resim hazırla
+        $imageUrl = 'https://contrademn.com/wp-content/uploads/2022/12/eng_pl_Alpen-Gold-Milk-Chocolate-Strawberry-90-g-18598_2-scaled-400x400.jpg';
+        $imageContent = file_get_contents($imageUrl);
+
+        // Image nesnesini oluştur
+        $image = new \Google\Cloud\Vision\V1\Image();
+        $image->setContent($imageContent);
+
+        // Feature nesnesi oluştur - TEXT_DETECTION özelliğini belirt
+        $feature = new \Google\Cloud\Vision\V1\Feature();
+        $feature->setType(\Google\Cloud\Vision\V1\Feature\Type::TEXT_DETECTION);
+
+        // AnnotateImageRequest oluştur
+        $request = new \Google\Cloud\Vision\V1\AnnotateImageRequest();
+        $request->setImage($image);
+        $request->setFeatures([$feature]);
+
+        // BatchAnnotateImagesRequest oluştur
+        $batchRequest = new \Google\Cloud\Vision\V1\BatchAnnotateImagesRequest();
+        $batchRequest->setRequests([$request]);
+
+        // İsteği gönder
+        $response = $imageAnnotator->batchAnnotateImages($batchRequest);
+
+        // Yanıtı işle
+        $annotations = $response->getResponses()[0];
+        $textAnnotations = $annotations->getTextAnnotations();
+
+        $imageAnnotator->close();
+
+        // Sonucu göster
+        if (count($textAnnotations) > 0) {
+            $text = $textAnnotations[0]->getDescription();
+            return "Bulunan metin: $text";
+        } else {
+            return "Metin bulunamadı";
+        }
+
+    } catch (\Exception $e) {
+        return "Hata: " . $e->getMessage();
+    }
+});

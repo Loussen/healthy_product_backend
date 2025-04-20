@@ -149,7 +149,7 @@ class MainController extends BaseController
         );
     }
 
-    public function scan(Request $request): JsonResponse
+    public function scanOld(Request $request): JsonResponse
     {
         try {
             $user = $request->user();
@@ -251,7 +251,7 @@ class MainController extends BaseController
                     'image' => $path,
                     'response' => $aiResponseData,
                     'category_name_ai' => $aiResponseData['category'] ?? '',
-                    'product_name_ai' => $aiResponseData['product_name'] && $aiResponseData['product_name'] != 'null' ? $aiResponseData['product_name'] : '',
+                    'product_name_ai' => $aiResponseData['product_name'] ?? '',
                     'product_score' => isset($aiResponseData['health_score']) && $aiResponseData['health_score'] !== 'null'
                         ? (int) str_replace('%', '', $aiResponseData['health_score'])
                         : null,
@@ -280,7 +280,7 @@ class MainController extends BaseController
         }
     }
 
-    public function scanNew(Request $request, GoogleVisionService $googleVisionService): JsonResponse
+    public function scan(Request $request, GoogleVisionService $googleVisionService): JsonResponse
     {
         try {
             $user = $request->user();
@@ -383,7 +383,8 @@ class MainController extends BaseController
                     'image' => $path,
                     'response' => $aiResponseData,
                     'category_name_ai' => $aiResponseData['category'] ?? '',
-                    'product_name_ai' => $aiResponseData['product_name'] && $aiResponseData['product_name'] != 'null' ? $aiResponseData['product_name'] : '',
+//                    'product_name_ai' => $aiResponseData['product_name'] && $aiResponseData['product_name'] != 'null' ? $aiResponseData['product_name'] : '',
+                    'product_name_ai' => $aiResponseData['product_name'] ?? '',
                     'product_score' => isset($aiResponseData['health_score']) && $aiResponseData['health_score'] !== 'null'
                         ? (int) str_replace('%', '', $aiResponseData['health_score'])
                         : null,

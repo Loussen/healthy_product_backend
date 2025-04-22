@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\GoogleNotificationType;
+use App\Enums\SubscriptionStatus;
 use App\Models\BugReports;
 use App\Models\Categories;
 use App\Models\ContactUs;
@@ -872,9 +874,9 @@ Category: **$categoryName**, Language: **$language**."
     public function verifySubscription(Request $request)
     {
         try {
+            $log = new DebugWithTelegramService();
             $user = $request->user();
 
-            // Request validation
             $validated = $request->validate([
                 'product_id' => 'required|string',
                 'purchase_token' => 'required|string',
@@ -882,109 +884,137 @@ Category: **$categoryName**, Language: **$language**."
             ]);
 
             $jsonPath = storage_path('app/vital-scan-vscan-908399013c6f.json');
-
             if (!file_exists($jsonPath)) {
-                $log = new DebugWithTelegramService();
                 $log->debug('Json file not found');
                 throw new \Exception('Service account JSON file not found');
             }
 
-            // Google Client setup
             $client = new GoogleClient();
-            $client->setAuthConfig($jsonPath); // Google Play Console'dan indirdiğiniz service account json
+            $client->setAuthConfig($jsonPath);
             $client->addScope('https://www.googleapis.com/auth/androidpublisher');
             $client->setApplicationName('VScan');
             $client->setAccessType('offline');
 
-            // Android Publisher service
             $androidPublisher = new AndroidPublisher($client);
 
-            // Subscription doğrulama
             $result = $androidPublisher->purchases_subscriptions->get(
-                'com.healthyproduct.app', // Android uygulama package name
+                'com.healthyproduct.app',
                 $validated['product_id'],
                 $validated['purchase_token']
             );
 
+            $log->debug(json_encode($result));
+
             $now = Carbon::now();
             $expiry = Carbon::createFromTimestamp($result->expiryTimeMillis / 1000);
-            $start = Carbon::createFromTimestamp($result->startTimeMillis / 1000);
 
             if ($now->greaterThanOrEqualTo($expiry)) {
                 return $this->sendError('expired', 'Subscription expired', 400);
             }
 
-            if (isset($result->cancelReason)) {
-                return $this->sendError('cancelled', 'Subscription was cancelled', 400);
-            }
-
-            // Subscription durumunu kontrol et
+            // Only accept paymentState = 1 (payment received)
             if (isset($result->paymentState) && $result->paymentState == 1) {
+                $existing = Subscription::where('purchase_token', $validated['purchase_token'])->first();
+                if ($existing) {
+                    return $this->sendResponse('already_exists', 'Subscription already exists', 200);
+                }
+
                 DB::beginTransaction();
 
                 $package = Packages::where('product_id_for_payment', $validated['product_id'])->first();
                 if (!$package) {
-                    $log = new DebugWithTelegramService();
-                    $log->debug('Package not found for product ID: ' . $validated['product_id']);
                     throw new \Exception('Package not found for product ID: ' . $validated['product_id']);
                 }
 
-                // Subscription'ı veritabanına kaydet
-                $subscription = Subscription::create(
-                    [
-                        'customer_id' => $user->id,
-                        'product_id' => $validated['product_id'],
-                        'purchase_token' => $validated['purchase_token'],
-                        'start_date' => Carbon::createFromTimestamp($result->startTimeMillis / 1000),
-                        'expiry_date' => Carbon::createFromTimestamp($result->expiryTimeMillis / 1000),
-                        'status' => 'active',
-                        'auto_renewing' => $result->autoRenewing,
-                        'payment_details' => $result,
-                        'amount' => $package->price,
-                    ]
-                );
-
-                $customerPackage = CustomerPackages::create([
+                $subscription = Subscription::create([
                     'customer_id' => $user->id,
-                    'package_id' => $package->id,
-                    'remaining_scans' => $package->scan_count,
-                    'subscription_id' => $subscription->id,
-                    'created_at' => now(),
-                    'updated_at' => now()
+                    'product_id' => $validated['product_id'],
+                    'purchase_token' => $validated['purchase_token'],
+                    'start_date' => Carbon::createFromTimestamp($result->startTimeMillis / 1000),
+                    'expiry_date' => $expiry,
+                    'status' => 'active',
+                    'auto_renewing' => $result->autoRenewing ?? false,
+                    'payment_details' => json_encode($result),
+                    'amount' => $package->price,
                 ]);
 
                 DB::commit();
+
                 return $this->sendResponse('success', 'Subscription verified and saved', 201);
             }
 
-            return $this->sendError('invalid_subscription', 'Invalid subscription payment state', 400);
+            return $this->sendError('invalid_subscription', 'Payment not completed', 400);
 
         } catch (\Exception $e) {
-            $log = new DebugWithTelegramService();
-            $log->debug($e->getMessage());
-            return $this->sendError('payment_failed', "Payment error - ".$e->getMessage(), 500);
+            return $this->sendError('payment_failed', "Payment error - " . $e->getMessage(), 500);
         }
     }
 
-    public function webhookGoogleSubscription(Request $request)
+
+    public function handleGoogleWebhook(Request $request)
     {
-        $log = new DebugWithTelegramService();
-        $rawBody = $request->getContent();
-        $log->debug('Google Webhook Raw: ' . $rawBody);
+        try {
+            $log = new DebugWithTelegramService();
 
-        $data = json_decode($rawBody, true);
+            $payload = $request->all();
+            $log->debug('Received webhook payload: ' . json_encode($payload));
 
-        if (!isset($data['message']['data'])) {
-            $log->debug('No message data found');
-            return response()->json(['status' => 'error', 'message' => 'No message data'], 200); // 200 dön ki tekrar etmesin
+            $notification = $payload['subscriptionNotification'] ?? null;
+            if (!$notification) {
+                return $this->sendError('no_subscription_notification','No subscription notification found', 400);
+            }
+
+            $purchaseToken = $notification['purchaseToken'] ?? null;
+            $productId = $notification['subscriptionId'] ?? null;
+            $notificationType = $notification['notificationType'];
+            $type = GoogleNotificationType::tryFrom($notificationType);
+
+            $log->debug("Notification type: $notificationType");
+
+            if (!$purchaseToken || !$productId) {
+                return $this->sendError('invalid_payload', 'Invalid payload', 400);
+            }
+
+            $subscription = Subscription::where('purchase_token', $purchaseToken)->first();
+            if (!$subscription) {
+                $log->debug('Subscription not found for token: ' . $purchaseToken);
+                return $this->sendError('not_found_subscription','Subscription not found', 404);
+            }
+
+            if ($type) {
+                $status = $type->toStatus();
+
+                if ($status !== SubscriptionStatus::UNCHANGED) {
+                    $subscription->status = $status->value;
+                    $subscription->save();
+                }
+
+                if($subscription->status == 'active') {
+                    $package = Packages::where('product_id_for_payment', $subscription->product_id)->first();
+
+                    if (!$package) {
+                        throw new \Exception('Package not found for product ID: ' . $subscription->product_id);
+                    }
+
+                    CustomerPackages::create([
+                        'customer_id' => $subscription->customer_id,
+                        'package_id' => $package->id,
+                        'remaining_scans' => $package->scan_count,
+                        'subscription_id' => $subscription->id,
+                    ]);
+                }
+
+                $log->debug("Updated status to: " . $status->value);
+
+                return $this->sendResponse('success','Webhook processed successfully', 200);
+            }
+
+            return $this->sendError('system_error','Webhook processed successfully', 200);
+
+        } catch (\Exception $e) {
+            return $this->sendError('error_processing_webhook','Error processing webhook: ' . $e->getMessage(), 500);
         }
-
-        $decodedMessage = base64_decode($data['message']['data']);
-        $decodedData = json_decode($decodedMessage, true);
-
-        $log->debug('Decoded Data: ' . json_encode($decodedData));
-
-        return response()->json(['status' => 'success'], 200); // Google memnun kalsın :)
     }
+
 
 }

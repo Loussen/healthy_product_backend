@@ -46,6 +46,7 @@ Route::middleware('external.api')->name('main.')->controller(MainController::cla
     Route::get('packages', 'packages')->name('packages');
     Route::get('get-languages', 'getLanguages')->name('getLanguages');
     Route::get('get-countries', 'getCountries')->name('getCountries');
+    Route::get('check-app-version', 'checkAppVersion')->name('checkAppVersion');
 });
 
 Route::post('resend-otp', [AuthController::class,'resendOtp'])->name('resendOtp')->middleware('external.api');

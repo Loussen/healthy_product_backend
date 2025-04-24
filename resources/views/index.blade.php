@@ -9,7 +9,7 @@
                     <h1>{{ __('messages.slogan') }}</h1>
                     <p class="lead">{{ __('messages.slogan_text') }}</p>
                     <div class="d-flex gap-3 mt-4">
-                        <a href="#" class="">
+                        <a target="_blank" href="https://play.google.com/store/apps/details?id=com.healthyproduct.app" class="">
                             <img src="{{ asset('assets/images/playstore.png') }}" alt="Play Store Vital Scan VScan" class="playstore">
                         </a>
                         <a href="#" class="">
@@ -151,7 +151,7 @@
                     <h2>{{ __('messages.download_now') }}</h2>
                     <p class="lead">{{ __('messages.download_now_text') }}</p>
                     <div class="d-flex gap-3 mt-4">
-                        <a href="#" class="store-badge">
+                        <a  target="_blank" href="https://play.google.com/store/apps/details?id=com.healthyproduct.app" class="store-badge">
                             <img src="{{ asset('assets/images/playstore.png') }}" alt="App Store Vital Scan VScan">
                         </a>
                         <a href="#" class="store-badge">

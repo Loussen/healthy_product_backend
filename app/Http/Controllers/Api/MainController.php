@@ -1019,6 +1019,8 @@ Category: **$categoryName**, Language: **$language**."
 
     public function storeDeviceToken(Request $request)
     {
+        $log = new DebugWithTelegramService();
+        $log->debug($request->all());
         $user = $request->user();
 
         $validator = Validator::make($request->all(), [
@@ -1050,5 +1052,52 @@ Category: **$categoryName**, Language: **$language**."
         } catch (\Exception $e) {
             return $this->sendError('failed_to_save_device_token','Failed to save device token: ' . $e->getMessage(), 500);
         }
+    }
+
+    public function checkAppVersion(Request $request)
+    {
+        // Client'dan gelen version ve platform bilgisi
+        $currentVersion = $request->header('X-App-Version'); // Örn: "1.0.0"
+        $platform = $request->header('X-Platform'); // "ios" veya "android"
+
+        // Veritabanında veya config'de tutulan en son versiyon bilgileri
+        $latestVersions = [
+            'ios' => [
+                'version' => '1.0.0',
+                'force_update' => true,
+                'store_url' => 'https://apps.apple.com/app/your-app-id',
+                'description' => 'Yeni özellikler ve iyileştirmeler için lütfen uygulamayı güncelleyin.',
+            ],
+            'android' => [
+                'version' => '1.0.9',
+                'force_update' => true,
+                'store_url' => 'https://play.google.com/store/apps/details?id=com.healthyproduct.app',
+                'description' => 'Yeni özellikler ve iyileştirmeler için lütfen uygulamayı güncelleyin.',
+            ]
+        ];
+
+        if (!$currentVersion || !$platform) {
+            return $this->sendError('version_or_platform_not_provided','Version or platform not provided', 400);
+        }
+
+        $latestVersion = $latestVersions[$platform] ?? null;
+
+        if (!$latestVersion) {
+            return $this->sendError('invalid_platform','Invalid platform', 400);
+        }
+
+        // Version karşılaştırması
+        $needsUpdate = version_compare($currentVersion, $latestVersion['version'], '<');
+
+        $data = [
+            'current_version' => $currentVersion,
+            'latest_version' => $latestVersion['version'],
+            'needs_update' => $needsUpdate,
+            'force_update' => $needsUpdate && $latestVersion['force_update'],
+            'store_url' => $latestVersion['store_url'],
+            'description' => $latestVersion['description'],
+        ];
+
+        return $this->sendResponse($data, 'success');
     }
 }

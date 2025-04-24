@@ -16,3 +16,4 @@
 <x-backpack::menu-item title="Customer favorites" icon="la la-question" :link="backpack_url('customer-favorites')" />
 <x-backpack::menu-item title="Countries" icon="la la-question" :link="backpack_url('countries')" />
 <x-backpack::menu-item title="Subscriptions" icon="la la-question" :link="backpack_url('subscription')" />
+<x-backpack::menu-item title="Device tokens" icon="la la-question" :link="backpack_url('device-token')" />

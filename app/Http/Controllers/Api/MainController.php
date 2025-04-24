@@ -10,6 +10,7 @@ use App\Models\ContactUs;
 use App\Models\Countries;
 use App\Models\CustomerPackages;
 use App\Models\Customers;
+use App\Models\DeviceToken;
 use App\Models\Packages;
 use App\Models\Page;
 use App\Models\ScanResults;
@@ -1016,5 +1017,38 @@ Category: **$categoryName**, Language: **$language**."
         }
     }
 
+    public function storeDeviceToken(Request $request)
+    {
+        $user = $request->user();
 
+        $validator = Validator::make($request->all(), [
+            'device_token' => 'required|string',
+            'device_type' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('error', $validator->errors(), 422);
+        }
+
+        try {
+            // Kullanıcının mevcut token'ını kontrol et
+            $existingToken = DeviceToken::where('customer_id', $user->id)
+                ->where('device_token', $request->device_token)
+                ->first();
+
+            if (!$existingToken) {
+                // Yeni token kaydet
+                DeviceToken::create([
+                    'customer_id' => $user->id,
+                    'device_token' => $request->device_token,
+                    'device_type' => $request->device_type,
+                ]);
+            }
+
+            return $this->sendResponse('success','Device token saved successfully');
+
+        } catch (\Exception $e) {
+            return $this->sendError('failed_to_save_device_token','Failed to save device token: ' . $e->getMessage(), 500);
+        }
+    }
 }

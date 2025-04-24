@@ -30,6 +30,7 @@ Route::group([
     Route::crud('customer-favorites', 'CustomerFavoritesCrudController');
     Route::crud('countries', 'CountriesCrudController');
     Route::crud('subscription', 'SubscriptionCrudController');
+    Route::crud('device-token', 'DeviceTokenCrudController');
 }); // this should be the absolute last line of this file
 
 /**

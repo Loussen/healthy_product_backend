@@ -1069,7 +1069,7 @@ Category: **$categoryName**, Language: **$language**."
                 'description' => 'Yeni özellikler ve iyileştirmeler için lütfen uygulamayı güncelleyin.',
             ],
             'android' => [
-                'version' => '1.0.9',
+                'version' => '1.1.0',
                 'force_update' => true,
                 'store_url' => 'https://play.google.com/store/apps/details?id=com.healthyproduct.app',
                 'description' => 'Yeni özellikler ve iyileştirmeler için lütfen uygulamayı güncelleyin.',

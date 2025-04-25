@@ -23,6 +23,7 @@
         "laravel/tinker": "^2.9",
         "nesbot/carbon": "^3.9",
         "openai-php/client": "^0.10.3",
+        "spatie/laravel-sitemap": "^7.3",
         "spatie/laravel-translatable": "^6.11"
     },
     "require-dev": {

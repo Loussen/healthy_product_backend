@@ -289,6 +289,8 @@ class MainController extends BaseController
     public function scan(Request $request, GoogleVisionService $googleVisionService): JsonResponse
     {
         try {
+            $startTime = microtime(true);
+
             $user = $request->user();
 
             // Validate the request
@@ -431,6 +433,9 @@ Category: **$categoryName**, Language: **$language**."
 
                 $aiResponseData = json_decode($aiResponse->choices[0]->message->content, true);
 
+                $endTime = microtime(true);
+                $responseTimeMs = (int)(($endTime - $startTime) * 1000); // milliseconds
+
                 // Create scan result record
                 $scanResult = ScanResults::create([
                     'customer_id' => $user->id,
@@ -444,7 +449,8 @@ Category: **$categoryName**, Language: **$language**."
                         ? (int) str_replace('%', '', $aiResponseData['health_score'])
                         : null,
                     'check' => $aiResponseData['check'],
-                    'ocr_text' => $content
+                    'ocr_text' => $content,
+                    'response_time' => $responseTimeMs,
                 ]);
 
                 if($aiResponseData['check'] && $activePackage)

@@ -23,6 +23,7 @@ use Carbon\Carbon;
 //use Google\Protobuf\Struct;
 //use Google\Protobuf\Value;
 use Google\Service\AndroidPublisher;
+use Google_Service_AndroidPublisher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -959,11 +960,18 @@ Category: **$categoryName**, Language: **$language**."
         try {
             $log = new DebugWithTelegramService();
 
-            $payload = $request->all();
+//            $payload = $request->all();
+
+            $json = file_get_contents('php://input');
+            $payload = json_decode($json, true);
+
+            $log->debug('Request: '.$json);
+
+//            return $this->sendResponse('success','Webhook processed successfully', 200);
 
             $notification = $payload['subscriptionNotification'] ?? null;
             if (!$notification) {
-                return $this->sendError('no_subscription_notification','No subscription notification found', 200);
+                return $this->sendError('no_subscription_notification','No subscription notification found', 400);
             }
 
             $purchaseToken = $notification['purchaseToken'] ?? null;
@@ -996,6 +1004,8 @@ Category: **$categoryName**, Language: **$language**."
                         throw new \Exception('Package not found for product ID: ' . $subscription->product_id);
                     }
 
+                    CustomerPackages::where('subscription_id', $subscription->id)->where('status','active')->delete();
+
                     CustomerPackages::create([
                         'customer_id' => $subscription->customer_id,
                         'package_id' => $package->id,
@@ -1015,6 +1025,35 @@ Category: **$categoryName**, Language: **$language**."
 
                 return $this->sendResponse('success','Webhook processed successfully', 200);
             }
+
+            return $this->sendError('system_error','System error', 400);
+
+        } catch (\Exception $e) {
+            return $this->sendError('error_processing_webhook','Error processing webhook: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function checkPayment(Request $request)
+    {
+        try {
+            $jsonPath = storage_path('app/vital-scan-vscan-908399013c6f.json');
+
+            $client = new GoogleClient();
+            $client->setAuthConfig($jsonPath);
+            $client->addScope(Google_Service_AndroidPublisher::ANDROIDPUBLISHER);
+            $client->setApplicationName('VScan');
+//            $client->setAccessType('offline');
+
+            $androidPublisher = new Google_Service_AndroidPublisher($client);
+
+            $subscription = $androidPublisher->purchases_subscriptions->get(
+                'com.healthyproduct.app',
+                'basic_package',
+                'nlmilhkmcklkojapgbnicfjg.AO-J1OxyaK254_RIUVqP0pkBLkGp2B9PKwSPdsKKm4p_S7E4WjQkotxsQ3N1z6KgTB3gdwM9qHF4B7YzfZ4Eiga-ytZbZCOgRGXNqa8g8C8EmzbOcwLhFG0'
+            );
+
+            dd($subscription);
+
 
             return $this->sendError('system_error','Webhook processed successfully', 200);
 

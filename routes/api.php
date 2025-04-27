@@ -72,7 +72,7 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::post('store-device-token','storeDeviceToken')->name('storeDeviceToken');
 });
 
-Route::post('google/subscriptions/webhook', [MainController::class, 'webhookGoogleSubscription'])->name('webhookGoogleSubscription');
+Route::post('google/subscriptions/webhook1', [MainController::class, 'webhookGoogleSubscription'])->name('webhookGoogleSubscription');
 
 Route::get('/test-openai', function () {
     $log = new DebugWithTelegramService();

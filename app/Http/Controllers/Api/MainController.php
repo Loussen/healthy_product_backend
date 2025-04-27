@@ -113,6 +113,7 @@ class MainController extends BaseController
 
         $activePackage = $user->packages()
             ->where('created_at', '>=', now()->subMonth())
+            ->where('status', SubscriptionStatus::ACTIVE)
             ->orderBy('id')
             ->first();
 
@@ -172,6 +173,7 @@ class MainController extends BaseController
             $activePackage = $user->packages()
                 ->where('remaining_scans', '>', 0)
                 ->where('created_at', '>=', now()->subMonth())
+                ->where('status', SubscriptionStatus::ACTIVE)
                 ->orderBy('id')
                 ->first();
 
@@ -303,6 +305,7 @@ class MainController extends BaseController
             $activePackage = $user->packages()
                 ->where('remaining_scans', '>', 0)
                 ->where('created_at', '>=', now()->subMonth())
+                ->where('status', SubscriptionStatus::ACTIVE)
                 ->orderBy('id')
                 ->first();
 
@@ -904,7 +907,7 @@ Category: **$categoryName**, Language: **$language**."
                 $validated['purchase_token']
             );
 
-            $log->debug(json_encode($result));
+            $log->debug("result: ".json_encode($result));
 
             $now = Carbon::now();
             $expiry = Carbon::createFromTimestamp($result->expiryTimeMillis / 1000);
@@ -951,26 +954,22 @@ Category: **$categoryName**, Language: **$language**."
         }
     }
 
-
-    public function handleGoogleWebhook(Request $request)
+    public function webhookGoogleSubscription(Request $request)
     {
         try {
             $log = new DebugWithTelegramService();
 
             $payload = $request->all();
-            $log->debug('Received webhook payload: ' . json_encode($payload));
 
             $notification = $payload['subscriptionNotification'] ?? null;
             if (!$notification) {
-                return $this->sendError('no_subscription_notification','No subscription notification found', 400);
+                return $this->sendError('no_subscription_notification','No subscription notification found', 200);
             }
 
             $purchaseToken = $notification['purchaseToken'] ?? null;
             $productId = $notification['subscriptionId'] ?? null;
             $notificationType = $notification['notificationType'];
             $type = GoogleNotificationType::tryFrom($notificationType);
-
-            $log->debug("Notification type: $notificationType");
 
             if (!$purchaseToken || !$productId) {
                 return $this->sendError('invalid_payload', 'Invalid payload', 400);
@@ -1002,6 +1001,13 @@ Category: **$categoryName**, Language: **$language**."
                         'package_id' => $package->id,
                         'remaining_scans' => $package->scan_count,
                         'subscription_id' => $subscription->id,
+                        'status' => 'active'
+                    ]);
+                } elseif(in_array($subscription->status,['paused','canceled','expired'])) {
+                    $customerPackage = CustomerPackages::where('subscription_id', $subscription->id)->first();
+
+                    $customerPackage->update([
+                       'status' => $subscription->status
                     ]);
                 }
 

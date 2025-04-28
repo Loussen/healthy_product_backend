@@ -16,6 +16,7 @@ use App\Models\Page;
 use App\Models\ScanResults;
 use App\Models\Subscription;
 use App\Services\DebugWithTelegramService;
+use App\Services\GooglePayService;
 use App\Services\GoogleVisionService;
 use Carbon\Carbon;
 //use Google\Cloud\AIPlatform\V1\Client\PredictionServiceClient;
@@ -114,7 +115,7 @@ class MainController extends BaseController
 
         $activePackage = $user->packages()
             ->where('created_at', '>=', now()->subMonth())
-            ->where('status', SubscriptionStatus::ACTIVE)
+            ->where('status', SubscriptionStatus::ACTIVE->value)
             ->orderBy('id')
             ->first();
 
@@ -174,7 +175,7 @@ class MainController extends BaseController
             $activePackage = $user->packages()
                 ->where('remaining_scans', '>', 0)
                 ->where('created_at', '>=', now()->subMonth())
-                ->where('status', SubscriptionStatus::ACTIVE)
+                ->where('status', SubscriptionStatus::ACTIVE->value)
                 ->orderBy('id')
                 ->first();
 
@@ -308,7 +309,7 @@ class MainController extends BaseController
             $activePackage = $user->packages()
                 ->where('remaining_scans', '>', 0)
                 ->where('created_at', '>=', now()->subMonth())
-                ->where('status', SubscriptionStatus::ACTIVE)
+                ->where('status', SubscriptionStatus::ACTIVE->value)
                 ->orderBy('id')
                 ->first();
 
@@ -884,9 +885,21 @@ Category: **$categoryName**, Language: **$language**."
 
     public function verifySubscription(Request $request)
     {
+        $log = new DebugWithTelegramService();
+
         try {
-            $log = new DebugWithTelegramService();
             $user = $request->user();
+
+            $activePackage = $user->packages()
+                ->where('created_at', '>=', now()->subMonth())
+                ->where('status', SubscriptionStatus::ACTIVE->value)
+                ->orderBy('id')
+                ->first();
+
+            if($activePackage) {
+                $log->debug('Active package exists - ' . $user->id);
+                return $this->sendError('exist_active_package', 'Active package exists.', 400);
+            }
 
             $validated = $request->validate([
                 'product_id' => 'required|string',
@@ -894,152 +907,145 @@ Category: **$categoryName**, Language: **$language**."
                 'transaction_date' => 'required|date',
             ]);
 
-            $jsonPath = storage_path('app/vital-scan-vscan-908399013c6f.json');
-            if (!file_exists($jsonPath)) {
-                $log->debug('Json file not found');
-                throw new \Exception('Service account JSON file not found');
-            }
-
-            $client = new GoogleClient();
-            $client->setAuthConfig($jsonPath);
-            $client->addScope('https://www.googleapis.com/auth/androidpublisher');
-            $client->setApplicationName('VScan');
-            $client->setAccessType('offline');
-
-            $androidPublisher = new AndroidPublisher($client);
-
-            $result = $androidPublisher->purchases_subscriptions->get(
-                'com.healthyproduct.app',
+            $googleService = new GooglePayService();
+            $subscriptionInfo = $googleService->verifySubscription(
                 $validated['product_id'],
                 $validated['purchase_token']
             );
 
-            $log->debug("result: ".json_encode($result));
+            $now = now();
+            $expiryDate = Carbon::createFromTimestamp($subscriptionInfo->expiryTimeMillis / 1000);
 
-            $now = Carbon::now();
-            $expiry = Carbon::createFromTimestamp($result->expiryTimeMillis / 1000);
-
-            if ($now->greaterThanOrEqualTo($expiry)) {
-                return $this->sendError('expired', 'Subscription expired', 400);
+            if ($now->gte($expiryDate)) {
+                return $this->sendError('expired', 'Subscription has already expired.', 400);
             }
 
-            // Only accept paymentState = 1 (payment received)
-            if (isset($result->paymentState) && $result->paymentState == 1) {
-                $existing = Subscription::where('purchase_token', $validated['purchase_token'])->first();
-                if ($existing) {
-                    return $this->sendResponse('already_exists', 'Subscription already exists', 200);
-                }
+            if (!isset($subscriptionInfo->paymentState) || $subscriptionInfo->paymentState != 1) {
+                return $this->sendError('invalid_payment', 'Payment not completed.', 400);
+            }
 
-                DB::beginTransaction();
+            $existingSubscription = Subscription::where('purchase_token', $validated['purchase_token'])->first();
+            if ($existingSubscription) {
+                return $this->sendResponse('already_exists', 'Subscription already exists.', 200);
+            }
 
-                $package = Packages::where('product_id_for_payment', $validated['product_id'])->first();
-                if (!$package) {
-                    throw new \Exception('Package not found for product ID: ' . $validated['product_id']);
-                }
+            $package = Packages::where('product_id_for_payment', $validated['product_id'])->firstOrFail();
 
-                $subscription = Subscription::create([
+            DB::transaction(function () use ($user, $validated, $subscriptionInfo, $package, $expiryDate) {
+                Subscription::create([
                     'customer_id' => $user->id,
                     'product_id' => $validated['product_id'],
                     'purchase_token' => $validated['purchase_token'],
-                    'start_date' => Carbon::createFromTimestamp($result->startTimeMillis / 1000),
-                    'expiry_date' => $expiry,
-                    'status' => 'active',
-                    'auto_renewing' => $result->autoRenewing ?? false,
-                    'payment_details' => json_encode($result),
+                    'start_date' => Carbon::createFromTimestamp($subscriptionInfo->startTimeMillis / 1000),
+                    'expiry_date' => $expiryDate,
+                    'status' => SubscriptionStatus::ACTIVE->value,
+                    'auto_renewing' => $subscriptionInfo->autoRenewing ?? false,
+                    'payment_details' => json_encode($subscriptionInfo),
                     'amount' => $package->price,
                 ]);
+            });
 
-                DB::commit();
+            return $this->sendResponse('success', 'Subscription verified successfully.', 201);
 
-                return $this->sendResponse('success', 'Subscription verified and saved', 201);
-            }
-
-            return $this->sendError('invalid_subscription', 'Payment not completed', 400);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return $this->sendError('validation_error', $e->errors(), 422);
 
         } catch (\Exception $e) {
-            return $this->sendError('payment_failed', "Payment error - " . $e->getMessage(), 500);
+            $log->debug('Error verifying subscription: ' . $e->getMessage());
+            return $this->sendError('payment_failed', 'An error occurred: ' . $e->getMessage(), 500);
         }
     }
 
+
     public function webhookGoogleSubscription(Request $request)
     {
+        $log = new DebugWithTelegramService();
+
+//        return $this->sendResponse('success', 'Webhook processed successfully.', 200);
+
         try {
-            $log = new DebugWithTelegramService();
-
-//            $payload = $request->all();
-
-            $json = file_get_contents('php://input');
-            $payload = json_decode($json, true);
-
-            $log->debug('Request: '.$json);
-
-//            return $this->sendResponse('success','Webhook processed successfully', 200);
+            $payload = json_decode(file_get_contents('php://input'), true);
+            $log->debug('Webhook Payload: ' . json_encode($payload));
 
             $notification = $payload['subscriptionNotification'] ?? null;
+
             if (!$notification) {
-                return $this->sendError('no_subscription_notification','No subscription notification found', 400);
+                return $this->sendError('invalid_notification', 'No subscription notification found.', 400);
             }
 
             $purchaseToken = $notification['purchaseToken'] ?? null;
             $productId = $notification['subscriptionId'] ?? null;
-            $notificationType = $notification['notificationType'];
-            $type = GoogleNotificationType::tryFrom($notificationType);
+            $notificationType = $notification['notificationType'] ?? null;
 
-            if (!$purchaseToken || !$productId) {
-                return $this->sendError('invalid_payload', 'Invalid payload', 400);
+            if (!$purchaseToken || !$productId || is_null($notificationType)) {
+                return $this->sendError('invalid_payload', 'Missing required fields.', 400);
             }
 
             $subscription = Subscription::where('purchase_token', $purchaseToken)->first();
             if (!$subscription) {
-                $log->debug('Subscription not found for token: ' . $purchaseToken);
-                return $this->sendError('not_found_subscription','Subscription not found', 404);
+                return $this->sendError('subscription_not_found', 'Subscription not found.', 404);
             }
 
-            if ($type) {
-                $status = $type->toStatus();
-
-                if ($status !== SubscriptionStatus::UNCHANGED) {
-                    $subscription->status = $status->value;
-                    $subscription->save();
-                }
-
-                if($subscription->status == 'active') {
-                    $package = Packages::where('product_id_for_payment', $subscription->product_id)->first();
-
-                    if (!$package) {
-                        throw new \Exception('Package not found for product ID: ' . $subscription->product_id);
-                    }
-
-                    CustomerPackages::where('subscription_id', $subscription->id)->where('status','active')->delete();
-
-                    CustomerPackages::create([
-                        'customer_id' => $subscription->customer_id,
-                        'package_id' => $package->id,
-                        'remaining_scans' => $package->scan_count,
-                        'subscription_id' => $subscription->id,
-                        'status' => 'active'
-                    ]);
-                } elseif(in_array($subscription->status,['paused','canceled','expired'])) {
-                    $customerPackage = CustomerPackages::where('subscription_id', $subscription->id)->first();
-
-                    $customerPackage->update([
-                       'status' => $subscription->status
-                    ]);
-                }
-
-                $log->debug("Updated status to: " . $status->value);
-
-                return $this->sendResponse('success','Webhook processed successfully', 200);
+            $notificationEnum = GoogleNotificationType::tryFrom($notificationType);
+            if (!$notificationEnum) {
+                return $this->sendError('invalid_notification_type', 'Invalid notification type.', 400);
             }
 
-            return $this->sendError('system_error','System error', 400);
+            $newStatus = $notificationEnum->toStatus();
+
+            if ($newStatus !== SubscriptionStatus::UNCHANGED->value) {
+                $subscription->update(['status' => $newStatus->value]);
+            }
+
+            if ($newStatus->value == SubscriptionStatus::ACTIVE->value) {
+                $log->debug('active');
+                $this->activateCustomerPackage($subscription);
+            } elseif (in_array($newStatus->value, [SubscriptionStatus::PAUSED->value, SubscriptionStatus::CANCELED->value, SubscriptionStatus::EXPIRED->value])) {
+                $log->debug('inactive');
+                $this->deactivateCustomerPackage($subscription, $newStatus->value);
+            }
+
+            $log->debug('Subscription status updated to: ' . $newStatus->value);
+
+            return $this->sendResponse('success', 'Webhook processed successfully.', 200);
 
         } catch (\Exception $e) {
-            return $this->sendError('error_processing_webhook','Error processing webhook: ' . $e->getMessage(), 500);
+            $log->debug('Error processing webhook: ' . $e->getMessage());
+            return $this->sendError('webhook_error', 'Error: ' . $e->getMessage(), 500);
         }
     }
 
-    public function checkPayment(Request $request)
+    private function activateCustomerPackage(Subscription $subscription)
+    {
+        $package = Packages::where('product_id_for_payment', $subscription->product_id)->firstOrFail();
+
+        $customerPackage = CustomerPackages::where('subscription_id', $subscription->id)->first();
+
+        if($customerPackage) {
+            CustomerPackages::where('subscription_id', $subscription->id)->where('status',SubscriptionStatus::ACTIVE->value)
+                ->update(['status' => SubscriptionStatus::INACTIVE->value]);
+        }
+
+        CustomerPackages::create([
+            'customer_id' => $subscription->customer_id,
+            'package_id' => $package->id,
+            'remaining_scans' => $package->scan_count,
+            'subscription_id' => $subscription->id,
+            'status' => SubscriptionStatus::ACTIVE->value,
+        ]);
+    }
+
+    private function deactivateCustomerPackage(Subscription $subscription, string $newStatus)
+    {
+        $customerPackage = CustomerPackages::where('subscription_id', $subscription->id)->first();
+        if ($customerPackage) {
+            CustomerPackages::where('subscription_id', $subscription->id)->where('status',SubscriptionStatus::ACTIVE->value)
+                ->update(['status' => $newStatus]);
+        }
+    }
+
+
+    public function checkPayment()
     {
         try {
             $jsonPath = storage_path('app/vital-scan-vscan-908399013c6f.json');

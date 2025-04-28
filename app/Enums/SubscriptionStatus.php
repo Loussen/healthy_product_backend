@@ -9,4 +9,6 @@ enum SubscriptionStatus: string
     case CANCELED = 'canceled';
     case EXPIRED = 'expired';
     case UNCHANGED = 'unchanged'; // price change / defer gibi durumlarda
+
+    case INACTIVE = 'inactive';
 }

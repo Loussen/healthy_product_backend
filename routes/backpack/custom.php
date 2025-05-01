@@ -31,6 +31,7 @@ Route::group([
     Route::crud('countries', 'CountriesCrudController');
     Route::crud('subscription', 'SubscriptionCrudController');
     Route::crud('device-token', 'DeviceTokenCrudController');
+    Route::crud('push-notification', 'PushNotificationCrudController');
 }); // this should be the absolute last line of this file
 
 /**

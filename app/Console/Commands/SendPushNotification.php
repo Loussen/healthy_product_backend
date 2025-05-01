@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Models\DeviceToken;
 use App\Services\FirebaseService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class SendPushNotification extends Command
 {
@@ -44,12 +46,37 @@ class SendPushNotification extends Command
 
             $response = $this->firebaseService->sendMulticastNotification($deviceTokens, $title, $body);
 
+            foreach ($deviceTokens as $token) {
+                $customerId = DeviceToken::where('device_token', $token)->value('customer_id');
+
+                DB::table('push_notifications')->insert([
+                    'title' => $title,
+                    'description' => $body,
+                    'type' => 'multi',
+                    'customer_id' => $customerId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
             $this->info('Bildirimler gönderildi!');
             $this->line('Firebase Response: ' . json_encode($response));
         } else {
             $deviceToken = 'dmZEmYwaQsWuDfEnUVUbll:APA91bGA7bksMseJp39eCi0E9t9tioibhVIiJB1oO4I86IzJ4XE-GWfc0Emj6PB3s7MjgEO5E9Rh5rRNqm2f2HN4xwlMrrcPCvgIzL-fWAG0_7X5LqrUPlg';
 
             $response = $this->firebaseService->sendNotification($deviceToken, $title, $body);
+
+            $customerId = DeviceToken::where('device_token', $deviceToken)->value('customer_id');
+
+            DB::table('push_notifications')->insert([
+                'title' => $title,
+                'description' => $body,
+                'type' => 'single',
+                'customer_id' => $customerId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
 
             $this->info('Bildirim gönderildi!');
             $this->line('Firebase Response: ' . json_encode($response));

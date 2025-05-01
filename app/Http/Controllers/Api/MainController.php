@@ -313,13 +313,11 @@ class MainController extends BaseController
                 ->orderBy('id')
                 ->first();
 
-            if(!$activePackage) {
-                $allScans = $user->scan_results()
-                    ->count();
+            $allScans = $user->scan_results()
+                ->count();
 
-                if($allScans >= config('services.free_package_limit')) {
-                    return $this->sendError('out_of_scan_limit', 'Out of scan limit');
-                }
+            if($allScans >= config('services.free_package_limit') && !$activePackage) {
+                return $this->sendError('out_of_scan_limit', 'Out of scan limit');
             }
 
             // Handle file upload
@@ -993,7 +991,7 @@ Category: **$categoryName**, Language: **$language**."
 
             $newStatus = $notificationEnum->toStatus();
 
-            if ($newStatus !== SubscriptionStatus::UNCHANGED->value) {
+            if ($newStatus != SubscriptionStatus::UNCHANGED->value) {
                 $subscription->update(['status' => $newStatus->value]);
             }
 

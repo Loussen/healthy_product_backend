@@ -46,6 +46,22 @@ class SendPushNotification extends Command
 
             $response = $this->firebaseService->sendMulticastNotification($deviceTokens, $title, $body);
 
+            foreach ($response as $index => $resp) {
+                $token = $deviceTokens[$index];
+
+                if (isset($resp['error'])) {
+                    $device = DeviceToken::where('device_token', $token)->first();
+
+                    if($device) {
+                        DeviceToken::where('device_token', $token)->delete();
+
+                        $this->warn("Invalid token is deleted: $token");
+
+                        unset($deviceTokens[$index]);
+                    }
+                }
+            }
+
             foreach ($deviceTokens as $token) {
                 $customerId = DeviceToken::where('device_token', $token)->value('customer_id');
 
@@ -62,26 +78,34 @@ class SendPushNotification extends Command
             $this->info('Bildirimler gönderildi!');
             $this->line('Firebase Response: ' . json_encode($response));
         } else {
-            $deviceToken = 'dmZEmYwaQsWuDfEnUVUbll:APA91bGA7bksMseJp39eCi0E9t9tioibhVIiJB1oO4I86IzJ4XE-GWfc0Emj6PB3s7MjgEO5E9Rh5rRNqm2f2HN4xwlMrrcPCvgIzL-fWAG0_7X5LqrUPlg';
+            $deviceToken = 'fudfag5cQJ-L_gAKL4MHIE:APA91bFXmqT-0PPbUxw7pCr-WT0v5Ov3wjOUTbfS5ZnkRVMj1MgewW7jqWg1gy6zIVAYz4ZIXAqq1InJySgFzZjavZewjD22iYP_7VepJPL1H0Dk2wkaS_og';
 
             $response = $this->firebaseService->sendNotification($deviceToken, $title, $body);
 
-            $customerId = DeviceToken::where('device_token', $deviceToken)->value('customer_id');
+            if($response['error']) {
+                $device = DeviceToken::where('device_token', $deviceToken)->first();
 
-            DB::table('push_notifications')->insert([
-                'title' => $title,
-                'description' => $body,
-                'type' => 'single',
-                'customer_id' => $customerId,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+                if($device) {
+                    DeviceToken::where('device_token', $deviceToken)->delete();
+
+                    $this->warn("Invalid token is deleted: $deviceToken");
+                }
+            } else {
+                $customerId = DeviceToken::where('device_token', $deviceToken)->value('customer_id');
+
+                DB::table('push_notifications')->insert([
+                    'title' => $title,
+                    'description' => $body,
+                    'type' => 'single',
+                    'customer_id' => $customerId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
 
 
-            $this->info('Bildirim gönderildi!');
-            $this->line('Firebase Response: ' . json_encode($response));
+                $this->info('Bildirim gönderildi!');
+                $this->line('Firebase Response: ' . json_encode($response));
+            }
         }
-
-
     }
 }

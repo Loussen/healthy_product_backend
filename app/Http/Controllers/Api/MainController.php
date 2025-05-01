@@ -1091,6 +1091,7 @@ Category: **$categoryName**, Language: **$language**."
             // Kullanıcının mevcut token'ını kontrol et
             $existingToken = DeviceToken::where('customer_id', $user->id)
                 ->where('device_token', $request->device_token)
+                ->where('device_type', $request->device_type)
                 ->first();
 
             if (!$existingToken) {

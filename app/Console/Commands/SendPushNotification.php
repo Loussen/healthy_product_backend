@@ -36,13 +36,13 @@ class SendPushNotification extends Command
      */
     public function handle()
     {
-        $title = 'salam';
+        $title = 'salam22';
         $body = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.";
 
         $type = $this->option('type');
 
         if($type == 'multi') {
-            $deviceTokens = ['dzSHRtDqSa2kzcFkzxdA9x:APA91bE8CMUKQFxCkBJrWSp5TYZLvxPYBLlyzKsJXsqbU8o4BQjwWJiJAMPWvIGWSlOQdt0ArVdpj6DiAuwVCTd9cHw6tytnB5A74QJBTcoMEPorJMHDm3k','eJM4xX-ZRXqEDYR_KEtZk8:APA91bGjBoZQ9-aeaduaI5QgZHwzbjtgnIGccO2hrg1eHFYQePYwS4-FzGtaVfMfVk4bcOq2nWrqimsnOtrdV4ZsJjd1cugALkGrpfZy8ZOQ_5hwx32L2tY'];
+            $deviceTokens = ['fYb1UlPBRxCZSzE9bH7n-F:APA91bGDqcVtpS3RkKkNI9_ydnDJB_AThFT34HdHERjsqqVxcz2npQ0jIYKD22mpjy0_TWUHxGP_lvQXCudnb4ukpeUrSer_LNkO0e7haFcMXs02dFxXgjw','eJM4xX-ZRXqEDYR_KEtZk8:APA91bGjBoZQ9-aeaduaI5QgZHwzbjtgnIGccO2hrg1eHFYQePYwS4-FzGtaVfMfVk4bcOq2nWrqimsnOtrdV4ZsJjd1cugALkGrpfZy8ZOQ_5hwx32L2tY'];
 
             $response = $this->firebaseService->sendMulticastNotification($deviceTokens, $title, $body);
 
@@ -78,17 +78,19 @@ class SendPushNotification extends Command
             $this->info('Bildirimler gönderildi!');
             $this->line('Firebase Response: ' . json_encode($response));
         } else {
-            $deviceToken = 'fudfag5cQJ-L_gAKL4MHIE:APA91bFXmqT-0PPbUxw7pCr-WT0v5Ov3wjOUTbfS5ZnkRVMj1MgewW7jqWg1gy6zIVAYz4ZIXAqq1InJySgFzZjavZewjD22iYP_7VepJPL1H0Dk2wkaS_og';
+            $deviceToken = 'fYb1UlPBRxCZSzE9bH7n-F:APA91bGDqcVtpS3RkKkNI9_ydnDJB_AThFT34HdHERjsqqVxcz2npQ0jIYKD22mpjy0_TWUHxGP_lvQXCudnb4ukpeUrSer_LNkO0e7haFcMXs02dFxXgjw';
 
             $response = $this->firebaseService->sendNotification($deviceToken, $title, $body);
 
-            if($response['error']) {
+            if(isset($response['error'])) {
                 $device = DeviceToken::where('device_token', $deviceToken)->first();
 
                 if($device) {
                     DeviceToken::where('device_token', $deviceToken)->delete();
 
                     $this->warn("Invalid token is deleted: $deviceToken");
+                } else {
+                    $this->warn("Unknown error: $deviceToken");
                 }
             } else {
                 $customerId = DeviceToken::where('device_token', $deviceToken)->value('customer_id');
@@ -103,7 +105,7 @@ class SendPushNotification extends Command
                 ]);
 
 
-                $this->info('Bildirim gönderildi!');
+                $this->info('Bildirim gönderildi5656!');
                 $this->line('Firebase Response: ' . json_encode($response));
             }
         }

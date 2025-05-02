@@ -31,22 +31,7 @@ class FirebaseService
     {
         $accessToken = $this->getAccessToken();
 
-        $message = [
-            'message' => [
-                'token' => $deviceToken,
-                'notification' => [
-                    'title' => $title,
-                    'body' => $body,
-                ],
-            ],
-        ];
-
-        if (!empty($data)) {
-            $message['message']['data'] = $data;
-        }
-
-        $response = Http::withToken($accessToken)
-            ->post("https://fcm.googleapis.com/v1/projects/{$this->projectId}/messages:send", $message);
+        $response = $this->getPost($deviceToken, $title, $body, $data, $accessToken);
 
         return $response->json();
     }
@@ -58,27 +43,50 @@ class FirebaseService
         $responses = [];
 
         foreach ($deviceTokens as $token) {
-            $message = [
-                'message' => [
-                    'token' => $token,
-                    'notification' => [
-                        'title' => $title,
-                        'body' => $body,
-                    ],
-                ],
-            ];
-
-            if (!empty($data)) {
-                $message['message']['data'] = $data;
-            }
-
-            $response = Http::withToken($accessToken)
-                ->post("https://fcm.googleapis.com/v1/projects/{$this->projectId}/messages:send", $message);
+            $response = $this->getPost($token, $title, $body, $data, $accessToken);
 
             $responses[] = $response->json();
         }
 
         return $responses;
+    }
+
+    /**
+     * @param $deviceToken
+     * @param $title
+     * @param $body
+     * @param mixed $data
+     * @param mixed $accessToken
+     * @return \GuzzleHttp\Promise\PromiseInterface|\Illuminate\Http\Client\Response
+     * @throws \Illuminate\Http\Client\ConnectionException
+     */
+    public function getPost($deviceToken, $title, $body, mixed $data, mixed $accessToken): \Illuminate\Http\Client\Response|\GuzzleHttp\Promise\PromiseInterface
+    {
+        $message = [
+            'message' => [
+                'token' => $deviceToken,
+                'notification' => [
+                    'title' => $title,
+                    'body' => $body,
+                ],
+                'android' => [
+                    'priority' => 'high',
+                ],
+                'apns' => [
+                    'headers' => [
+                        'apns-priority' => '10', // 10 = High priority (Immediate)
+                    ],
+                ],
+            ],
+        ];
+
+        if (!empty($data)) {
+            $message['message']['data'] = $data;
+        }
+
+        $response = Http::withToken($accessToken)
+            ->post("https://fcm.googleapis.com/v1/projects/{$this->projectId}/messages:send", $message);
+        return $response;
     }
 
 }

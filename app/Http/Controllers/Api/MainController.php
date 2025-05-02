@@ -959,7 +959,7 @@ Category: **$categoryName**, Language: **$language**."
     {
         $log = new DebugWithTelegramService();
 
-//        return $this->sendResponse('success', 'Webhook processed successfully.', 200);
+        return $this->sendResponse('success', 'Webhook processed successfully.', 200);
 
         try {
             $payload = json_decode(file_get_contents('php://input'), true);

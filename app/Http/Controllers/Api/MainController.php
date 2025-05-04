@@ -13,6 +13,7 @@ use App\Models\Customers;
 use App\Models\DeviceToken;
 use App\Models\Packages;
 use App\Models\Page;
+use App\Models\PushNotification;
 use App\Models\ScanResults;
 use App\Models\Subscription;
 use App\Services\DebugWithTelegramService;
@@ -959,7 +960,7 @@ Category: **$categoryName**, Language: **$language**."
     {
         $log = new DebugWithTelegramService();
 
-        return $this->sendResponse('success', 'Webhook processed successfully.', 200);
+//        return $this->sendResponse('success', 'Webhook processed successfully.', 200);
 
         try {
             $payload = json_decode(file_get_contents('php://input'), true);
@@ -1155,5 +1156,29 @@ Category: **$categoryName**, Language: **$language**."
         ];
 
         return $this->sendResponse($data, 'success');
+    }
+
+    public function getPushNotifications(Request $request)
+    {
+        $user = $request->user();
+
+        $perPage = $request->input('per_page', 10);
+        $page = $request->input('page', 1);
+
+        $query = PushNotification::where('customer_id', $user->id);
+
+        $paginatedResults = $query->paginate($perPage, ['*'], 'page', $page);
+
+        $response = [
+            'data' => $paginatedResults->items(),
+            'pagination' => [
+                'current_page' => $paginatedResults->currentPage(),
+                'last_page' => $paginatedResults->lastPage(),
+                'per_page' => $paginatedResults->perPage(),
+                'total' => $paginatedResults->total(),
+            ]
+        ];
+
+        return $this->sendResponse($response, 'success');
     }
 }

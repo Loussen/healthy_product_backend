@@ -70,6 +70,8 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::post('scan-new', 'scanNew')->name('scanNew');
 
     Route::post('store-device-token','storeDeviceToken')->name('storeDeviceToken');
+
+    Route::post('get-push-notifications','getPushNotifications')->name('getPushNotifications');
 });
 
 Route::post('google/subscriptions/webhook', [MainController::class, 'webhookGoogleSubscription'])->name('webhookGoogleSubscription');

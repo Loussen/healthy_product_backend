@@ -77,6 +77,7 @@ class FirebaseService
                         'apns-priority' => '10', // 10 = High priority (Immediate)
                     ],
                 ],
+                'data' => $data
             ],
         ];
 

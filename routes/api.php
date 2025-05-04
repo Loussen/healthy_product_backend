@@ -71,7 +71,10 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
 
     Route::post('store-device-token','storeDeviceToken')->name('storeDeviceToken');
 
-    Route::post('get-push-notifications','getPushNotifications')->name('getPushNotifications');
+    Route::get('get-push-notifications','getPushNotifications')->name('getPushNotifications');
+    Route::get('get-push-notification/{notification_id}','getPushNotification')->name('getPushNotification');
+    Route::post('update-status-push-notification','updateStatusPushNotification')->name('updateStatusPushNotification');
+    Route::get('get-unread-notification-count','getUnreadNotificationCount')->name('getUnreadNotificationCount');
 });
 
 Route::post('google/subscriptions/webhook', [MainController::class, 'webhookGoogleSubscription'])->name('webhookGoogleSubscription');

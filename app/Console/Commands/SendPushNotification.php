@@ -37,35 +37,30 @@ class SendPushNotification extends Command
     public function handle()
     {
         $title = 'salam22';
-        $body = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.";
+        $body = "Lorem Ipsum is simply dummy text of the printing and typesetting industry...";
 
         $type = $this->option('type');
 
-        if($type == 'multi') {
-            $deviceTokens = ['fYb1UlPBRxCZSzE9bH7n-F:APA91bGDqcVtpS3RkKkNI9_ydnDJB_AThFT34HdHERjsqqVxcz2npQ0jIYKD22mpjy0_TWUHxGP_lvQXCudnb4ukpeUrSer_LNkO0e7haFcMXs02dFxXgjw','eJM4xX-ZRXqEDYR_KEtZk8:APA91bGjBoZQ9-aeaduaI5QgZHwzbjtgnIGccO2hrg1eHFYQePYwS4-FzGtaVfMfVk4bcOq2nWrqimsnOtrdV4ZsJjd1cugALkGrpfZy8ZOQ_5hwx32L2tY'];
+        if ($type == 'multi') {
+            $deviceTokens = [
+                'dQOI-gJeS26TWD2jh6Sc_W:APA91bE18u4_dget48hiHJqeBjk4os--umzT1aUvRv2BIWQssMa7EIx8YR9go20xWdweTenX2CMJ4EZyRA4j2QOsKCEdag3IVrtgZ8NaxLlImuAegB6i8wY',
+                'eJM4xX-ZRXqEDYR_KEtZk8:APA91bGjBoZQ9-aeaduaI5QgZHwzbjtgnIGccO2hrg1eHFYQePYwS4-FzGtaVfMfVk4bcOq2nWrqimsnOtrdV4ZsJjd1cugALkGrpfZy8ZOQ_5hwx32L2tY'
+            ];
 
-            $response = $this->firebaseService->sendMulticastNotification($deviceTokens, $title, $body);
-
-            foreach ($response as $index => $resp) {
-                $token = $deviceTokens[$index];
-
-                if (isset($resp['error'])) {
-                    $device = DeviceToken::where('device_token', $token)->first();
-
-                    if($device) {
-                        DeviceToken::where('device_token', $token)->delete();
-
-                        $this->warn("Invalid token is deleted: $token");
-
-                        unset($deviceTokens[$index]);
-                    }
-                }
-            }
+            $validTokens = [];
 
             foreach ($deviceTokens as $token) {
+                $device = DeviceToken::where('device_token', $token)->first();
+
+                if (!$device) continue;
+
+                $validTokens[] = $token;
+            }
+
+            foreach ($validTokens as $token) {
                 $customerId = DeviceToken::where('device_token', $token)->value('customer_id');
 
-                DB::table('push_notifications')->insert([
+                $notificationId = DB::table('push_notifications')->insertGetId([
                     'title' => $title,
                     'description' => $body,
                     'type' => 'multi',
@@ -73,41 +68,49 @@ class SendPushNotification extends Command
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+
+                $data = ['notification_id' => (string) $notificationId];
+
+                $response = $this->firebaseService->sendNotification($token, $title, $body, $data);
+
+                if (isset($response['error'])) {
+                    DeviceToken::where('device_token', $token)->delete();
+                    $this->warn("Invalid token is deleted: $token");
+                }
             }
 
             $this->info('Bildirimler gönderildi!');
-            $this->line('Firebase Response: ' . json_encode($response));
         } else {
-            $deviceToken = 'fYb1UlPBRxCZSzE9bH7n-F:APA91bGDqcVtpS3RkKkNI9_ydnDJB_AThFT34HdHERjsqqVxcz2npQ0jIYKD22mpjy0_TWUHxGP_lvQXCudnb4ukpeUrSer_LNkO0e7haFcMXs02dFxXgjw';
+            $deviceToken = 'dQOI-gJeS26TWD2jh6Sc_W:APA91bE18u4_dget48hiHJqeBjk4os--umzT1aUvRv2BIWQssMa7EIx8YR9go20xWdweTenX2CMJ4EZyRA4j2QOsKCEdag3IVrtgZ8NaxLlImuAegB6i8wY';
 
-            $response = $this->firebaseService->sendNotification($deviceToken, $title, $body);
+            $customerId = DeviceToken::where('device_token', $deviceToken)->value('customer_id');
 
-            if(isset($response['error'])) {
-                $device = DeviceToken::where('device_token', $deviceToken)->first();
+            if (!$customerId) {
+                $this->warn("Token not found in DB: $deviceToken");
+                return;
+            }
 
-                if($device) {
-                    DeviceToken::where('device_token', $deviceToken)->delete();
+            $notificationId = DB::table('push_notifications')->insertGetId([
+                'title' => $title,
+                'description' => $body,
+                'type' => 'single',
+                'customer_id' => $customerId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
-                    $this->warn("Invalid token is deleted: $deviceToken");
-                } else {
-                    $this->warn("Unknown error: $deviceToken");
-                }
+            $data = ['notification_id' => (string) $notificationId];
+
+            $response = $this->firebaseService->sendNotification($deviceToken, $title, $body, $data);
+
+            if (isset($response['error'])) {
+                DeviceToken::where('device_token', $deviceToken)->delete();
+                $this->warn("Invalid token is deleted: $deviceToken");
             } else {
-                $customerId = DeviceToken::where('device_token', $deviceToken)->value('customer_id');
-
-                DB::table('push_notifications')->insert([
-                    'title' => $title,
-                    'description' => $body,
-                    'type' => 'single',
-                    'customer_id' => $customerId,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-
-                $this->info('Bildirim gönderildi5656!');
+                $this->info('Bildirim gönderildi!');
                 $this->line('Firebase Response: ' . json_encode($response));
             }
         }
     }
+
 }

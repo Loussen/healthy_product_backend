@@ -41,7 +41,7 @@ return [
 
     'free_package_limit' => 10,
 
-    'locales' => ['az' => 'Azərbaycan','en' => 'English', 'ru' => 'Русский', 'tr' => 'Türkçe'],
+    'locales' => ['az' => 'Azərbaycan','en' => 'English', 'ru' => 'Русский', 'tr' => 'Türkçe', 'es' => 'Español','de' => 'Deutsch'],
 
     'default_locale' => 'az',
 

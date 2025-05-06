@@ -15,6 +15,6 @@ Route::group([
     Route::get('/{slug}', [MainController::class, 'page'])->name('page');
 });
 
-// Root locale'siz çağrı için de:
+// Root locale'siz çağrı için de_DE:
 Route::get('/', [MainController::class, 'dashboard']);
 

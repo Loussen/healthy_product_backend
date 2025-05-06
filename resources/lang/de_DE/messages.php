@@ -4,14 +4,14 @@ return [
     'menus' => [
         'top_menu' => [
             'specifications' => 'Spezifikationen',
-            'how_it_works' => 'Wie es funktioniert',
+            'how_it_works' => 'Wie es_ES funktioniert',
             'download' => 'Herunterladen',
             'start_now' => 'Jetzt Starten'
         ],
         'footer_menu' => [
             'product' => 'Produkt',
             'specifications' => 'Spezifikationen',
-            'how_it_works' => 'Wie es funktioniert',
+            'how_it_works' => 'Wie es_ES funktioniert',
             'download' => 'Herunterladen',
             'company' => 'Unternehmen',
             'about_us' => 'Über Uns',
@@ -32,7 +32,7 @@ return [
     'health_score_text' => 'Individuelle Gesundheitsbewertung und detaillierte Inhaltsanalyse für jedes Produkt.',
     'personalization' => 'Personalisierung',
     'personalization_text' => 'Geben Sie Ihre Allergien und Kategorie an, um individuelle Empfehlungen zu erhalten.',
-    'how_it_works' => 'Wie es funktioniert?',
+    'how_it_works' => 'Wie es_ES funktioniert?',
     'how_it_works_text' => 'Beginnen Sie ein gesundes Leben in 3 einfachen Schritten',
     'scan_the_product' => 'Produkt scannen',
     'scan_the_product_text' => 'Scannen Sie den Barcode oder die Verpackung mit Ihrer Kamera.',

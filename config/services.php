@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
+    | as Mailgun, Postmark, AWS and more. This file provides the de_DE facto
     | location for this type of information, allowing packages to have
     | a conventional file to locate the various service credentials.
     |
@@ -41,7 +41,7 @@ return [
 
     'free_package_limit' => 10,
 
-    'locales' => ['az' => 'Azərbaycan','en' => 'English', 'ru' => 'Русский', 'tr' => 'Türkçe', 'es' => 'Español','de' => 'Deutsch'],
+    'locales' => ['az' => 'Azərbaycan','en' => 'English', 'ru' => 'Русский', 'tr' => 'Türkçe', 'es_ES' => 'Español','de_DE' => 'Deutsch'],
 
     'default_locale' => 'az',
 

@@ -1305,9 +1305,10 @@ Category: **$categoryName**, Language: **$language**."
             return $this->sendResponse('success', 'Purchase verified successfully.', 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            $log->debug('Error verifying purchase1: ' . $e->getMessage());
             return $this->sendError('validation_error', $e->errors(), 422);
         } catch (\Exception $e) {
-            $log->debug('Error verifying purchase: ' . $e->getMessage());
+            $log->debug('Error verifying purchase2: ' . $e->getMessage());
             return $this->sendError('purchase_failed', 'An error occurred: ' . $e->getMessage(), 500);
         }
     }

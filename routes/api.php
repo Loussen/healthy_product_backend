@@ -75,6 +75,8 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::get('get-push-notification/{notification_id}','getPushNotification')->name('getPushNotification');
     Route::post('update-status-push-notification','updateStatusPushNotification')->name('updateStatusPushNotification');
     Route::get('get-unread-notification-count','getUnreadNotificationCount')->name('getUnreadNotificationCount');
+
+    Route::post('purchase/product', 'verifyPurchase')->name('verifyPurchase');
 });
 
 Route::post('google/subscriptions/webhook', [MainController::class, 'webhookGoogleSubscription'])->name('webhookGoogleSubscription');

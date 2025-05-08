@@ -1285,22 +1285,21 @@ Category: **$categoryName**, Language: **$language**."
 
             DB::transaction(function () use ($user, $validated, $purchaseInfo, $product) {
                 // Satın almayı kaydet
-                $purchase = UserPurchase::create([
-                    'user_id' => $user->id,
+                $purchase = Subscription::create([
+                    'customer_id' => $user->id,
                     'product_id' => $product->id,
                     'purchase_token' => $validated['purchase_token'],
                     'platform' => $validated['platform'],
                     'status' => 'completed',
                     'transaction_id' => $purchaseInfo->orderId,
-                    'purchase_details' => json_encode($purchaseInfo)
+                    'payment_details' => json_encode($purchaseInfo),
+                    'amount' => $product->price
                 ]);
 
                 // Ürün tipine göre işlem yap
-                if ($product->type === 'scan_pack') {
                     // Kullanıcının scan sayısını güncelle
-                    $user->remaining_scans += $product->scan_count;
-                    $user->save();
-                }
+                $user->remaining_scans += $product->scan_count;
+                $user->save();
             });
 
             return $this->sendResponse('success', 'Purchase verified successfully.', 201);

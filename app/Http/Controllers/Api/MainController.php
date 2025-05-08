@@ -18,6 +18,7 @@ use App\Models\ScanResults;
 use App\Models\Subscription;
 use App\Services\DebugWithTelegramService;
 use App\Services\GooglePayService;
+use App\Services\GooglePayVerificationService;
 use App\Services\GoogleVisionService;
 use Carbon\Carbon;
 //use Google\Cloud\AIPlatform\V1\Client\PredictionServiceClient;
@@ -895,9 +896,14 @@ Category: **$categoryName**, Language: **$language**."
                 ->orderBy('id')
                 ->first();
 
-            if($activePackage) {
+            $allScans = $user->scan_results()
+                ->count();
+
+            $permitScan = ($activePackage && $activePackage->remaining_scans > 0) || $allScans < config('services.free_package_limit');
+
+            if($activePackage && !$permitScan) {
                 $log->debug('Active package exists - ' . $user->id);
-                return $this->sendError('exist_active_package', 'Active package exists.', 400);
+//                return $this->sendError('exist_active_package', 'Active package exists.', 400);
             }
 
             $validated = $request->validate([
@@ -1117,7 +1123,7 @@ Category: **$categoryName**, Language: **$language**."
         $currentVersion = $request->header('X-App-Version'); // Örn: "1.0.0"
         $platform = $request->header('X-Platform'); // "ios" veya "android"
 
-        // Veritabanında veya config'de tutulan en son versiyon bilgileri
+        // Veritabanında veya config'de_DE tutulan en son versiyon bilgileri
         $latestVersions = [
             'ios' => [
                 'version' => '1.0.0',
@@ -1231,5 +1237,215 @@ Category: **$categoryName**, Language: **$language**."
         return $this->sendResponse([
             'count' => $unreadCount
         ], 'success');
+    }
+
+    public function verifyPurchase(Request $request)
+    {
+        $log = new DebugWithTelegramService();
+
+        try {
+            $user = $request->user();
+
+            $validated = $request->validate([
+                'product_id' => 'required|string',
+                'purchase_token' => 'required|string',
+                'platform' => 'required|in:ios,android',
+            ]);
+
+            // Platform'a göre doğrulama servisini seç
+//            $verificationService = $validated['platform'] === 'ios'
+//                ? new AppStoreVerificationService()
+//                : new GooglePlayVerificationService();
+
+            $existingPurchase = Subscription::where('purchase_token', $validated['purchase_token'])->first();
+            if ($existingPurchase) {
+                return $this->sendResponse('already_exists', 'Purchase already exists.', 200);
+            }
+
+            $googlePlayService = new GooglePayVerificationService();
+
+            $purchaseInfo = $googlePlayService->verifyPurchase(
+                $validated['product_id'],
+                $validated['purchase_token']
+            );
+
+            if ($purchaseInfo->purchaseState !== 0) { // 0 = purchased
+                return $this->sendError('invalid_purchase', 'Invalid purchase state.', 400);
+            }
+
+            // Satın alma doğrulaması
+//            $purchaseInfo = $verificationService->verifyPurchase(
+//                $validated['product_id'],
+//                $validated['purchase_token'],
+//                $validated['receipt_data']
+//            );
+
+            // Daha önce satın alınmış mı kontrol et
+            $product = Packages::where('product_id_for_purchase', $validated['product_id'])->firstOrFail();
+
+            DB::transaction(function () use ($user, $validated, $purchaseInfo, $product) {
+                // Satın almayı kaydet
+                $purchase = UserPurchase::create([
+                    'user_id' => $user->id,
+                    'product_id' => $product->id,
+                    'purchase_token' => $validated['purchase_token'],
+                    'platform' => $validated['platform'],
+                    'status' => 'completed',
+                    'transaction_id' => $purchaseInfo->orderId,
+                    'purchase_details' => json_encode($purchaseInfo)
+                ]);
+
+                // Ürün tipine göre işlem yap
+                if ($product->type === 'scan_pack') {
+                    // Kullanıcının scan sayısını güncelle
+                    $user->remaining_scans += $product->scan_count;
+                    $user->save();
+                }
+            });
+
+            return $this->sendResponse('success', 'Purchase verified successfully.', 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return $this->sendError('validation_error', $e->errors(), 422);
+        } catch (\Exception $e) {
+            $log->debug('Error verifying purchase: ' . $e->getMessage());
+            return $this->sendError('purchase_failed', 'An error occurred: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function webhookGooglePlay(Request $request)
+    {
+        $log = new DebugWithTelegramService();
+
+        try {
+            $payload = json_decode(file_get_contents('php://input'), true);
+            $log->debug('Webhook Payload: ' . json_encode($payload));
+
+            // Google Play'den gelen imzayı doğrula
+            $signature = $request->header('X-Google-Play-Signature');
+            if (!$this->verifyGooglePlaySignature($signature, $request->getContent())) {
+                return $this->sendError('invalid_signature', 'Invalid signature.', 401);
+            }
+
+            $notification = $payload['subscriptionNotification'] ?? null;
+            if (!$notification) {
+                return $this->sendError('invalid_notification', 'No notification found.', 400);
+            }
+
+            $purchaseToken = $notification['purchaseToken'] ?? null;
+            $productId = $notification['subscriptionId'] ?? null;
+            $notificationType = $notification['notificationType'] ?? null;
+
+            if (!$purchaseToken || !$productId || is_null($notificationType)) {
+                return $this->sendError('invalid_payload', 'Missing required fields.', 400);
+            }
+
+            // Satın almayı bul
+            $purchase = UserPurchase::where('purchase_token', $purchaseToken)->first();
+            if (!$purchase) {
+                return $this->sendError('purchase_not_found', 'Purchase not found.', 404);
+            }
+
+            // Bildirim tipine göre işlem yap
+            switch ($notificationType) {
+                case 1: // PURCHASED
+                    $purchase->update(['status' => 'completed']);
+                    break;
+                case 2: // CANCELED
+                    $purchase->update(['status' => 'canceled']);
+                    // Eğer scan_pack ise ve iade edildiyse, scan sayısını düş
+                    if ($purchase->product->type === 'scan_pack') {
+                        $user = $purchase->user;
+                        $user->remaining_scans -= $purchase->product->scan_count;
+                        $user->save();
+                    }
+                    break;
+                case 3: // REFUNDED
+                    $purchase->update(['status' => 'refunded']);
+                    // Scan sayısını düş
+                    if ($purchase->product->type === 'scan_pack') {
+                        $user = $purchase->user;
+                        $user->remaining_scans -= $purchase->product->scan_count;
+                        $user->save();
+                    }
+                    break;
+            }
+
+            // Log oluştur
+            PurchaseLog::create([
+                'user_id' => $purchase->user_id,
+                'product_id' => $purchase->product_id,
+                'event_type' => 'webhook_notification',
+                'payload' => json_encode($payload)
+            ]);
+
+            return $this->sendResponse('success', 'Webhook processed successfully.', 200);
+
+        } catch (\Exception $e) {
+            $log->debug('Error processing webhook: ' . $e->getMessage());
+            return $this->sendError('webhook_error', 'Error: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function webhookAppStore(Request $request)
+    {
+        $log = new DebugWithTelegramService();
+
+        try {
+            $payload = json_decode(file_get_contents('php://input'), true);
+            $log->debug('Webhook Payload: ' . json_encode($payload));
+
+            // App Store'dan gelen imzayı doğrula
+            $signature = $request->header('X-Apple-Signature');
+            if (!$this->verifyAppStoreSignature($signature, $request->getContent())) {
+                return $this->sendError('invalid_signature', 'Invalid signature.', 401);
+            }
+
+            $notificationType = $payload['notificationType'] ?? null;
+            $signedPayload = $payload['data']['signedPayload'] ?? null;
+
+            if (!$notificationType || !$signedPayload) {
+                return $this->sendError('invalid_payload', 'Missing required fields.', 400);
+            }
+
+            // Payload'ı decode et
+            $decodedPayload = $this->decodeAppStorePayload($signedPayload);
+
+            // Satın almayı bul
+            $purchase = UserPurchase::where('transaction_id', $decodedPayload['transactionId'])->first();
+            if (!$purchase) {
+                return $this->sendError('purchase_not_found', 'Purchase not found.', 404);
+            }
+
+            // Bildirim tipine göre işlem yap
+            switch ($notificationType) {
+                case 'CONSUMPTION_REQUEST':
+                    $purchase->update(['status' => 'completed']);
+                    break;
+                case 'REFUND':
+                    $purchase->update(['status' => 'refunded']);
+                    // Scan sayısını düş
+                    if ($purchase->product->type === 'scan_pack') {
+                        $user = $purchase->user;
+                        $user->remaining_scans -= $purchase->product->scan_count;
+                        $user->save();
+                    }
+                    break;
+            }
+
+            // Log oluştur
+            PurchaseLog::create([
+                'user_id' => $purchase->user_id,
+                'product_id' => $purchase->product_id,
+                'event_type' => 'webhook_notification',
+                'payload' => json_encode($payload)
+            ]);
+
+            return $this->sendResponse('success', 'Webhook processed successfully.', 200);
+
+        } catch (\Exception $e) {
+            $log->debug('Error processing webhook: ' . $e->getMessage());
+            return $this->sendError('webhook_error', 'Error: ' . $e->getMessage(), 500);
+        }
     }
 }

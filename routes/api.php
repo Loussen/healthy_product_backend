@@ -77,6 +77,8 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::get('get-unread-notification-count','getUnreadNotificationCount')->name('getUnreadNotificationCount');
 
     Route::post('purchase/product', 'verifyPurchase')->name('verifyPurchase');
+
+    Route::get('get-order-history', 'getOrderHistory')->name('getOrderHistory');
 });
 
 Route::post('google/subscriptions/webhook', [MainController::class, 'webhookGoogleSubscription'])->name('webhookGoogleSubscription');

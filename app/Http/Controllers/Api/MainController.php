@@ -1027,16 +1027,18 @@ Category: **$categoryName**, Language: **$language**."
 
         try {
             $payload = json_decode(file_get_contents('php://input'), true);
-//            $log->debug('Webhook Payload: ' . json_encode($payload));
+            $log->debug('Webhook Payload: ' . json_encode($payload));
 
             $notification = $payload['voidedPurchaseNotification'] ?? null;
+
+//            return $this->sendResponse('success', 'Webhook processed successfully.', 200);
 
             if (!$notification) {
                 return $this->sendError('invalid_notification', 'No subscription notification found.', 400);
             }
 
             $purchaseToken = $notification['purchaseToken'] ?? null;
-            $refundType = $payload['voidedPurchaseNotification']['refundType'];
+            $refundType = $notification['refundType'];
 
             if (!$purchaseToken) {
                 return $this->sendError('invalid_payload', 'Missing required fields.', 400);
@@ -1047,6 +1049,7 @@ Category: **$categoryName**, Language: **$language**."
             $customerPackage = CustomerPackages::where('subscription_id', $subscription->id)->first();
 
             if (!$customerPackage || !$subscription) {
+                $log->debug('not_found_sub');
                 return $this->sendError('customer_package_or_subscription_not_found', 'Subscription or customer package not found.');
             }
 
@@ -1054,12 +1057,12 @@ Category: **$categoryName**, Language: **$language**."
             $customerPackage->save();
 
             $purchase = $subscription->replicate();
-            $purchase->payment_details = $payload;
+            $purchase->payment_details = json_encode($payload);
             $purchase->status = $refundType == 1 ? 'refund' : 'unknown';
             $purchase->parent_id = $subscription->id;
             $purchase->save();
 
-            $log->debug('Subscription status updated to: ' . $refundType == 1 ? 'refund' : 'unknown');
+            $log->debug('Subscription status updated to: ' . ($refundType == 1 ? 'refund' : 'unknown'));
 
             return $this->sendResponse('success', 'Webhook processed successfully.', 200);
 
@@ -1523,5 +1526,29 @@ Category: **$categoryName**, Language: **$language**."
             $log->debug('Error processing webhook: ' . $e->getMessage());
             return $this->sendError('webhook_error', 'Error: ' . $e->getMessage(), 500);
         }
+    }
+
+    public function getOrderHistory(Request $request)
+    {
+        $user = $request->user();
+
+        $perPage = $request->input('per_page', 10);
+        $page = $request->input('page', 1);
+
+        $query = CustomerPackages::where('customer_id', $user->id)->orderBy('id', 'desc');
+
+        $paginatedResults = $query->paginate($perPage, ['*'], 'page', $page);
+
+        $response = [
+            'data' => $paginatedResults->items(),
+            'pagination' => [
+                'current_page' => $paginatedResults->currentPage(),
+                'last_page' => $paginatedResults->lastPage(),
+                'per_page' => $paginatedResults->perPage(),
+                'total' => $paginatedResults->total(),
+            ]
+        ];
+
+        return $this->sendResponse($response, 'success');
     }
 }

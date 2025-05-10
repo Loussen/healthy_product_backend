@@ -1535,7 +1535,9 @@ Category: **$categoryName**, Language: **$language**."
         $perPage = $request->input('per_page', 10);
         $page = $request->input('page', 1);
 
-        $query = CustomerPackages::where('customer_id', $user->id)->orderBy('id', 'desc');
+        $query = CustomerPackages::with(['subscription','package']) // İlişkili subscription'u yükle
+        ->where('customer_id', $user->id)
+            ->orderBy('id', 'desc');
 
         $paginatedResults = $query->paginate($perPage, ['*'], 'page', $page);
 
@@ -1551,4 +1553,5 @@ Category: **$categoryName**, Language: **$language**."
 
         return $this->sendResponse($response, 'success');
     }
+
 }

@@ -46,6 +46,11 @@ class CustomerPackages extends Model
         return $this->belongsTo(Packages::class);
     }
 
+    public function subscription()
+    {
+        return $this->belongsTo(Subscription::class);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

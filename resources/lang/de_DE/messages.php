@@ -35,7 +35,7 @@ return [
     'how_it_works' => 'Wie es_ES funktioniert?',
     'how_it_works_text' => 'Beginnen Sie ein gesundes Leben in 3 einfachen Schritten',
     'scan_the_product' => 'Produkt scannen',
-    'scan_the_product_text' => 'Scannen Sie den Barcode oder die Verpackung mit Ihrer Kamera.',
+    'scan_the_product_text' => 'Scannen Sie die Inhaltsstoffe des Produkts mit Ihrer Kamera.',
     'check_the_analysis' => 'Analyse prüfen',
     'check_the_analysis_text' => 'Sehen Sie sich die KI-gestützte detaillierte Inhaltsanalyse an.',
     'decide' => 'Entscheiden',

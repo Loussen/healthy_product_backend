@@ -118,7 +118,7 @@ class MainController extends BaseController
         $activePackage = $user->packages()
             ->where('created_at', '>=', now()->subMonth())
             ->where('status', SubscriptionStatus::ACTIVE->value)
-            ->orderBy('id')
+            ->orderByDesc('id')
             ->first();
 
         $activePackageArray = $activePackage ? $activePackage->toArray() : null;
@@ -312,7 +312,7 @@ class MainController extends BaseController
                 ->where('remaining_scans', '>', 0)
                 ->where('created_at', '>=', now()->subMonth())
                 ->where('status', SubscriptionStatus::ACTIVE->value)
-                ->orderBy('id')
+                ->orderByDesc('id')
                 ->first();
 
             $allScans = $user->scan_results()
@@ -594,6 +594,7 @@ Category: **$categoryName**, Language: **$language**."
                     'saving' => $package->saving,
                     'is_popular' => $package->is_popular,
                     'product_id_for_payment' => $package->product_id_for_payment,
+                    'product_id_for_purchase' => $package->product_id_for_purchase,
                 ];
             });
 
@@ -962,55 +963,103 @@ Category: **$categoryName**, Language: **$language**."
     }
 
 
+//    public function webhookGoogleSubscription(Request $request)
+//    {
+//        $log = new DebugWithTelegramService();
+//
+//        return $this->sendResponse('success', 'Webhook processed successfully.', 200);
+//
+//        try {
+//            $payload = json_decode(file_get_contents('php://input'), true);
+//            $log->debug('Webhook Payload: ' . json_encode($payload));
+//
+//            $notification = $payload['subscriptionNotification'] ?? null;
+//
+//            if (!$notification) {
+//                return $this->sendError('invalid_notification', 'No subscription notification found.', 400);
+//            }
+//
+//            $purchaseToken = $notification['purchaseToken'] ?? null;
+//            $productId = $notification['subscriptionId'] ?? null;
+//            $notificationType = $notification['notificationType'] ?? null;
+//
+//            if (!$purchaseToken || !$productId || is_null($notificationType)) {
+//                return $this->sendError('invalid_payload', 'Missing required fields.', 400);
+//            }
+//
+//            $subscription = Subscription::where('purchase_token', $purchaseToken)->first();
+//            if (!$subscription) {
+//                return $this->sendError('subscription_not_found', 'Subscription not found.', 404);
+//            }
+//
+//            $notificationEnum = GoogleNotificationType::tryFrom($notificationType);
+//            if (!$notificationEnum) {
+//                return $this->sendError('invalid_notification_type', 'Invalid notification type.', 400);
+//            }
+//
+//            $newStatus = $notificationEnum->toStatus();
+//
+//            if ($newStatus != SubscriptionStatus::UNCHANGED->value) {
+//                $subscription->update(['status' => $newStatus->value]);
+//            }
+//
+//            if ($newStatus->value == SubscriptionStatus::ACTIVE->value) {
+//                $log->debug('active');
+//                $this->activateCustomerPackage($subscription);
+//            } elseif (in_array($newStatus->value, [SubscriptionStatus::PAUSED->value, SubscriptionStatus::CANCELED->value, SubscriptionStatus::EXPIRED->value])) {
+//                $log->debug('inactive');
+//                $this->deactivateCustomerPackage($subscription, $newStatus->value);
+//            }
+//
+//            $log->debug('Subscription status updated to: ' . $newStatus->value);
+//
+//            return $this->sendResponse('success', 'Webhook processed successfully.', 200);
+//
+//        } catch (\Exception $e) {
+//            $log->debug('Error processing webhook: ' . $e->getMessage());
+//            return $this->sendError('webhook_error', 'Error: ' . $e->getMessage(), 500);
+//        }
+//    }
+
     public function webhookGoogleSubscription(Request $request)
     {
         $log = new DebugWithTelegramService();
 
-//        return $this->sendResponse('success', 'Webhook processed successfully.', 200);
-
         try {
             $payload = json_decode(file_get_contents('php://input'), true);
-            $log->debug('Webhook Payload: ' . json_encode($payload));
+//            $log->debug('Webhook Payload: ' . json_encode($payload));
 
-            $notification = $payload['subscriptionNotification'] ?? null;
+            $notification = $payload['voidedPurchaseNotification'] ?? null;
 
             if (!$notification) {
                 return $this->sendError('invalid_notification', 'No subscription notification found.', 400);
             }
 
             $purchaseToken = $notification['purchaseToken'] ?? null;
-            $productId = $notification['subscriptionId'] ?? null;
-            $notificationType = $notification['notificationType'] ?? null;
+            $refundType = $payload['voidedPurchaseNotification']['refundType'];
 
-            if (!$purchaseToken || !$productId || is_null($notificationType)) {
+            if (!$purchaseToken) {
                 return $this->sendError('invalid_payload', 'Missing required fields.', 400);
             }
 
             $subscription = Subscription::where('purchase_token', $purchaseToken)->first();
-            if (!$subscription) {
-                return $this->sendError('subscription_not_found', 'Subscription not found.', 404);
+
+            $customerPackage = CustomerPackages::where('subscription_id', $subscription->id)->first();
+
+            if (!$customerPackage || !$subscription) {
+                return $this->sendError('customer_package_or_subscription_not_found', 'Subscription or customer package not found.');
             }
 
-            $notificationEnum = GoogleNotificationType::tryFrom($notificationType);
-            if (!$notificationEnum) {
-                return $this->sendError('invalid_notification_type', 'Invalid notification type.', 400);
-            }
+            $customerPackage->status = $refundType == 1 ? 'refund' : 'unknown';
+            $customerPackage->save();
 
-            $newStatus = $notificationEnum->toStatus();
+            $purchase = $subscription->replicate();
+            $purchase->payment_details = $payload;
+            $purchase->status = $refundType == 1 ? 'refund' : 'unknown';
+            $purchase->parent_id = $subscription->id;
+            $purchase->save();
 
-            if ($newStatus != SubscriptionStatus::UNCHANGED->value) {
-                $subscription->update(['status' => $newStatus->value]);
-            }
-
-            if ($newStatus->value == SubscriptionStatus::ACTIVE->value) {
-                $log->debug('active');
-                $this->activateCustomerPackage($subscription);
-            } elseif (in_array($newStatus->value, [SubscriptionStatus::PAUSED->value, SubscriptionStatus::CANCELED->value, SubscriptionStatus::EXPIRED->value])) {
-                $log->debug('inactive');
-                $this->deactivateCustomerPackage($subscription, $newStatus->value);
-            }
-
-            $log->debug('Subscription status updated to: ' . $newStatus->value);
+            $log->debug('Subscription status updated to: ' . $refundType == 1 ? 'refund' : 'unknown');
 
             return $this->sendResponse('success', 'Webhook processed successfully.', 200);
 
@@ -1063,10 +1112,16 @@ Category: **$categoryName**, Language: **$language**."
 
             $androidPublisher = new Google_Service_AndroidPublisher($client);
 
-            $subscription = $androidPublisher->purchases_subscriptions->get(
+//            $subscription = $androidPublisher->purchases_subscriptions->get(
+//                'com.healthyproduct.app',
+//                'basic_package',
+//                'nlmilhkmcklkojapgbnicfjg.AO-J1OxyaK254_RIUVqP0pkBLkGp2B9PKwSPdsKKm4p_S7E4WjQkotxsQ3N1z6KgTB3gdwM9qHF4B7YzfZ4Eiga-ytZbZCOgRGXNqa8g8C8EmzbOcwLhFG0'
+//            );
+
+            $subscription = $androidPublisher->purchases_products->get(
                 'com.healthyproduct.app',
-                'basic_package',
-                'nlmilhkmcklkojapgbnicfjg.AO-J1OxyaK254_RIUVqP0pkBLkGp2B9PKwSPdsKKm4p_S7E4WjQkotxsQ3N1z6KgTB3gdwM9qHF4B7YzfZ4Eiga-ytZbZCOgRGXNqa8g8C8EmzbOcwLhFG0'
+                'premium_package_1500',
+                'mpedaloengdmahbfncmknbjn.AO-J1OxS21gq-R8xvVHxos-H-cWDP6GYK_INQfKKRgF_rBor3MFElWQUphVAdVQ1EZbvnwaY98fk4HP26vXTwk7qHQJcXK-8ZnfVuyjlg_RNO60_6G0HONU'
             );
 
             dd($subscription);
@@ -1273,6 +1328,22 @@ Category: **$categoryName**, Language: **$language**."
                 return $this->sendError('invalid_purchase', 'Invalid purchase state.', 400);
             }
 
+            $activePackage = $user->packages()
+                ->where('created_at', '>=', now()->subMonth())
+                ->where('status', SubscriptionStatus::ACTIVE->value)
+                ->orderByDesc('id')
+                ->first();
+
+            $allScans = $user->scan_results()
+                ->count();
+
+            $permitScan = ($activePackage && $activePackage->remaining_scans > 0) || $allScans < config('services.free_package_limit');
+
+            if($activePackage && !$permitScan) {
+                $log->debug('Active package exists - ' . $user->id . " - ". $validated['purchase_token']);
+                return $this->sendError('exist_active_package', 'Active package exists.', 400);
+            }
+
             // Satın alma doğrulaması
 //            $purchaseInfo = $verificationService->verifyPurchase(
 //                $validated['product_id'],
@@ -1290,23 +1361,28 @@ Category: **$categoryName**, Language: **$language**."
                     'product_id' => $product->id,
                     'purchase_token' => $validated['purchase_token'],
                     'platform' => $validated['platform'],
-                    'status' => 'completed',
+                    'status' => SubscriptionStatus::ACTIVE->value,
                     'transaction_id' => $purchaseInfo->orderId,
                     'payment_details' => json_encode($purchaseInfo),
                     'amount' => $product->price
                 ]);
 
+                CustomerPackages::create([
+                    'customer_id' => $user->id,
+                    'package_id' => $product->id,
+                    'remaining_scans' => $product->scan_count,
+                    'subscription_id' => $purchase->id,
+                    'status' => SubscriptionStatus::ACTIVE->value,
+                ]);
+
                 // Ürün tipine göre işlem yap
                     // Kullanıcının scan sayısını güncelle
-                $user->remaining_scans += $product->scan_count;
-                $user->save();
+//                $user->remaining_scans += $product->scan_count;
+//                $user->save();
             });
 
-            return $this->sendResponse('success', 'Purchase verified successfully.', 201);
+            return $this->sendResponse('success', 'Purchase verified successfully.', 200);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            $log->debug('Error verifying purchase1: ' . $e->getMessage());
-            return $this->sendError('validation_error', $e->errors(), 422);
         } catch (\Exception $e) {
             $log->debug('Error verifying purchase2: ' . $e->getMessage());
             return $this->sendError('purchase_failed', 'An error occurred: ' . $e->getMessage(), 500);

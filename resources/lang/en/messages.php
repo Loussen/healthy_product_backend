@@ -35,7 +35,7 @@ return [
     'how_it_works' => 'How It Works?',
     'how_it_works_text' => 'Start living healthy in 3 simple steps',
     'scan_the_product' => 'Scan the Product',
-    'scan_the_product_text' => 'Scan the product barcode or package using your camera.',
+    'scan_the_product_text' => 'Scan the product ingredients with your camera.',
     'check_the_analysis' => 'Check the Analysis',
     'check_the_analysis_text' => 'View the AI-powered detailed content analysis.',
     'decide' => 'Make a Decision',

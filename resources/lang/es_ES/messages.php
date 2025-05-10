@@ -35,7 +35,7 @@ return [
     'how_it_works' => '¿Cómo Funciona?',
     'how_it_works_text' => 'Empieza una vida saludable en 3 simples pasos',
     'scan_the_product' => 'Escanea el Producto',
-    'scan_the_product_text' => 'Escanea el código de_DE barras o el empaque del producto con tu cámara.',
+    'scan_the_product_text' => 'Escanee los ingredientes del producto con su cámara.',
     'check_the_analysis' => 'Revisa el Análisis',
     'check_the_analysis_text' => 'Visualiza el análisis detallado impulsado por inteligencia artificial.',
     'decide' => 'Decide',

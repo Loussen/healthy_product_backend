@@ -35,7 +35,7 @@ return [
     'how_it_works' => 'Necə işləyir?',
     'how_it_works_text' => '3 sadə addımla sağlam həyata başlayın',
     'scan_the_product' => 'Məhsulu Skan Edin',
-    'scan_the_product_text' => 'Məhsulun barkodunu və ya qablaşdırmasını kameranızla skan edin.',
+    'scan_the_product_text' => 'Məhsulun tərkibini kameranızla skan edin.',
     'check_the_analysis' => 'Analizə Baxın',
     'check_the_analysis_text' => 'Süni intellektlə dəstəklənən detallı tərkib analizini izləyin.',
     'decide' => 'Qərar Verin',

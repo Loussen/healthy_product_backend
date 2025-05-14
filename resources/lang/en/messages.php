@@ -23,7 +23,7 @@ return [
         ]
     ],
     'slogan' => 'Make smart choices for a healthy life',
-    'slogan_text' => 'Scan products, analyze their contents, and make the best decisions for your health. With our AI-powered app, living healthy is now easier!',
+    'slogan_text' => 'Scan products, analyse their contents, and make the best decisions for your health. With our AI-powered app, living healthy is now easier!',
     'why_vital_scan' => 'Why Vital Scan?',
     'why_vital_scan_text' => 'Make smart choices for a healthy life.',
     'fast_scan' => 'Fast Scanning',
@@ -47,6 +47,6 @@ return [
     'last_updated' => 'Last updated',
     'meta' => [
         'keywords' => 'vital scan, vital, scan, vscan, healthy product, compass, healthy',
-        'description' => 'Analyze product ingredients and make more informed shopping decisions! Vital Scan - Your vital scan compass - VScan'
+        'description' => 'Analyse product ingredients and make more informed shopping decisions! Vital Scan - Your vital scan compass - VScan'
     ]
 ];

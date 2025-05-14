@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
 
@@ -108,7 +109,12 @@ class AuthController extends BaseController
         $otpRecord->save();
 
         if($request->type == 'reset_password') {
-            return $this->sendResponse('success','Otp verified!');
+            $token = Str::random(32);
+
+            $otpRecord->token = $token;
+            $otpRecord->save();
+
+            return $this->sendResponse(['token' => $token, 'token_type' => 'Hash'],'Otp verified!');
         }
 
         $token = $customer->createToken('auth_token')->plainTextToken;
@@ -360,6 +366,13 @@ class AuthController extends BaseController
             return $this->sendError('error', $validator->errors(), 400);
         }
 
+        $key = 'otp_limit_for_reset_password:' . $request->email;
+        $attempts = Cache::get($key, 0);
+
+        if ($attempts >= 3) {
+            return $this->sendError('limit', 'The OTP limit has been exceeded. Please try again later or write message to us.', 429);
+        }
+
         Otp::where('email', $request->email)->where('type','reset_password')->delete();
 
         $otp = rand(100000, 999999);
@@ -377,6 +390,47 @@ class AuthController extends BaseController
         // Send the OTP via SMS/Email
         $otpService->sendOtpEmail($request->email, $otp, 'reset_password');
 
+        Cache::put($key, $attempts + 1, now()->addMinutes(5));
+
         return $this->sendResponse('success', 'OTP sent to email address', 201);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => [
+                'required',
+                'string',
+                'email:rfc,dns',
+                'max:255',
+                'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'
+            ],
+            'token' => [
+                'required',
+                'string',
+                'size:32',
+                'regex:/^[a-zA-Z0-9]+$/',
+                Rule::exists('otp', 'token')->where(function ($query) use ($request) {
+                    $query->where('email', $request->email)
+                        ->where('type', 'reset_password');
+                }),
+            ],
+            'password' => 'required|string|min:8',
+            'password_confirmation' => 'required|string|min:8|same:password'
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('error', $validator->errors(), 400);
+        }
+
+        $existingCustomer = Customers::where('email', $request->email)->first();
+        if (!$existingCustomer) {
+            return $this->sendError('email', 'Customer not found', 400);
+        }
+
+        $existingCustomer->password = $request->password;
+        $existingCustomer->save();
+
+        return $this->sendResponse('success', 'Password changed');
     }
 }

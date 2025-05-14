@@ -43,7 +43,7 @@ class AuthController extends BaseController
             return $this->sendError('email', 'Email already registered', 400);
         }
 
-        Otp::where('email', $request->email)->delete();
+        Otp::where('email', $request->email)->where('type','register')->delete();
 
         $otp = rand(100000, 999999);
 
@@ -64,9 +64,14 @@ class AuthController extends BaseController
 
     public function verifyOtp(Request $request): JsonResponse
     {
+        $request->merge([
+            'type' => $request->input('type', 'register'),
+        ]);
+
         $validator = Validator::make($request->all(), [
             'email' => 'required|string|max:350',
             'otp' => 'required|string|size:6',
+            'type' => 'required|in:register,reset_password',
         ]);
 
         if ($validator->fails()) {
@@ -75,6 +80,7 @@ class AuthController extends BaseController
 
         $otpRecord = Otp::where('email', $request->email)
             ->where('otp', $request->otp)
+            ->where('type', $request->type)
             ->where('expire_at', '>', now())
             ->first();
 
@@ -82,22 +88,28 @@ class AuthController extends BaseController
             return $this->sendError('invalid otp', "Invalid or expired OTP", 400);
         }
 
-        $userData = json_decode($otpRecord->user_data, true);
+        if($request->type == 'register') {
+            $userData = json_decode($otpRecord->user_data, true);
 
-        $existingCustomer = Customers::where('email', $userData['email'])->first();
-        if ($existingCustomer) {
-            return $this->sendError('error', 'Email already verified', 400);
+            $existingCustomer = Customers::where('email', $userData['email'])->first();
+            if ($existingCustomer) {
+                return $this->sendError('error', 'Email already verified', 400);
+            }
+
+            $customer = Customers::create([
+                'name' => $userData['name'],
+                'surname' => $userData['surname'],
+                'email' => $userData['email'],
+                'password' => $userData['password'],
+            ]);
         }
-
-        $customer = Customers::create([
-            'name' => $userData['name'],
-            'surname' => $userData['surname'],
-            'email' => $userData['email'],
-            'password' => $userData['password'],
-        ]);
 
         $otpRecord->verified = 1;
         $otpRecord->save();
+
+        if($request->type == 'reset_password') {
+            return $this->sendResponse('success','Otp verified!');
+        }
 
         $token = $customer->createToken('auth_token')->plainTextToken;
 
@@ -106,8 +118,13 @@ class AuthController extends BaseController
 
     public function resendOtp(Request $request, OtpService $otpService): JsonResponse
     {
+        $request->merge([
+            'type' => $request->input('type', 'register'),
+        ]);
+
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email'
+            'email' => 'required|email',
+            'type' => 'required|in:register,reset_password',
         ]);
 
         if ($validator->fails()) {
@@ -117,14 +134,14 @@ class AuthController extends BaseController
         $email = $request->email;
 
         // OTP limiti yoxla
-        $key = 'otp_limit:' . $email;
+        $key = 'otp_limit_for_'.$request->type.':' . $email;
         $attempts = Cache::get($key, 0);
 
         if ($attempts >= 3) {
             return $this->sendError('limit', 'The OTP limit has been exceeded. Please try again later or write message to us.', 429);
         }
 
-        $otpRecord = Otp::where('email', $email)->latest()->first();
+        $otpRecord = Otp::where('email', $email)->where('type',$request->type)->latest()->first();
 
         if (!$otpRecord) {
             return $this->sendError('not_found', 'OTP not found or the user has not registered.', 404);
@@ -137,7 +154,7 @@ class AuthController extends BaseController
             'expire_at' => now()->addMinutes(10)
         ]);
 
-        $otpService->sendOtpEmail($email, $otp);
+        $otpService->sendOtpEmail($email, $otp, $request->type);
 
         Cache::put($key, $attempts + 1, now()->addMinutes(5));
 
@@ -324,5 +341,42 @@ class AuthController extends BaseController
             'token_type' => 'Bearer',
             'user' => $customer
         ], 'Success token');
+    }
+
+    public function forgetPassword(Request $request, OtpService $otpService): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => [
+                'required',
+                'string',
+                'email:rfc,dns',
+                'max:255',
+                'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/',
+                'exists:customers,email'
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendError('error', $validator->errors(), 400);
+        }
+
+        Otp::where('email', $request->email)->where('type','reset_password')->delete();
+
+        $otp = rand(100000, 999999);
+
+        $userData = $request->only(['email']);
+
+        Otp::create([
+            'email' => $request->email,
+            'otp' => $otp,
+            'expire_at' => now()->addMinutes(10),
+            'user_data' => json_encode($userData),
+            'type' => 'reset_password'
+        ]);
+
+        // Send the OTP via SMS/Email
+        $otpService->sendOtpEmail($request->email, $otp, 'reset_password');
+
+        return $this->sendResponse('success', 'OTP sent to email address', 201);
     }
 }

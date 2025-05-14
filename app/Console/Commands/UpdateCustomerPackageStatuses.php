@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\CustomerPackages;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 
 class UpdateCustomerPackageStatuses extends Command

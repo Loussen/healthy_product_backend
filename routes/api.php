@@ -30,6 +30,7 @@ Route::controller(AuthController::class)->name('auth.')->group(function(){
 
     Route::post('/google/sign_in', 'signInWithGoogle');
     Route::post('get-bearer-token', 'getBearerToken');
+    Route::post('forget-password', 'forgetPassword');
 });
 
 Route::middleware('auth:sanctum')->controller(AuthController::class)->group(function() {

@@ -58,9 +58,13 @@ class AuthController extends BaseController
         ]);
 
         // Send the OTP via SMS/Email
-        $otpService->sendOtpEmail($request->email, $otp);
+        $sendEmail = $otpService->sendOtpEmail($request->email, $otp);
 
-        return $this->sendResponse('success', 'OTP sent to email address', 201);
+        if($sendEmail) {
+            return $this->sendResponse('success', 'OTP sent to email address', 201);
+        } else {
+            return $this->sendError('email', 'Please write valid email', 400);
+        }
     }
 
     public function verifyOtp(Request $request): JsonResponse
@@ -160,11 +164,15 @@ class AuthController extends BaseController
             'expire_at' => now()->addMinutes(10)
         ]);
 
-        $otpService->sendOtpEmail($email, $otp, $request->type);
-
         Cache::put($key, $attempts + 1, now()->addMinutes(5));
 
-        return $this->sendResponse('success', 'A new OTP code has been sent to your email address.', 200);
+        $sendEmail = $otpService->sendOtpEmail($email, $otp, $request->type);
+
+        if($sendEmail) {
+            return $this->sendResponse('success', 'A new OTP code has been sent to your email address.', 200);
+        } else {
+            return $this->sendError('email', 'Please write valid email', 400);
+        }
     }
 
     public function login(Request $request): JsonResponse
@@ -387,12 +395,16 @@ class AuthController extends BaseController
             'type' => 'reset_password'
         ]);
 
-        // Send the OTP via SMS/Email
-        $otpService->sendOtpEmail($request->email, $otp, 'reset_password');
-
         Cache::put($key, $attempts + 1, now()->addMinutes(5));
 
-        return $this->sendResponse('success', 'OTP sent to email address', 201);
+        // Send the OTP via SMS/Email
+        $sendEmail = $otpService->sendOtpEmail($request->email, $otp, 'reset_password');
+
+        if($sendEmail) {
+            return $this->sendResponse('success', 'OTP sent to email address', 201);
+        } else {
+            return $this->sendError('email', 'Please write valid email', 400);
+        }
     }
 
     public function resetPassword(Request $request): JsonResponse

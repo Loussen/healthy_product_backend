@@ -61,6 +61,7 @@ class MainController extends BaseController
                     'slug' => $category->getTranslation('slug',$locale) ?? 'unknown',
                     'color' => hexToMaterialColor($category->color ?? '#9E9E9E'),
                     'main_color' => $category->color ?? '#9E9E9E',
+                    'description' => $category->getTranslation('description',$locale) ?? 'Null',
                 ];
             });
 

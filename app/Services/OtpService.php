@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
+use Exception;
 use Illuminate\Support\Facades\Mail;
 
 class OtpService
 {
-    public function sendOtpEmail(string $email, int $otp, $type = 'register'): void
+    public function sendOtpEmail(string $email, int $otp, $type = 'register'): bool
     {
         $subject = $type = 'reset_password' ? 'Your OTP code for reset password' : 'Your OTP Code for registration';
         $siteUrl = config('app.url');
@@ -76,8 +77,17 @@ class OtpService
             ";
         }
 
-        Mail::html($body, function ($message) use ($email, $subject) {
-            $message->to($email)->subject($subject);
-        });
+        try {
+            Mail::html($body, function ($message) use ($email, $subject) {
+                $message->to($email)->subject($subject);
+            });
+
+            return true;
+        } catch (Exception $e) {
+            $log = new DebugWithTelegramService();
+            $log->debug('Invalid email for register: '.$e->getMessage());
+
+            return false;
+        }
     }
 }

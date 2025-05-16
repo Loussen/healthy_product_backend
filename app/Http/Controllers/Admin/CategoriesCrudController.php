@@ -80,6 +80,8 @@ class CategoriesCrudController extends CrudController
             'attribute' => 'name',
         ]);
 
+        CRUD::field('description')->type('tinymce');
+
         /**
          * Fields can be defined using the fluent syntax:
          * - CRUD::field('price')->type('number');

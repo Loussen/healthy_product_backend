@@ -26,7 +26,7 @@ class Categories extends Model
     protected $fillable = ['name', 'slug', 'parent_id'];
     // protected $hidden = [];
 
-    public $translatable = ['name', 'slug'];
+    public $translatable = ['name', 'slug', 'description'];
 
     /*
     |--------------------------------------------------------------------------

@@ -330,39 +330,47 @@ class MainController extends BaseController
 
                 $fullUrl = asset('storage/' . $path);
 
-                $content = $googleVisionService->extractText($fullUrl);
+//                $content = $googleVisionService->extractText($fullUrl);
 
                 // Get category name
                 $category = Categories::find($request->category_id);
                 $categoryName = $category->getTranslation('name', 'en');
 
                 // Get image content as base64
-                $image = base64_encode(file_get_contents($request->file('image')));
+//                $image = base64_encode(file_get_contents($request->file('image')));
 
                 // Call OpenAI API
                 $openai = OpenAI::client(env('OPENAI_API_KEY'));
+
 //                $aiResponse = $openai->chat()->create([
 //                    'model' => env('OPENAI_MODEL'),
+//                    'temperature' => 0.0,
 //                    'messages' => [
 //                        [
 //                            'role' => 'system',
-//                            'content' => "This is a product analysis system. Analyze the contents seen in the content.
-//            Dynamically change the health score according to the category specified by the user.
-//            If the product_name or category cannot be determined, return 'null'.
-//            Always return the result in JSON format.
-//            Respond in the language specified by the user. Write all content (product name, category, ingredients, health score, explanations) in the user's specified language.
-//            If no valid information is found or if there is an error, include \"check\": false in the response. Otherwise, include \"check\": true.
-//            The JSON format should be as follows:
-//            {
-//              \"check\": true or false,
-//              \"product_name\": \"The name of the product in the language determined by AI, it is not depend on which I sending category name (e.g., Tobacco)\",
-//              \"category\": \"The category of the product in the language determined by AI, it is not depend on which I sending category name (e.g., Tobacco product)\",
-//              \"ingredients\": [\"List all ingredients in the language specified by the user\"],
-//              \"worst_ingredients\": [\"The worst ingredients in terms of health, in the language specified by the user\"],
-//              \"best_ingredients\": [\"The best ingredients in terms of health, in the language specified by the user\"],
-//              \"health_score\": \"Health score as a percentage, which may vary depending on the category\",
-//              \"detail_text\": \"Detailed information about the product in the language specified by the user (If some content is not specified, respond appropriately)\"
-//            }"
+//                            'content' => <<<EOT
+//                                You are a product analysis system.
+//
+//                                Analyze the content provided by the user and return a structured JSON response.
+//
+//                                Rules:
+//                                1. Detect the **actual product name** and **product category** from the content itself. Do NOT rely on or copy the category provided by the user. If product name or category cannot be determined, return `null` for them.
+//                                2. Analyze the ingredients and dynamically calculate a **health score** according to the category specified by the user (e.g., Children, Adults, Diabetics, Allergic people). For example, a product that is healthy in general may be unhealthy for children or allergic individuals.
+//                                3. Always respond in the **language specified by the user** (including product name, category, ingredients, score, etc.).
+//                                4. If valid information is found, include `"check": true`. If important data is missing or cannot be interpreted, set `"check": false`.
+//
+//                                Return the result in this exact JSON format:
+//                                {
+//                                  "check": true or false,
+//                                  "product_name": "Detected product name in the user's language or null",
+//                                  "category": "Detected product category in the user's language or null",
+//                                  "ingredients": ["List of all ingredients in the user's language"],
+//                                  "worst_ingredients": ["List of worst ingredients for health, in user's language"],
+//                                  "best_ingredients": ["List of best ingredients for health, in user's language"],
+//                                  "health_score": "A percentage score based on the category specified by the user",
+//                                  "detail_text": "Detailed explanation in the user's language, summarizing health evaluation"
+//                                }
+//                                EOT
 //                        ],
 //                        [
 //                            'role' => 'user',
@@ -370,8 +378,8 @@ class MainController extends BaseController
 //                                [
 //                                    'type' => 'text',
 //                                    'text' => "Analyze the contents of this product and respond in the specified JSON format.
-//            Write the ingredients (all, worst, best), product score (according: **$categoryName**), product name, product category, and detailed text in **$language**.
-//            Category: **$categoryName**, Language: **$language**."
+//Write the ingredients (all, worst, best), health score (based on category: **$categoryName**), product name, product category, and detailed explanation in **$language**.
+//Category: **$categoryName**, Language: **$language**."
 //                                ],
 //                                [
 //                                    'type' => 'text',
@@ -380,12 +388,11 @@ class MainController extends BaseController
 //                            ]
 //                        ]
 //                    ],
-////                    'max_tokens' => 500,
 //                    'response_format' => ['type' => 'json_object'],
 //                ]);
 
                 $aiResponse = $openai->chat()->create([
-                    'model' => env('OPENAI_MODEL'),
+                    'model' => env('OPENAI_VISION_MODEL', 'gpt-4o-mini'),
                     'temperature' => 0.0,
                     'messages' => [
                         [
@@ -393,10 +400,10 @@ class MainController extends BaseController
                             'content' => <<<EOT
                                 You are a product analysis system.
 
-                                Analyze the content provided by the user and return a structured JSON response.
+                                Analyze the image of the product label and return a structured JSON response.
 
                                 Rules:
-                                1. Detect the **actual product name** and **product category** from the content itself. Do NOT rely on or copy the category provided by the user. If product name or category cannot be determined, return `null` for them.
+                                1. Detect the **actual product name** and **product category** from the label. Do NOT rely on or copy the category provided by the user. If product name or category cannot be determined, return `null` for them.
                                 2. Analyze the ingredients and dynamically calculate a **health score** according to the category specified by the user (e.g., Children, Adults, Diabetics, Allergic people). For example, a product that is healthy in general may be unhealthy for children or allergic individuals.
                                 3. Always respond in the **language specified by the user** (including product name, category, ingredients, score, etc.).
                                 4. If valid information is found, include `"check": true`. If important data is missing or cannot be interpreted, set `"check": false`.
@@ -424,8 +431,10 @@ Write the ingredients (all, worst, best), health score (based on category: **$ca
 Category: **$categoryName**, Language: **$language**."
                                 ],
                                 [
-                                    'type' => 'text',
-                                    'text' => $content
+                                    'type' => 'image_url',
+                                    'image_url' => [
+                                        'url' => $fullUrl
+                                    ]
                                 ]
                             ]
                         ]
@@ -451,7 +460,7 @@ Category: **$categoryName**, Language: **$language**."
                         ? (int) str_replace('%', '', $aiResponseData['health_score'])
                         : null,
                     'check' => $aiResponseData['check'],
-                    'ocr_text' => $content,
+//                    'ocr_text' => $content,
                     'response_time' => $responseTimeMs,
                 ]);
 
@@ -459,6 +468,9 @@ Category: **$categoryName**, Language: **$language**."
                 {
                     $activePackage->decrement('remaining_scans');
                 }
+
+                $log = new DebugWithTelegramService();
+                $log->debug('Scaned! Customer: '.$user->name." ".$user->surname);
 
                 return $this->sendResponse([
                     'scan_id' => $scanResult->id,
@@ -1191,7 +1203,7 @@ Category: **$categoryName**, Language: **$language**."
                 'description' => 'Yeni özellikler ve iyileştirmeler için lütfen uygulamayı güncelleyin.',
             ],
             'android' => [
-                'version' => '1.1.1',
+                'version' => '1.1.3',
                 'force_update' => true,
                 'store_url' => 'https://play.google.com/store/apps/details?id=com.healthyproduct.app',
                 'description' => 'Yeni özellikler ve iyileştirmeler için lütfen uygulamayı güncelleyin.',

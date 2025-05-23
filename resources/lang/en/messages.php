@@ -23,7 +23,7 @@ return [
         ]
     ],
     'slogan' => 'Make smart choices for a healthy life',
-    'slogan_text' => 'Scan products, analyse their contents, and make the best decisions for your health. With our AI-powered app, living healthy is now easier!',
+    'slogan_text' => 'Scan products, analyse their contents and make the best decisions for your health. With our AI-powered app, living healthy is now easier!',
     'why_vital_scan' => 'Why Vital Scan?',
     'why_vital_scan_text' => 'Make smart choices for a healthy life.',
     'fast_scan' => 'Fast Scanning',

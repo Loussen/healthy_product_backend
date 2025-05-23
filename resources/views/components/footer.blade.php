@@ -38,9 +38,10 @@
             <div class="col-lg-2">
                 <h5>{{ __('messages.menus.footer_menu.social') }}</h5>
                 <div class="social-links">
-                    <a href="#"><i class="bi bi-twitter"></i></a>
-                    <a href="#"><i class="bi bi-facebook"></i></a>
-                    <a href="#"><i class="bi bi-instagram"></i></a>
+                    <a href="https://www.facebook.com/vitalscanapp/" target="_blank"><i class="bi bi-facebook"></i></a>
+                    <a href="https://www.instagram.com/vscanapp/" target="_blank"><i class="bi bi-instagram"></i></a>
+                    <a href="https://www.youtube.com/@VitalScanApp" target="_blank"><i class="bi bi-youtube"></i></a>
+                    <a href="https://www.tiktok.com/@vitalscanapp" target="_blank"><i class="bi bi-tiktok"></i></a>
                 </div>
             </div>
         </div>

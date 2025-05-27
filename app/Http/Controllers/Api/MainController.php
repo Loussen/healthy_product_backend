@@ -29,6 +29,7 @@ use Google\Service\AndroidPublisher;
 use Google_Service_AndroidPublisher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -391,6 +392,17 @@ class MainController extends BaseController
 //                    'response_format' => ['type' => 'json_object'],
 //                ]);
 
+                $log = new DebugWithTelegramService();
+
+                $key = 'scan_limit_for_unchecked_' . $user->email;
+                $attempts = Cache::get($key, 0);
+
+                if ($attempts >= 5) {
+                    $log->debug('Scan limit for unchecked: '.$user->email);
+                    return $this->sendError("scan_limit_unreached_error", "Scan limit reached!
+You've temporarily reached your scan limit due to an unrecognized or unclear image. Please try again in a few moments and ensure the product ingredient image is clear and readable.", 429);
+                }
+
                 $aiResponse = $openai->chat()->create([
                     'model' => env('OPENAI_VISION_MODEL', 'gpt-4o-mini'),
                     'temperature' => 0.0,
@@ -414,11 +426,17 @@ class MainController extends BaseController
                                   "product_name": "Detected product name in the user's language or null",
                                   "category": "Detected product category in the user's language or null",
                                   "ingredients": ["List of all ingredients in the user's language"],
-                                  "worst_ingredients": ["List of worst ingredients for health, in user's language"],
-                                  "best_ingredients": ["List of best ingredients for health, in user's language"],
-                                  "health_score": "A percentage score based on the category specified by the user",
+                                  "worst_ingredients": ["List of worst ingredients for health, **based on the user's specified category**, in user's language"],
+                                  "best_ingredients": ["List of best ingredients for health, **based on the user's specified category**, in user's language"],
+                                  "health_score": "A percentage score **based on the specified category**, considering how suitable the ingredients are for that group",
                                   "detail_text": "Detailed explanation in the user's language, summarizing health evaluation"
                                 }
+
+                                Adjust the health_score more strictly:
+                                    • If there are more than 3 worst_ingredients, reduce the health_score by at least 20%.
+                                    • If there are fewer than 2 best_ingredients, reduce the health_score by 10%.
+                                    • If the number of worst_ingredients is greater than the number of best_ingredients, reduce the health_score by 20%.
+
                                 EOT
                         ],
                         [
@@ -464,12 +482,22 @@ Category: **$categoryName**, Language: **$language**."
                     'response_time' => $responseTimeMs,
                 ]);
 
+                if(!$aiResponseData['check']) {
+                    Cache::put($key, $attempts + 1, now()->addMinutes(5));
+
+                    if($attempts >= 4 && $activePackage) {
+                        $activePackage->decrement('remaining_scans');
+                    }
+
+                    return $this->sendError("scan_unreached_error", "Warning!
+Please make sure the product ingredients are read correctly. After several failed attempts, the scanning process may be temporarily suspended.", 429);
+                }
+
                 if($aiResponseData['check'] && $activePackage)
                 {
                     $activePackage->decrement('remaining_scans');
                 }
 
-                $log = new DebugWithTelegramService();
                 $log->debug('Scaned! Customer: '.$user->name." ".$user->surname);
 
                 return $this->sendResponse([
@@ -1040,13 +1068,15 @@ Category: **$categoryName**, Language: **$language**."
 
         try {
             $payload = json_decode(file_get_contents('php://input'), true);
-            $log->debug('Webhook Payload: ' . json_encode($payload));
+            $log->debug('Webhook Payload2: ' . json_encode($payload));
 
-            $notification = $payload['voidedPurchaseNotification'] ?? null;
+//            $notification = $payload['voidedPurchaseNotification'] ?? null;
+            $notification = $payload['subscriptionNotification'] ?? null;
 
 //            return $this->sendResponse('success', 'Webhook processed successfully.', 200);
 
             if (!$notification) {
+                $log->debug('subscriptionNotification');
                 return $this->sendError('invalid_notification', 'No subscription notification found.', 400);
             }
 
@@ -1054,6 +1084,7 @@ Category: **$categoryName**, Language: **$language**."
             $refundType = $notification['refundType'];
 
             if (!$purchaseToken) {
+                $log->debug('not_found_token - '.$purchaseToken);
                 return $this->sendError('invalid_payload', 'Missing required fields.', 400);
             }
 
@@ -1062,7 +1093,7 @@ Category: **$categoryName**, Language: **$language**."
             $customerPackage = CustomerPackages::where('subscription_id', $subscription->id)->first();
 
             if (!$customerPackage || !$subscription) {
-                $log->debug('not_found_sub');
+                $log->debug('not_found_sub - '.$purchaseToken);
                 return $this->sendError('customer_package_or_subscription_not_found', 'Subscription or customer package not found.');
             }
 
@@ -1203,7 +1234,7 @@ Category: **$categoryName**, Language: **$language**."
                 'description' => 'Yeni özellikler ve iyileştirmeler için lütfen uygulamayı güncelleyin.',
             ],
             'android' => [
-                'version' => '1.1.3',
+                'version' => '1.1.5',
                 'force_update' => true,
                 'store_url' => 'https://play.google.com/store/apps/details?id=com.healthyproduct.app',
                 'description' => 'Yeni özellikler ve iyileştirmeler için lütfen uygulamayı güncelleyin.',
@@ -1411,7 +1442,7 @@ Category: **$categoryName**, Language: **$language**."
 
         try {
             $payload = json_decode(file_get_contents('php://input'), true);
-            $log->debug('Webhook Payload: ' . json_encode($payload));
+//            $log->debug('Webhook Payload: ' . json_encode($payload));
 
             // Google Play'den gelen imzayı doğrula
             $signature = $request->header('X-Google-Play-Signature');

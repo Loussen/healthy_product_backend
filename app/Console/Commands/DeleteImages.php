@@ -27,7 +27,8 @@ class DeleteImages extends Command
      */
     public function handle()
     {
-        $scanResults = ScanResults::where('customer_id', 17)->get();
+//        $scanResults = ScanResults::whereIn('customer_id', [6,7,8,9,1,3,17,18,34,37,38,42,46,50])->get();
+        $scanResults = ScanResults::withoutGlobalScopes()->where('check', 0)->get();
 
         foreach ($scanResults as $result) {
             if ($result->image && Storage::disk('public')->exists($result->image)) {

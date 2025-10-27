@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\MainController;
+use App\Http\Controllers\Api\TelegramBotController;
 use App\Services\DebugWithTelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -184,4 +185,9 @@ Route::get('/vision-test', function () {
     } catch (\Exception $e) {
         return "Hata: " . $e->getMessage();
     }
+});
+
+Route::name('telegram.')->prefix('telegram')->controller(TelegramBotController::class)->group(function(){
+    Route::get('test', 'test')->name('test');
+    Route::get('webhook', 'webhook')->name('webhook');
 });

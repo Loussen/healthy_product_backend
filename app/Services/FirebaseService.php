@@ -17,7 +17,7 @@ class FirebaseService
 
     protected function getAccessToken()
     {
-        $credentialsPath = storage_path(env('FIREBASE_CREDENTIALS'));
+        $credentialsPath = storage_path('app/firebase/vital-scan-vscan-firebase-adminsdk-fbsvc-f62b73253b.json');
 
         $client = new \Google\Client();
         $client->setAuthConfig($credentialsPath);

@@ -17,6 +17,7 @@
         "google/cloud-vision": "^2.0",
         "guzzlehttp/guzzle": "^7.9",
         "intervention/image": "^2",
+        "irazasyed/telegram-bot-sdk": "^3.15",
         "laravel/framework": "^11.31",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.18",

@@ -36,8 +36,8 @@ class SendPushNotification extends Command
      */
     public function handle()
     {
-        $title = 'salam22';
-        $body = "Lorem Ipsum is simply dummy text of the printing and typesetting industry...";
+        $title = 'Vital Scan';
+        $body = "Analyse product ingredients and make more informed shopping decisions. Please scan the ingredients section of the product to view the nutritional indicators.";
 
         $type = $this->option('type');
 
@@ -46,6 +46,8 @@ class SendPushNotification extends Command
                 'dQOI-gJeS26TWD2jh6Sc_W:APA91bE18u4_dget48hiHJqeBjk4os--umzT1aUvRv2BIWQssMa7EIx8YR9go20xWdweTenX2CMJ4EZyRA4j2QOsKCEdag3IVrtgZ8NaxLlImuAegB6i8wY',
                 'eJM4xX-ZRXqEDYR_KEtZk8:APA91bGjBoZQ9-aeaduaI5QgZHwzbjtgnIGccO2hrg1eHFYQePYwS4-FzGtaVfMfVk4bcOq2nWrqimsnOtrdV4ZsJjd1cugALkGrpfZy8ZOQ_5hwx32L2tY'
             ];
+
+            $deviceTokens = DeviceToken::pluck('device_token')->toArray();
 
             $validTokens = [];
 

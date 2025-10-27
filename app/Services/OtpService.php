@@ -85,7 +85,7 @@ class OtpService
             return true;
         } catch (Exception $e) {
             $log = new DebugWithTelegramService();
-            $log->debug('Invalid email for register: '.$e->getMessage());
+            $log->debug('Invalid email for register - '.$email.': '.$e->getMessage());
 
             return false;
         }

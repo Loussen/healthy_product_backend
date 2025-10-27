@@ -1081,7 +1081,7 @@ Please make sure the product ingredients are read correctly. After several faile
             }
 
             $purchaseToken = $notification['purchaseToken'] ?? null;
-            $refundType = $notification['refundType'];
+            $refundType = $notification['refundType'] ?? 0;
 
             if (!$purchaseToken) {
                 $log->debug('not_found_token - '.$purchaseToken);
@@ -1090,11 +1090,16 @@ Please make sure the product ingredients are read correctly. After several faile
 
             $subscription = Subscription::where('purchase_token', $purchaseToken)->first();
 
-            $customerPackage = CustomerPackages::where('subscription_id', $subscription->id)->first();
+            if($subscription) {
+                $customerPackage = CustomerPackages::where('subscription_id', $subscription->id)->first();
 
-            if (!$customerPackage || !$subscription) {
+                if(!$customerPackage) {
+                    $log->debug('not_found_customer_package - '.$purchaseToken);
+                    return $this->sendError('customer_package_not_found', 'Customer package not found.');
+                }
+            } else {
                 $log->debug('not_found_sub - '.$purchaseToken);
-                return $this->sendError('customer_package_or_subscription_not_found', 'Subscription or customer package not found.');
+                return $this->sendError('subscription_not_found', 'Subscription not found.');
             }
 
             $customerPackage->status = $refundType == 1 ? 'refund' : 'unknown';
@@ -1184,8 +1189,10 @@ Please make sure the product ingredients are read correctly. After several faile
     public function storeDeviceToken(Request $request)
     {
         $log = new DebugWithTelegramService();
-        $log->debug($request->all());
         $user = $request->user();
+
+        $log->debug($request->all());
+        $log->debug($user);
 
         $validator = Validator::make($request->all(), [
             'device_token' => 'required|string',
@@ -1234,7 +1241,7 @@ Please make sure the product ingredients are read correctly. After several faile
                 'description' => 'Yeni özellikler ve iyileştirmeler için lütfen uygulamayı güncelleyin.',
             ],
             'android' => [
-                'version' => '1.1.5',
+                'version' => '1.2.3',
                 'force_update' => true,
                 'store_url' => 'https://play.google.com/store/apps/details?id=com.healthyproduct.app',
                 'description' => 'Yeni özellikler ve iyileştirmeler için lütfen uygulamayı güncelleyin.',

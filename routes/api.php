@@ -188,5 +188,6 @@ Route::get('/vision-test', function () {
 });
 
 Route::name('telegram.')->prefix('telegram')->controller(TelegramBotController::class)->group(function(){
-    Route::get('webhook', 'handleWebhook')->name('webhook');
+    Route::post('webhook', 'handleWebhook')->name('webhook');
+    Route::get('test', 'test')->name('test');
 });

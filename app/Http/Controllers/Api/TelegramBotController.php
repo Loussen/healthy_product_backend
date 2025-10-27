@@ -24,4 +24,9 @@ class TelegramBotController extends BaseController
             'text' => 'Hello!'
         ]);
     }
+
+    public function test()
+    {
+        dd(Telegram::getWebhookInfo());
+    }
 }

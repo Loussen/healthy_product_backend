@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\SubscriptionStatus;
 use App\Models\Categories;
 use App\Models\Customers;
+use App\Models\ScanResults;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -68,37 +70,35 @@ class TelegramBotController extends BaseController
 
         // 🟠 Dil seçilib
         if ($this->isLanguageSelected($text)) {
-            return $this->handleLanguageSelection($chatId, $text);
+            return $this->handleLanguageSelection($chatId, $text, $from);
         }
 
-        Log::info(Cache::get("user_language_$chatId"));
+        $getCustomer = Customers::where('telegram_id',$from->getId())->first();
 
         // 🟣 Kateqoriya menyusu
         $categoryTranslations = $this->translate('category');
         if (in_array($text, $categoryTranslations, true) || $text === '/category') {
-            $language = Cache::get("user_language_$chatId");
-            if(!$language) {
+            if(!$getCustomer->language) {
                 return $this->showLanguageSelection($chatId);
             }
-            return $this->showCategories($chatId);
+            return $this->showCategories($chatId,$from);
         }
 
         // 🔵 Kateqoriya seçilib
         if ($this->isCategorySelected($text)) {
-            return $this->handleCategorySelection($chatId, $text);
+            return $this->handleCategorySelection($chatId, $text, $from);
         }
 
         // 🟤 Şəkil göndərilibsə
         if ($message->has('photo')) {
-            $language = Cache::get("user_language_$chatId");
-            if(!$language) {
+            if(!$getCustomer->language) {
                 return $this->showLanguageSelection($chatId);
             }
-            $category = Cache::get("user_category_$chatId");
+            $category = $getCustomer->default_category_id;
             if(!$category) {
-                return $this->showCategories($chatId);
+                return $this->showCategories($chatId,$from);
             }
-            return $this->handleProductImage($chatId, $message);
+            return $this->handleProductImage($chatId, $message, $from);
         }
 
         $backHomeTranslations = $this->translate('back_home');
@@ -106,9 +106,7 @@ class TelegramBotController extends BaseController
             $this->showLanguageSelection($chatId);
         }
 
-        $language = Cache::get("user_language_$chatId", 'English');
-        $language = preg_replace('/^\W+\s*/u', '', $language);
-        $languageCode = $this->mapLangNameToCode($language);
+        $languageCode = $getCustomer->language ?? 'en';
         $getWord = $this->translate('unexpected');
 
         Telegram::sendMessage([
@@ -183,23 +181,22 @@ class TelegramBotController extends BaseController
         return $languages->contains(fn($lang) => str_contains($text, $lang['name']));
     }
 
-    private function handleLanguageSelection($chatId, $languageName): void
+    private function handleLanguageSelection($chatId, $languageName, $from): void
     {
-        Cache::put("user_language_$chatId", $languageName, now()->addHour());
+        $getCustomer = Customers::where('telegram_id',$from->getId())->first();
 
-        $language = Cache::get("user_language_$chatId", 'English');
-        $language = preg_replace('/^\W+\s*/u', '', $language);
+        $language = preg_replace('/^\W+\s*/u', '', $languageName);
         $languageCode = $this->mapLangNameToCode($language);
         $getWord = $this->translate('category');
 
+        $getCustomer->language = $languageCode;
+        $getCustomer->save();
+
         $keyboard = Keyboard::make([
-            'keyboard' => [[Keyboard::button($getWord[$languageCode])]],
+            'keyboard' => [[Keyboard::button($getWord[$getCustomer->language ?? 'en'])]],
             'resize_keyboard' => true,
         ]);
 
-        $language = Cache::get("user_language_$chatId", 'English');
-        $language = preg_replace('/^\W+\s*/u', '', $language);
-        $languageCode = $this->mapLangNameToCode($language);
         $data['language_name'] = $languageName;
         $getWord = $this->translate('choose_category',$data);
 
@@ -213,11 +210,10 @@ class TelegramBotController extends BaseController
     }
 
     // ✅ 3️⃣ Kateqoriyalar
-    private function showCategories($chatId): void
+    private function showCategories($chatId,$from): void
     {
-        $language = Cache::get("user_language_$chatId", 'English');
-        $language = preg_replace('/^\W+\s*/u', '', $language);
-        $langCode = $this->mapLangNameToCode($language);
+        $getCustomer = Customers::where('telegram_id',$from->getId())->first();
+        $langCode = $getCustomer->language ?? 'en';
 
         $categories = Categories::all()->map(function ($category) use ($langCode) {
             return [
@@ -241,14 +237,10 @@ class TelegramBotController extends BaseController
             $buttons[] = $row;
         }
 
-        $language = Cache::get("user_language_$chatId", 'English');
-        $language = preg_replace('/^\W+\s*/u', '', $language);
-        $languageCode = $this->mapLangNameToCode($language);
-
         $getWord = $this->translate('back_home');
 
         $keyboard = Keyboard::make([
-            'keyboard' => array_merge($buttons, [[Keyboard::button($getWord[$languageCode])]]),
+            'keyboard' => array_merge($buttons, [[Keyboard::button($getWord[$langCode])]]),
             'resize_keyboard' => true,
         ]);
 
@@ -257,7 +249,7 @@ class TelegramBotController extends BaseController
 
         Telegram::sendMessage([
             'chat_id' => $chatId,
-            'text' => $getWord[$languageCode],
+            'text' => $getWord[$langCode],
             'reply_markup' => $keyboard,
         ]);
     }
@@ -268,26 +260,72 @@ class TelegramBotController extends BaseController
         return $categories->contains(fn($c) => str_contains($text, $c['name']));
     }
 
-    private function handleCategorySelection($chatId, $categoryName): void
+    private function handleCategorySelection($chatId, $categoryName, $from): void
     {
-        Cache::put("user_category_$chatId", $categoryName, now()->addHour());
+        $getCustomer = Customers::where('telegram_id',$from->getId())->first();
 
-        $language = Cache::get("user_language_$chatId", 'English');
-        $language = preg_replace('/^\W+\s*/u', '', $language);
-        $languageCode = $this->mapLangNameToCode($language);
         $data['category_name'] = $categoryName;
-        $getWord = $this->translate('send_photo',$data);
+        $getWord = $this->translate('chosen_category',$data);
+
+        $categoryName = preg_replace('/^\W+\s*/u', '', $categoryName);
+        Log::info($categoryName);
+        $language = $getCustomer->language ?? 'en';
+        Log::info($language);
+        $category = Categories::where("name->{$language}", $categoryName)->first();
+        Log::info("Category: ".$category->id ?? 1);
+        $getCustomer->default_category_id = $category->id ?? 1;
+        $getCustomer->save();
 
         Telegram::sendMessage([
             'chat_id' => $chatId,
-            'text' => $getWord[$languageCode],
+            'text' => $getWord[$getCustomer->language ?? 'en'],
             'parse_mode' => 'Markdown',
         ]);
     }
 
     // ✅ 4️⃣ Foto analiz
-    private function handleProductImage($chatId, $message): void
+    private function handleProductImage($chatId, $message, $from): void
     {
+        $getCustomer = Customers::where('telegram_id',$from->getId())->first();
+
+        $languageCode = $getCustomer->language ?? 'en';
+        $language = $this->mapLangNameToCode($languageCode,true);
+
+        $allScans = $getCustomer->scan_results()
+            ->count();
+
+        $activePackage = $getCustomer->packages()
+            ->where('remaining_scans', '>', 0)
+            ->where('created_at', '>=', now()->subMonth())
+            ->where('status', SubscriptionStatus::ACTIVE->value)
+            ->orderByDesc('id')
+            ->first();
+
+        $getWord = $this->translate('out_of_scan');
+        if($allScans >= config('services.free_package_limit') && !$activePackage) {
+            Telegram::sendMessage([
+                'chat_id' => $chatId,
+                'text' => $getWord[$languageCode],
+                'parse_mode' => 'Markdown'
+            ]);
+        }
+
+        $key = 'scan_limit_for_unchecked_' . $from->getId();
+        $attempts = Cache::get($key, 0);
+
+        Log::info("Attempts: ".$attempts);
+
+        if ($attempts >= 5) {
+            Log::info('Scan limit for unchecked: '.$from->getId());
+            $getWord = $this->translate('scan_limit_unreached_error');
+            Telegram::sendMessage([
+                'chat_id' => $chatId,
+                'text' => $getWord[$languageCode],
+                'parse_mode' => 'Markdown'
+            ]);
+            return;
+        }
+
         $photos = $message->getPhoto();
         $array = json_decode(json_encode($photos), true);
         $photo = end($array);
@@ -307,10 +345,8 @@ class TelegramBotController extends BaseController
         Storage::disk('public')->put($path, $contents);
         $fullUrl = asset('storage/' . $path);
 
-        $categoryName = Cache::get("user_category_$chatId", 'General');
-        $language = Cache::get("user_language_$chatId", 'English');
-        $languageCode = preg_replace('/^\W+\s*/u', '', $language);
-        $languageCode = $this->mapLangNameToCode($languageCode);
+        $category = Categories::find($getCustomer->default_category_id);
+        $categoryName = $category->getTranslation('name', 'en');
 
         $getWord = $this->translate('please_wait');
 
@@ -382,36 +418,85 @@ Category: **$categoryName**, Language: **$language**."
         $data = json_decode($aiResponse->choices[0]->message->content, true);
         $timeMs = (int)((microtime(true) - $startTime) * 1000);
 
+        $aiResponseData = json_decode($aiResponse->choices[0]->message->content, true);
+
+        ScanResults::create([
+            'customer_id' => $getCustomer->id,
+            'category_id' => $getCustomer->default_category_id,
+            'image' => $path,
+            'response' => $aiResponseData,
+            'category_name_ai' => $aiResponseData['category'] ?? '',
+            'product_name_ai' => $aiResponseData['product_name'] ?? '',
+            'product_score' => isset($aiResponseData['health_score']) && $aiResponseData['health_score'] !== 'null'
+                ? (int) str_replace('%', '', $aiResponseData['health_score'])
+                : null,
+            'check' => $aiResponseData['check'],
+            'response_time' => $timeMs,
+        ]);
+
+        if(!$aiResponseData['check']) {
+            Cache::put($key, $attempts + 1, now()->addMinutes(5));
+
+            if($attempts >= 3 && $activePackage) {
+                $activePackage->decrement('remaining_scans');
+            }
+
+            $getWord = $this->translate('scan_limit');
+
+            Telegram::sendMessage([
+                'chat_id' => $chatId,
+                'text' => $getWord[$languageCode],
+                'parse_mode' => 'Markdown'
+            ]);
+
+            return;
+        }
+
+        if($aiResponseData['check'] && $activePackage)
+        {
+            $activePackage->decrement('remaining_scans');
+        }
+
         $ingredients = $data['ingredients'] ?? [];
         $best = $data['best_ingredients'] ?? [];
         $worst = $data['worst_ingredients'] ?? [];
         $detailText = $data['detail_text'] ?? [];
 
         // Liste biçimine çevir
-        $ingredientsText = !empty($ingredients) ? "🧪 *Ingredients:*\n" . implode(", ", $ingredients) . "\n\n" : '';
-        $bestText = !empty($best) ? "🌿 *Best Ingredients:*\n" . "• " . implode("\n• ", $best) . "\n\n" : '';
-        $worstText = !empty($worst) ? "⚠️ *Worst Ingredients:*\n" . "• " . implode("\n• ", $worst) . "\n\n" : '';
-        $detailText = !empty($detailText) ? "ℹ️ *Details:*\n" . "• " . $detailText . "\n\n" : '';
+        $ingredientsText = !empty($ingredients) ? "🧪 *Ingredients:*\n" . implode(", ", $ingredients) . "\n" : '';
+        $bestText = !empty($best) ? "🌿 *Best Ingredients:*\n" . "• " . implode("\n• ", $best) . "\n" : '';
+        $worstText = !empty($worst) ? "⚠️ *Worst Ingredients:*\n" . "• " . implode("\n• ", $worst) . "\n" : '';
+        $detailText = !empty($detailText) ? "ℹ️ *Details:*\n" . "• " . $detailText . "\n" : '';
 
-        $text =
-            "✅ *Product scanned successfully!*\n\n" .
-            "🧾 *Product:* " . ($data['product_name'] ?? 'Unknown') . "\n" .
-            "📦 *Category:* " . ($categoryName ?? $data['category'] ) . "\n" .
-            "💯 *Health Score:* " . ($data['health_score'] ?? 'N/A') . "\n" .
-            "🕒 *Response time:* {$timeMs} ms\n\n" .
-            $ingredientsText .
-            $bestText .
-            $worstText.
-            $detailText;
+//        $text =
+//            "✅ *Product scanned successfully!*\n\n" .
+//            "🧾 *Product:* " . ($data['product_name'] ?? 'Unknown') . "\n" .
+//            "📦 *Category:* " . ($categoryName ?? $data['category'] ) . "\n" .
+//            "💯 *Health Score:* " . ($data['health_score'] ?? 'N/A') . "\n" .
+//            $ingredientsText .
+//            $bestText .
+//            $worstText.
+//            $detailText.
+//            "🕒 *Response time:* {$timeMs} ms\n\n";
+
+        $translateData['product_name'] = $data['product_name'] ?? 'Unknown';
+        $translateData['category'] = $categoryName ?? $data['category'];
+        $translateData['health_score'] = $data['health_score'] ?? 'N/A';
+        $translateData['ingredients'] = $ingredientsText;
+        $translateData['best_ingredients'] = $bestText;
+        $translateData['worst_ingredients'] = $worstText;
+        $translateData['details'] = $detailText;
+        $translateData['response_time'] = $timeMs;
+        $getWord = $this->translate('scan_result',$translateData);
 
         Telegram::sendMessage([
             'chat_id' => $chatId,
-            'text' => $text,
+            'text' => $getWord[$languageCode],
             'parse_mode' => 'Markdown',
         ]);
     }
 
-    private function mapLangNameToCode($languageName): string
+    private function mapLangNameToCode($languageName, $reverse = false): string
     {
         $map = [
             'Azerbaijani' => 'az',
@@ -421,6 +506,11 @@ Category: **$categoryName**, Language: **$language**."
             'Spanish' => 'es_ES',
             'German' => 'de_DE',
         ];
+
+        if($reverse) {
+            $map = array_flip($map);
+        }
+
         return $map[$languageName] ?? 'en';
     }
 
@@ -453,7 +543,7 @@ Category: **$categoryName**, Language: **$language**."
                 'es_ES' => '🎯 Selecciona una categoría 👇',
                 'de_DE' => '🎯 Wähle eine Kategorie 👇',
             ];
-        } elseif($type == 'send_photo') {
+        } elseif($type == 'chosen_category') {
             $messages = [
                 'az' => "✅ Seçdiyin kateqoriya: *{$data['category_name']}*\n\n📸 İndi məhsulun *tərkibi hissəsinin* şəklini göndər, analiz edək.",
                 'en' => "✅ Selected category: *{$data['category_name']}*\n\n📸 Now send a photo of the *ingredients section* of the product for analysis.",
@@ -499,6 +589,118 @@ Category: **$categoryName**, Language: **$language**."
 
                 'de_DE' => "🤔 Bitte wähle eine der folgenden Optionen:\n\n" .
                     "🌍 Sprache wählen oder 🎯 Kategorie auswählen.\n📸 Sende anschließend ein Foto des Produktetiketts.",
+            ];
+        } elseif($type == 'scan_limit') {
+            $messages = [
+                'az' => "🔔 Xəbərdarlıq!\n\nZəhmət olmasa məhsulun tərkib hissələrinin düzgün oxunduğuna əmin olun. Bir neçə uğursuz cəhddən sonra skan etmə prosesi müvəqqəti olaraq dayandırıla bilər.",
+                'en' => "🔔 Warning!\n\nPlease make sure the product ingredients are read correctly. After several failed attempts, the scanning process may be temporarily suspended.",
+                'ru' => "🔔 Предупреждение!\n\nПожалуйста, убедитесь, что состав продукта считывается правильно. После нескольких неудачных попыток процесс сканирования может быть временно приостановлен.",
+                'tr' => "🔔 Uyarı!\n\nLütfen ürünün içerik bilgilerinin doğru okunduğundan emin olun. Birkaç başarısız denemeden sonra tarama işlemi geçici olarak durdurulabilir.",
+                'es_ES' => "🔔 ¡Advertencia!\n\nAsegúrate de que los ingredientes del producto se lean correctamente. Tras varios intentos fallidos, el proceso de escaneo puede suspenderse temporalmente.",
+                'de_DE' => "🔔 Warnung!\n\nBitte stellen Sie sicher, dass die Produktzutaten korrekt gelesen werden. Nach mehreren fehlgeschlagenen Versuchen kann der Scanvorgang vorübergehend ausgesetzt werden."
+            ];
+        } elseif($type == 'out_of_scan') {
+            $messages = [
+                'az' => "⛔ Skan limiti aşılmışdır",
+                'en' => "⛔ Out of scan limit",
+                'ru' => "⛔ Лимит сканирования превышен",
+                'tr' => "⛔ Tarama limiti aşılmıştır",
+                'es_ES' => "⛔ Límite de escaneo excedido",
+                'de_DE' => "⛔ Scanlimit überschritten"
+            ];
+        } elseif ($type == 'scan_limit_unreached_error') {
+            $messages = [
+                'az' => "⚠️ Skan limiti çatdı!\n\nTanınmayan və ya qeyri-aydın şəkilə görə müvəqqəti skan limitinə çatdınız. Zəhmət olmasa bir neçə dəqiqə sonra yenidən cəhd edin və məhsulun tərkib hissələrinin şəklinin aydın və oxunaqlı olmasına diqqət edin.",
+
+                'en' => "⚠️ Scan limit reached!\n\nYou've temporarily reached your scan limit due to an unrecognized or unclear image. Please try again in a few moments and ensure the product ingredient image is clear and readable.",
+
+                'ru' => "⚠️ Достигнут лимит сканирования!\n\nВы временно достигли лимита из-за нераспознанного или нечёткого изображения. Пожалуйста, повторите попытку через несколько минут и убедитесь, что фото состава продукта чёткое и хорошо читается.",
+
+                'tr' => "⚠️ Tarama limiti doldu!\n\nTanınmayan veya bulanık bir görsel nedeniyle geçici olarak tarama limitine ulaştınız. Lütfen birkaç dakika sonra tekrar deneyin ve ürün içeriği görselinin net ve okunabilir olduğundan emin olun.",
+
+                'es_ES' => "⚠️ ¡Límite de escaneo alcanzado!\n\nHas alcanzado temporalmente tu límite de escaneo debido a una imagen no reconocida o borrosa. Por favor, inténtalo de nuevo en unos minutos y asegúrate de que la imagen de los ingredientes del producto sea clara y legible.",
+
+                'de_DE' => "⚠️ Scanlimit erreicht!\n\nSie haben aufgrund eines nicht erkannten oder unscharfen Bildes vorübergehend Ihr Scanlimit erreicht. Bitte versuchen Sie es in ein paar Minuten erneut und stellen Sie sicher, dass das Foto der Produktzutaten klar und gut lesbar ist."
+            ];
+        } elseif($type == 'scan_result') {
+            $messages = [
+                'az' =>
+                    "✅ *Məhsul uğurla analiz edildi!*\n
+🧾 *Məhsul:* {$data['product_name']}
+📦 *Kateqoriya:* {$data['category']}
+💯 *Sağlamlıq balı:* {$data['health_score']}
+
+{$data['ingredients']}
+{$data['best_ingredients']}
+{$data['worst_ingredients']}
+{$data['details']}
+
+🕒 *Cavab vaxtı:* {$data['response_time']} ms\n",
+
+                'en' =>
+"✅ *Product scanned successfully!*\n
+🧾 *Product:* {$data['product_name']}
+📦 *Category:* {$data['category']}
+💯 *Health Score:* {$data['health_score']}
+
+{$data['ingredients']}
+{$data['best_ingredients']}
+{$data['worst_ingredients']}
+{$data['details']}
+
+🕒 *Response time:* {$data['response_time']} ms\n",
+
+                'ru' =>
+"✅ *Продукт успешно проанализирован!*\n
+🧾 *Продукт:* {$data['product_name']}
+📦 *Категория:* {$data['category']}
+💯 *Оценка здоровья:* {$data['health_score']}
+
+{$data['ingredients']}
+{$data['best_ingredients']}
+{$data['worst_ingredients']}
+{$data['details']}
+
+🕒 *Время ответа:* {$data['response_time']} мс\n",
+
+                'tr' =>
+"✅ *Ürün başarıyla analiz edildi!*\n
+🧾 *Ürün:* {$data['product_name']}
+📦 *Kategori:* {$data['category']}
+💯 *Sağlık Skoru:* {$data['health_score']}
+
+{$data['ingredients']}
+{$data['best_ingredients']}
+{$data['worst_ingredients']}
+{$data['details']}
+
+🕒 *Yanıt süresi:* {$data['response_time']} ms\n",
+
+                'es_ES' =>
+"✅ *¡Producto analizado con éxito!*\n
+🧾 *Producto:* {$data['product_name']}
+📦 *Categoría:* {$data['category']}
+💯 *Puntuación de salud:* {$data['health_score']}
+
+{$data['ingredients']}
+{$data['best_ingredients']}
+{$data['worst_ingredients']}
+{$data['details']}
+
+🕒 *Tiempo de respuesta:* {$data['response_time']} ms\n",
+
+                'de_DE' =>
+"✅ *Produkt erfolgreich analysiert!*\n
+🧾 *Produkt:* {$data['product_name']}
+📦 *Kategorie:* {$data['category']}
+💯 *Gesundheitspunktzahl:* {$data['health_score']}
+
+{$data['ingredients']}
+{$data['best_ingredients']}
+{$data['worst_ingredients']}
+{$data['details']}
+
+🕒 *Antwortzeit:* {$data['response_time']} ms\n",
             ];
         }
 

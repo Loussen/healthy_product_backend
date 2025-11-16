@@ -20,6 +20,83 @@ class TelegramBotController extends BaseController
     public function handleWebhook(Request $request)
     {
         $update = Telegram::commandsHandler(true);
+
+        if (!empty($update['callback_query'])) {
+
+            $callback = $update['callback_query'];
+            $chatId = $callback['message']['chat']['id'];
+            $data = $callback['data'];
+
+            if ($data === 'buy_20') {
+
+                Telegram::sendInvoice([
+                    'chat_id' => $chatId,
+                    'title' => '20 Scan Package',
+                    'description' => 'Unlock 20 additional scans in VitalScan',
+                    'payload' => 'pkg_20',
+                    'provider_token' => '', // Stars üçün BOŞ QOYULUR!!!
+                    'currency' => 'XTR', // Stars
+                    'prices' => [
+                        ["label" => "20 Scans", "amount" => 40] // 40 Stars
+                    ],
+                ]);
+
+                return;
+
+            }
+
+            if ($data === 'buy_50') {
+
+                Telegram::sendInvoice([
+                    'chat_id' => $chatId,
+                    'title' => '50 Scan Package',
+                    'description' => 'Unlock 50 additional scans in VitalScan',
+                    'payload' => 'pkg_50',
+                    'provider_token' => '',
+                    'currency' => 'XTR',
+                    'prices' => [
+                        ["label" => "50 Scans", "amount" => 80]
+                    ],
+                ]);
+
+                return;
+
+            }
+        }
+
+        if (!empty($update['pre_checkout_query'])) {
+            Telegram::answerPreCheckoutQuery([
+                'pre_checkout_query_id' => $update['pre_checkout_query']['id'],
+                'ok' => true,
+            ]);
+
+            return;
+        }
+
+        if (!empty($update['message']['successful_payment'])) {
+
+            $payment = $update['message']['successful_payment'];
+            $payload = $payment['invoice_payload'];
+            $chatId = $update['message']['chat']['id'];
+
+            if ($payload === 'pkg_20') {
+                $msg = "🎉 You have successfully purchased *20 extra scans*!";
+            }
+
+            if ($payload === 'pkg_50') {
+                $msg = "🔥 You have successfully purchased *50 extra scans*!";
+            }
+
+            Telegram::sendMessage([
+                'chat_id' => $chatId,
+                'text' => $msg,
+                'parse_mode' => 'Markdown'
+            ]);
+
+            return;
+        }
+
+
         Log::info($update);
         $message = $update->getMessage();
         Log::info($message);
@@ -205,7 +282,6 @@ class TelegramBotController extends BaseController
             'text' => $getWord[$languageCode],
             'parse_mode' => 'Markdown',
             'reply_markup' => $keyboard,
-            'x§' => true
         ]);
     }
 
@@ -284,7 +360,7 @@ class TelegramBotController extends BaseController
     }
 
     // ✅ 4️⃣ Foto analiz
-    private function handleProductImage($chatId, $message, $from): void
+    private function handleProductImage($chatId, $message, $from)
     {
         $getCustomer = Customers::where('telegram_id',$from->getId())->first();
 
@@ -301,13 +377,32 @@ class TelegramBotController extends BaseController
             ->orderByDesc('id')
             ->first();
 
-        $getWord = $this->translate('out_of_scan');
-        if($allScans >= config('services.free_package_limit') && !$activePackage) {
+        if($allScans >= 3 && !$activePackage) {
+            $getWord = $this->translate('out_of_scan');
             Telegram::sendMessage([
                 'chat_id' => $chatId,
                 'text' => $getWord[$languageCode],
                 'parse_mode' => 'Markdown'
             ]);
+
+            Telegram::sendMessage([
+                'chat_id' => $chatId,
+                'text' => "⭐ You have reached your scan limit.\nChoose a package below:",
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => [
+                        [
+                            ['text' => '✨ 20 Scans – 40⭐', 'callback_data' => 'buy_20'],
+                        ],
+                        [
+                            ['text' => '🔥 50 Scans – 80⭐', 'callback_data' => 'buy_50'],
+                        ],
+                    ]
+                ])
+            ]);
+
+            return;
+
+//            return $this->showStarPackages($chatId, $languageCode);
         }
 
         $key = 'scan_limit_for_unchecked_' . $from->getId();
@@ -622,6 +717,15 @@ Category: **$categoryName**, Language: **$language**."
 
                 'de_DE' => "⚠️ Scanlimit erreicht!\n\nSie haben aufgrund eines nicht erkannten oder unscharfen Bildes vorübergehend Ihr Scanlimit erreicht. Bitte versuchen Sie es in ein paar Minuten erneut und stellen Sie sicher, dass das Foto der Produktzutaten klar und gut lesbar ist."
             ];
+        } elseif($type === 'out_of_scan_packages') {
+            $messages = [
+                'az' => "⭐ *Davam etmək üçün paket seçin*\nAşağıdakı paketlərdən birini seçərək analiz limitinizi artıra bilərsiniz.",
+                'en' => "⭐ *Choose a package to continue*\nSelect a package below to increase your scan limit.",
+                'ru' => "⭐ *Выберите пакет, чтобы продолжить*\nВыберите один из пакетов ниже, чтобы увеличить лимит сканирования.",
+                'tr' => "⭐ *Devam etmek için bir paket seçin*\nAşağıdaki paketlerden birini seçerek tarama limitinizi artırabilirsiniz.",
+                'es_ES' => "⭐ *Elige un paquete para continuar*\nSelecciona un paquete para aumentar tu límite de escaneos.",
+                'de_DE' => "⭐ *Wähle ein Paket, um fortzufahren*\nWähle unten ein Paket, um dein Scanlimit zu erhöhen.",
+            ];
         } elseif($type == 'scan_result') {
             $messages = [
                 'az' =>
@@ -745,5 +849,61 @@ Category: **$categoryName**, Language: **$language**."
             Log::info("Telegram istifadəçisi yeniləndi: $telegramId");
         }
     }
+
+    private function showStarPackages($chatId, $languageCode)
+    {
+        $packages = [
+            [
+                'id' => 1,
+                'name' => 'Basic Pack',
+                'scans' => 20,
+                'price_stars' => 50,
+            ],
+            [
+                'id' => 2,
+                'name' => 'Pro Pack',
+                'scans' => 50,
+                'price_stars' => 100,
+            ],
+            [
+                'id' => 3,
+                'name' => 'Ultra Pack',
+                'scans' => 200,
+                'price_stars' => 250,
+            ],
+        ];
+
+        $botUsername = "VitalScanBot";
+
+        $buttons = [];
+
+        foreach ($packages as $p) {
+
+            $label = "⭐ {$p['name']} — {$p['price_stars']}★ ({$p['scans']} scans)";
+            $url = "https://t.me/{$botUsername}/start?startapp=buy_{$p['id']}";
+            Log::info($url);
+
+            $buttons[] = [
+                Keyboard::inlineButton([
+                    'text' => $label,
+                    'url' => $url
+                ])
+            ];
+        }
+
+        // Əlavə mesaj (translate)
+        $getWord = $this->translate('out_of_scan_packages');
+        $text = $getWord[$languageCode];
+
+        Telegram::sendMessage([
+            'chat_id' => $chatId,
+            'text' => $text,
+            'parse_mode' => 'Markdown',
+            'reply_markup' => Keyboard::make([
+                'inline_keyboard' => $buttons
+            ])
+        ]);
+    }
+
 
 }

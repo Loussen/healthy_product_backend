@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\SubscriptionStatus;
 use App\Models\Categories;
+use App\Models\CustomerPackages;
 use App\Models\Customers;
 use App\Models\Packages;
 use App\Models\ScanResults;
+use App\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use OpenAI;
@@ -22,11 +25,9 @@ class TelegramBotController extends BaseController
     {
         $update = Telegram::commandsHandler(true);
 
-        if (!empty($update['callback_query'])) {
-            $this->callbackQueryForStarPackages($update);
+        Log::info($update);
 
-            return;
-        }
+        $callback = $update->callback_query ?? '';
 
         // CHECKOUT APPROVE
         if (!empty($update['pre_checkout_query'])) {
@@ -38,8 +39,6 @@ class TelegramBotController extends BaseController
 
             return;
         }
-
-        $this->successPayment($update);
 
         $message = $update->getMessage();
 
@@ -63,30 +62,66 @@ class TelegramBotController extends BaseController
             return response('Could not retrieve chat data', 200);
         }
 
-        // ChatId'yi doğrudan al (get('id') veya get('id')'yi kullan)
-        $chatId = $chat->get('id') ?? $chat['id'];
-
         // $from nesnesini alırken de güvenli erişimi kullanın
         $from = $message->get('from');
 
+        Log::info("FROM: ".$from);
+        Log::info("Callback: ".$callback);
+
+        if ($from->is_bot) {
+            $from = $callback->from;
+        }
+
+        // ChatId'yi doğrudan al (get('id') veya get('id')'yi kullan)
+        $chatId = $chat->get('id') ?? $chat['id'];
+
         // User create or update
         $this->syncTelegramUser($from);
+
+        if (!empty($callback)) {
+            $data = $callback['data'];
+
+            if(str_starts_with($data, 'buy_')) {
+                $this->callbackQueryForStarPackages($data, $chatId);
+
+                return;
+            }
+        }
+
+        if (!empty($update['message']['successful_payment'])) {
+            $this->successPayment($update, $from);
+
+            return;
+        }
 
         $text = trim($message->getText() ?? '');
 
         // 🟢 1️⃣ /start → dil seçimi
         if ($text === '/start') {
-            return $this->sendWelcomeMessage($chatId, $from->getFirstName());
+            $this->sendWelcomeMessage($chatId, $from->getFirstName());
+
+            $this->showLanguageSelection($chatId);
+
+            return;
         }
 
         // 🟡 Dil seçimi menyusu
-        if ($text === '🌍 Language' || $text === '/language') {
+        if ($text === '/language') {
             return $this->showLanguageSelection($chatId);
         }
 
         // 🟠 Dil seçilib
-        if ($this->isLanguageSelected($text)) {
-            return $this->handleLanguageSelection($chatId, $text, $from);
+        if (!empty($callback)) {
+            $data = $callback['data'];
+
+            if(str_starts_with($data, 'lang_')) {
+                $this->handleLanguageSelection($chatId, $data, $from);
+
+                $this->showCategories($chatId,$from);
+
+                return;
+            }
+
         }
 
         $getCustomer = Customers::where('telegram_id',$from->getId())->first();
@@ -95,26 +130,42 @@ class TelegramBotController extends BaseController
         $categoryTranslations = $this->translate('category');
         if (in_array($text, $categoryTranslations, true) || $text === '/category') {
             if(!$getCustomer->language) {
-                return $this->showLanguageSelection($chatId);
+                $this->showLanguageSelection($chatId);
+
+                return;
             }
-            return $this->showCategories($chatId,$from);
+            $this->showCategories($chatId,$from);
+
+            return;
         }
 
         // 🔵 Kateqoriya seçilib
-        if ($this->isCategorySelected($text)) {
-            return $this->handleCategorySelection($chatId, $text, $from);
+        if (!empty($callback)) {
+            $data = $callback['data'];
+
+            if(str_starts_with($data, 'category_')) {
+                $this->handleCategorySelection($chatId, $data, $from);
+
+                return;
+            }
         }
 
         // 🟤 Şəkil göndərilibsə
         if ($message->has('photo')) {
             if(!$getCustomer->language) {
-                return $this->showLanguageSelection($chatId);
+                $this->showLanguageSelection($chatId);
+
+                return;
             }
             $category = $getCustomer->default_category_id;
             if(!$category) {
-                return $this->showCategories($chatId,$from);
+                $this->showCategories($chatId,$from);
+
+                return;
             }
-            return $this->handleProductImage($chatId, $message, $from);
+            $this->handleProductImage($chatId, $message, $from);
+
+            return;
         }
 
         $backHomeTranslations = $this->translate('back_home');
@@ -137,18 +188,14 @@ class TelegramBotController extends BaseController
     // ✅ 1️⃣ Xoş gəldin mesajı
     private function sendWelcomeMessage($chatId, $name): void
     {
-        $keyboard = Keyboard::make([
-            'keyboard' => [[Keyboard::button('🌍 Language')]],
-            'resize_keyboard' => true,
-        ]);
-
         Telegram::sendMessage([
             'chat_id' => $chatId,
-            'text' => "👋 Hello, *{$name}!*
-    Welcome to the Vital Scan - Product Analysis System.
-    Please select your language 👇",
+            'text' =>
+                "👋 Hello, *{$name}!*\n" .
+                "*Welcome to Vital Scan – Product Analysis System!*\n\n" .
+                "🌍 Please select your preferred *language*, then choose a *category* to begin the analysis.\n\n" .
+                "🔄 You can change your language and category selections at any time.",
             'parse_mode' => 'Markdown',
-            'reply_markup' => $keyboard,
         ]);
     }
 
@@ -156,7 +203,7 @@ class TelegramBotController extends BaseController
     private function showLanguageSelection($chatId): void
     {
         $languages = collect([
-//            ['code' => 'az', 'flag' => '🇦🇿', 'name' => 'Azerbaijani'],
+            // ['code' => 'az', 'flag' => '🇦🇿', 'name' => 'Azerbaijani'],
             ['code' => 'en', 'flag' => '🇬🇧', 'name' => 'English'],
             ['code' => 'ru', 'flag' => '🇷🇺', 'name' => 'Russian'],
             ['code' => 'es_ES', 'flag' => '🇪🇸', 'name' => 'Spanish'],
@@ -166,30 +213,32 @@ class TelegramBotController extends BaseController
 
         Cache::put('languages_list', $languages, now()->addMinutes(30));
 
-        $buttons = [];
-        // Dilleri ikişerli satırlara bölüyoruz
+        $keyboard = [];
+
+        // 2-li qruplarla düzülüş
         foreach ($languages->chunk(2) as $chunk) {
             $row = [];
-            // Her bir dil için bir düğme oluşturup o anki satıra ekliyoruz
-            foreach ($chunk as $lang) {
-                $row[] = Keyboard::button("{$lang['flag']} {$lang['name']}");
-            }
-            // Satırı ana düğmeler dizisine ekliyoruz
-            $buttons[] = $row;
-        }
 
-        $keyboard = Keyboard::make([
-            'keyboard' => $buttons, // Şimdi bu kesinlikle Array of Arrays
-            'resize_keyboard' => true,
-            'one_time_keyboard' => true,
-        ]);
+            foreach ($chunk as $lang) {
+                $row[] = [
+                    'text' => "{$lang['flag']} {$lang['name']}",
+                    'callback_data' => "lang_{$lang['code']}"
+                ];
+            }
+
+            $keyboard[] = $row;
+        }
 
         Telegram::sendMessage([
             'chat_id' => $chatId,
-            'text' => "🌍 First, please select your language 👇",
-            'reply_markup' => $keyboard,
+            'text' => "🌍 *First, please select your language* 👇",
+            'parse_mode' => 'Markdown',
+            'reply_markup' => json_encode([
+                'inline_keyboard' => $keyboard
+            ])
         ]);
     }
+
 
     private function isLanguageSelected($text): bool
     {
@@ -197,39 +246,34 @@ class TelegramBotController extends BaseController
         return $languages->contains(fn($lang) => str_contains($text, $lang['name']));
     }
 
-    private function handleLanguageSelection($chatId, $languageName, $from): void
+    private function handleLanguageSelection($chatId, $data, $from): void
     {
         $getCustomer = Customers::where('telegram_id',$from->getId())->first();
 
-        $language = preg_replace('/^\W+\s*/u', '', $languageName);
-        $languageCode = $this->mapLangNameToCode($language);
+        $language = explode("lang_",$data);
+        $languageCode = $language[1];
         $getWord = $this->translate('category');
 
         $getCustomer->language = $languageCode;
         $getCustomer->save();
 
-        $keyboard = Keyboard::make([
-            'keyboard' => [[Keyboard::button($getWord[$getCustomer->language ?? 'en'])]],
-            'resize_keyboard' => true,
-        ]);
-
-        $data['language_name'] = $languageName;
-        $getWord = $this->translate('choose_category',$data);
+        $sendData['language_name'] = $this->mapLangNameToCode($language[1], true);
+        $getWord = $this->translate('choose_category',$sendData);
 
         Telegram::sendMessage([
             'chat_id' => $chatId,
             'text' => $getWord[$languageCode],
             'parse_mode' => 'Markdown',
-            'reply_markup' => $keyboard,
         ]);
     }
 
     // ✅ 3️⃣ Kateqoriyalar
-    private function showCategories($chatId,$from): void
+    private function showCategories($chatId, $from): void
     {
-        $getCustomer = Customers::where('telegram_id',$from->getId())->first();
+        $getCustomer = Customers::where('telegram_id', $from->getId())->first();
         $langCode = $getCustomer->language ?? 'en';
 
+        // Kateqoriyalar
         $categories = Categories::all()->map(function ($category) use ($langCode) {
             return [
                 'id' => $category->id,
@@ -240,34 +284,39 @@ class TelegramBotController extends BaseController
 
         Cache::put('categories_list', $categories, now()->addMinutes(30));
 
-        $buttons = [];
+        // Inline Keyboard düymələri
+        $keyboard = [];
 
         foreach ($categories->chunk(2) as $chunk) {
             $row = [];
-            // Her bir dil için bir düğme oluşturup o anki satıra ekliyoruz
             foreach ($chunk as $c) {
-                $row[] = Keyboard::button("{$c['emoji']} {$c['name']}");
+                $row[] = [
+                    'text' => "{$c['emoji']} {$c['name']}",
+                    'callback_data' => 'category_' . $c['id']
+                ];
             }
-            // Satırı ana düğmeler dizisine ekliyoruz
-            $buttons[] = $row;
+            $keyboard[] = $row;
         }
 
+        // Back düyməsi
         $getWord = $this->translate('back_home');
+        $keyboard[] = [
+            ['text' => $getWord[$langCode], 'callback_data' => 'back_home']
+        ];
 
-        $keyboard = Keyboard::make([
-            'keyboard' => array_merge($buttons, [[Keyboard::button($getWord[$langCode])]]),
-            'resize_keyboard' => true,
-        ]);
-
-
+        // Başlıq
         $getWord = $this->translate('choose_category_2');
 
         Telegram::sendMessage([
             'chat_id' => $chatId,
             'text' => $getWord[$langCode],
-            'reply_markup' => $keyboard,
+            'parse_mode' => 'Markdown',
+            'reply_markup' => json_encode([
+                'inline_keyboard' => $keyboard
+            ]),
         ]);
     }
+
 
     private function isCategorySelected($text): bool
     {
@@ -275,20 +324,25 @@ class TelegramBotController extends BaseController
         return $categories->contains(fn($c) => str_contains($text, $c['name']));
     }
 
-    private function handleCategorySelection($chatId, $categoryName, $from): void
+    private function handleCategorySelection($chatId, $data, $from): void
     {
         $getCustomer = Customers::where('telegram_id',$from->getId())->first();
 
-        $data['category_name'] = $categoryName;
-        $getWord = $this->translate('chosen_category',$data);
+        Log::info($getCustomer);
 
-        $categoryName = preg_replace('/^\W+\s*/u', '', $categoryName);
-        Log::info($categoryName);
-        $language = $getCustomer->language ?? 'en';
-        Log::info($language);
-        $category = Categories::where("name->{$language}", $categoryName)->first();
-        Log::info("Category: ".$category->id ?? 1);
-        $getCustomer->default_category_id = $category->id ?? 1;
+        $category = explode('category_',$data);
+
+        $getCategory = Categories::findOrFail($category[1]);
+
+        if ($getCategory) {
+            $sendData['category_name'] = $getCategory->emoji . " " . $getCategory->getTranslation('name', $getCustomer->language);
+        } else {
+            $sendData['category_name'] = '';
+        }
+
+        $getWord = $this->translate('chosen_category',$sendData);
+
+        $getCustomer->default_category_id = $getCategory->id ?? 1;
         $getCustomer->save();
 
         Telegram::sendMessage([
@@ -311,7 +365,6 @@ class TelegramBotController extends BaseController
 
         $activePackage = $getCustomer->packages()
             ->where('remaining_scans', '>', 0)
-            ->where('created_at', '>=', now()->subMonth())
             ->where('status', SubscriptionStatus::ACTIVE->value)
             ->orderByDesc('id')
             ->first();
@@ -785,7 +838,7 @@ Category: **$categoryName**, Language: **$language**."
         foreach ($packages as $pkg) {
 
             // Yığcam və gözəl düymə text-i
-            $btnText = "✨ {$pkg->getTranslation('name',$languageCode)} – {$pkg->scan_count} scans";
+            $btnText = "{$pkg->telegram_emoji} {$pkg->getTranslation('name',$languageCode)} – {$pkg->scan_count} scans";
 
             // Saving varsa əlavə et (məs: -23%)
             if ($pkg->saving > 0) {
@@ -794,10 +847,8 @@ Category: **$categoryName**, Language: **$language**."
 
             // Stars qiymətini product_id_for_purchase-dan çıxar
             // example: "standard_package_700" → 700
-            $parts = explode("_", $pkg->product_id_for_purchase);
-            $stars = end($parts);
 
-            $btnText .= " – {$stars} ⭐";
+            $btnText .= " – {$pkg->telegram_star_price} ⭐";
 
             // Inline button
             $keyboard[] = [
@@ -814,14 +865,9 @@ Category: **$categoryName**, Language: **$language**."
         ]);
     }
 
-    private function callbackQueryForStarPackages($update)
+    private function callbackQueryForStarPackages($data, $chatId)
     {
         // CLICK HANDLER
-
-        $callback = $update['callback_query'];
-        $chatId = $callback['message']['chat']['id'];
-        $data = $callback['data']; // buy_basic_40 tipində gəlir
-
         if (str_starts_with($data, 'buy_')) {
 
             $productId = str_replace('buy_', '', $data); // basic_40
@@ -837,10 +883,6 @@ Category: **$categoryName**, Language: **$language**."
                 return;
             }
 
-            // Stars qiymətini çıxar
-            $parts = explode("_", $productId);
-            $stars = end($parts); // məsələn 40
-
             // INVOICE GÖNDƏR
             Telegram::sendInvoice([
                 'chat_id' => $chatId,
@@ -850,36 +892,67 @@ Category: **$categoryName**, Language: **$language**."
                 'provider_token' => '', // Stars üçün boş olmalıdır!
                 'currency' => 'XTR', // Stars valyutası
                 'prices' => [
-                    ["label" => "{$package->scan_count} Scans", "amount" => intval($stars)]
+                    ["label" => "{$package->scan_count} Scans", "amount" => intval($package->telegram_star_price)]
                 ],
             ]);
         }
     }
 
-    public function successPayment($update)
+    public function successPayment($update, $from)
     {
-        if (!empty($update['message']['successful_payment'])) {
+        $getCustomer = Customers::where('telegram_id',$from->getId())->first();
+        $payment = $update['message']['successful_payment'];
+        $payload = $payment['invoice_payload']; // pkg_12 (package id)
+        $chatId = $update['message']['chat']['id'];
 
-            $payment = $update['message']['successful_payment'];
-            $payload = $payment['invoice_payload'];
-            $chatId = $update['message']['chat']['id'];
+        // payload-dan package ID-ni çıxar: pkg_12 → 12
+        $packageId = intval(str_replace('pkg_', '', $payload));
 
-            if ($payload === 'pkg_20') {
-                $msg = "🎉 You have successfully purchased *20 extra scans*!";
-            }
+        // Mazadan paketi tap
+        $package = Packages::find($packageId);
 
-            if ($payload === 'pkg_50') {
-                $msg = "🔥 You have successfully purchased *50 extra scans*!";
-            }
-
+        if (!$package) {
             Telegram::sendMessage([
                 'chat_id' => $chatId,
-                'text' => $msg,
-                'parse_mode' => 'Markdown'
+                'text' => "❗ Payment received, but package not found.",
             ]);
-
             return;
         }
+
+        // İstifadəçiyə əlavə scan sayı əlavə et — BURADA LOGİKA SƏNİN SİSTEMƏ GÖRƏ YAZILIR
+        // məsələn:
+        // User::where('telegram_id', $chatId)->increment('scan_balance', $package->scan_count);
+
+        DB::transaction(function () use ($getCustomer, $package, $update, $payment) {
+            $purchase = Subscription::create([
+                'customer_id' => $getCustomer->id,
+                'product_id' => $package->id,
+                'platform' => 'telegram',
+                'purchase_token' => $payment['telegram_payment_charge_id'],
+                'start_date' => now(),
+                'status' => SubscriptionStatus::ACTIVE->value,
+                'payment_details' => json_encode($update),
+                'amount' => $package['amount'],
+            ]);
+
+            CustomerPackages::create([
+                'customer_id' => $getCustomer->id,
+                'package_id' => $package->id,
+                'remaining_scans' => $package->scan_count,
+                'subscription_id' => $purchase->id,
+                'status' => SubscriptionStatus::ACTIVE->value,
+            ]);
+        });
+
+        // Uğurlu ödəniş mesajı
+        $msg = "🎉 You have successfully purchased *{$package->scan_count} extra scans*!\n"
+            . "✨ Package: *{$package->name}*";
+
+        Telegram::sendMessage([
+            'chat_id' => $chatId,
+            'text' => $msg,
+            'parse_mode' => 'Markdown'
+        ]);
     }
 
 }

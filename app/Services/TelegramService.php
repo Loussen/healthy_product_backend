@@ -177,7 +177,8 @@ Category: **$categoryName**, Language: **$languageName**."
 
         // 1. Limit Yoxlamaları
         if ($customer->scan_results()->count() >= 3 && !$activePackage) {
-            $this->sendMessage($chatId, $this->translate('out_of_scan', [], $languageCode));
+            $getWord = $this->translate('out_of_scan', [], $languageCode);
+            $this->sendMessage($chatId, $getWord[$languageCode]);
             $this->showStarPackages($chatId, $languageCode); // Paketləri də göstər
             return;
         }
@@ -186,7 +187,8 @@ Category: **$categoryName**, Language: **$languageName**."
         $attempts = Cache::get($key, 0);
 
         if ($attempts >= 5) {
-            $this->sendMessage($chatId, $this->translate('scan_limit_unreached_error', [], $languageCode), 'Markdown');
+            $getWord = $this->translate('scan_limit_unreached_error', [], $languageCode);
+            $this->sendMessage($chatId, $getWord[$languageCode], 'Markdown');
             return;
         }
 
@@ -213,7 +215,8 @@ Category: **$categoryName**, Language: **$languageName**."
         $category = Categories::find($customer->default_category_id);
         $categoryName = $category->getTranslation('name', 'en');
 
-        $this->sendMessage($chatId, $this->translate('please_wait', [], $languageCode));
+        $getWord = $this->translate('please_wait', [], $languageCode);
+        $this->sendMessage($chatId, $getWord[$languageCode]);
 
         // 3. AI Analiz
         $aiResponse = $this->getOpenAIResponse($fullUrl, $categoryName, $languageName);
@@ -226,7 +229,8 @@ Category: **$categoryName**, Language: **$languageName**."
 
         // 5. Nəticəni Göndərmək
         if (!$aiResponseData['check']) {
-            $this->sendMessage($chatId, $this->translate('scan_limit', [], $languageCode), 'Markdown');
+            $getWord = $this->translate('scan_limit', [], $languageCode);
+            $this->sendMessage($chatId, $getWord[$languageCode], 'Markdown');
             return;
         }
 

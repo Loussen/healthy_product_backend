@@ -196,8 +196,8 @@ class TelegramBotController extends BaseController
         $getWord = $this->telegramService->translate('unexpected');
 
         $keyboard = [
-            [['text' => 'Choose a language', 'callback_data' => "choose_language"]],
-            [['text' => 'Choose a category', 'callback_data' => "choose_category"]],
+            [['text' => '🌍 Choose a language', 'callback_data' => "choose_language"]],
+            [['text' => '🎯 Choose a category', 'callback_data' => "choose_category"]],
         ];
 
         $this->telegramService->sendMessage(

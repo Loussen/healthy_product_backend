@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\SubscriptionStatus;
 use App\Models\Categories;
 use App\Models\Customers;
+use App\Models\Packages;
 use App\Models\ScanResults;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -22,49 +23,14 @@ class TelegramBotController extends BaseController
         $update = Telegram::commandsHandler(true);
 
         if (!empty($update['callback_query'])) {
+            $this->callbackQueryForStarPackages($update);
 
-            $callback = $update['callback_query'];
-            $chatId = $callback['message']['chat']['id'];
-            $data = $callback['data'];
-
-            if ($data === 'buy_20') {
-
-                Telegram::sendInvoice([
-                    'chat_id' => $chatId,
-                    'title' => '20 Scan Package',
-                    'description' => 'Unlock 20 additional scans in VitalScan',
-                    'payload' => 'pkg_20',
-                    'provider_token' => '', // Stars üçün BOŞ QOYULUR!!!
-                    'currency' => 'XTR', // Stars
-                    'prices' => [
-                        ["label" => "20 Scans", "amount" => 40] // 40 Stars
-                    ],
-                ]);
-
-                return;
-
-            }
-
-            if ($data === 'buy_50') {
-
-                Telegram::sendInvoice([
-                    'chat_id' => $chatId,
-                    'title' => '50 Scan Package',
-                    'description' => 'Unlock 50 additional scans in VitalScan',
-                    'payload' => 'pkg_50',
-                    'provider_token' => '',
-                    'currency' => 'XTR',
-                    'prices' => [
-                        ["label" => "50 Scans", "amount" => 80]
-                    ],
-                ]);
-
-                return;
-
-            }
+            return;
         }
 
+        // CHECKOUT APPROVE
         if (!empty($update['pre_checkout_query'])) {
+
             Telegram::answerPreCheckoutQuery([
                 'pre_checkout_query_id' => $update['pre_checkout_query']['id'],
                 'ok' => true,
@@ -73,36 +39,9 @@ class TelegramBotController extends BaseController
             return;
         }
 
-        if (!empty($update['message']['successful_payment'])) {
+        $this->successPayment($update);
 
-            $payment = $update['message']['successful_payment'];
-            $payload = $payment['invoice_payload'];
-            $chatId = $update['message']['chat']['id'];
-
-            if ($payload === 'pkg_20') {
-                $msg = "🎉 You have successfully purchased *20 extra scans*!";
-            }
-
-            if ($payload === 'pkg_50') {
-                $msg = "🔥 You have successfully purchased *50 extra scans*!";
-            }
-
-            Telegram::sendMessage([
-                'chat_id' => $chatId,
-                'text' => $msg,
-                'parse_mode' => 'Markdown'
-            ]);
-
-            return;
-        }
-
-
-        Log::info($update);
         $message = $update->getMessage();
-        Log::info($message);
-
-        $updateInfo = json_decode($update,true);
-        Log::info($updateInfo['message']['from']['id']);
 
         if (!$message) {
             return response('No message', 200);
@@ -378,27 +317,14 @@ class TelegramBotController extends BaseController
             ->first();
 
         if($allScans >= 3 && !$activePackage) {
-            $getWord = $this->translate('out_of_scan');
-            Telegram::sendMessage([
-                'chat_id' => $chatId,
-                'text' => $getWord[$languageCode],
-                'parse_mode' => 'Markdown'
-            ]);
+//            $getWord = $this->translate('out_of_scan');
+//            Telegram::sendMessage([
+//                'chat_id' => $chatId,
+//                'text' => $getWord[$languageCode],
+//                'parse_mode' => 'Markdown'
+//            ]);
 
-            Telegram::sendMessage([
-                'chat_id' => $chatId,
-                'text' => "⭐ You have reached your scan limit.\nChoose a package below:",
-                'reply_markup' => json_encode([
-                    'inline_keyboard' => [
-                        [
-                            ['text' => '✨ 20 Scans – 40⭐', 'callback_data' => 'buy_20'],
-                        ],
-                        [
-                            ['text' => '🔥 50 Scans – 80⭐', 'callback_data' => 'buy_50'],
-                        ],
-                    ]
-                ])
-            ]);
+            $this->showStarPackages($chatId,$languageCode);
 
             return;
 
@@ -852,58 +778,108 @@ Category: **$categoryName**, Language: **$language**."
 
     private function showStarPackages($chatId, $languageCode)
     {
-        $packages = [
-            [
-                'id' => 1,
-                'name' => 'Basic Pack',
-                'scans' => 20,
-                'price_stars' => 50,
-            ],
-            [
-                'id' => 2,
-                'name' => 'Pro Pack',
-                'scans' => 50,
-                'price_stars' => 100,
-            ],
-            [
-                'id' => 3,
-                'name' => 'Ultra Pack',
-                'scans' => 200,
-                'price_stars' => 250,
-            ],
-        ];
+        $packages = Packages::all();
 
-        $botUsername = "VitalScanBot";
+        $keyboard = [];
 
-        $buttons = [];
+        foreach ($packages as $pkg) {
 
-        foreach ($packages as $p) {
+            // Yığcam və gözəl düymə text-i
+            $btnText = "✨ {$pkg->getTranslation('name',$languageCode)} – {$pkg->scan_count} scans";
 
-            $label = "⭐ {$p['name']} — {$p['price_stars']}★ ({$p['scans']} scans)";
-            $url = "https://t.me/{$botUsername}/start?startapp=buy_{$p['id']}";
-            Log::info($url);
+            // Saving varsa əlavə et (məs: -23%)
+            if ($pkg->saving > 0) {
+                $btnText .= " (−{$pkg->saving}%)";
+            }
 
-            $buttons[] = [
-                Keyboard::inlineButton([
-                    'text' => $label,
-                    'url' => $url
-                ])
+            // Stars qiymətini product_id_for_purchase-dan çıxar
+            // example: "standard_package_700" → 700
+            $parts = explode("_", $pkg->product_id_for_purchase);
+            $stars = end($parts);
+
+            $btnText .= " – {$stars} ⭐";
+
+            // Inline button
+            $keyboard[] = [
+                ['text' => $btnText, 'callback_data' => "buy_" . $pkg->product_id_for_purchase]
             ];
         }
 
-        // Əlavə mesaj (translate)
-        $getWord = $this->translate('out_of_scan_packages');
-        $text = $getWord[$languageCode];
-
         Telegram::sendMessage([
             'chat_id' => $chatId,
-            'text' => $text,
-            'parse_mode' => 'Markdown',
-            'reply_markup' => Keyboard::make([
-                'inline_keyboard' => $buttons
+            'text' => "⭐ You have reached your scan limit.\nChoose a package below:",
+            'reply_markup' => json_encode([
+                'inline_keyboard' => $keyboard
             ])
         ]);
     }
 
+    private function callbackQueryForStarPackages($update)
+    {
+        // CLICK HANDLER
+
+        $callback = $update['callback_query'];
+        $chatId = $callback['message']['chat']['id'];
+        $data = $callback['data']; // buy_basic_40 tipində gəlir
+
+        if (str_starts_with($data, 'buy_')) {
+
+            $productId = str_replace('buy_', '', $data); // basic_40
+
+            // DB-dən paket tap
+            $package = Packages::where('product_id_for_purchase', $productId)->first();
+
+            if (!$package) {
+                Telegram::sendMessage([
+                    'chat_id' => $chatId,
+                    'text' => "Package not found."
+                ]);
+                return;
+            }
+
+            // Stars qiymətini çıxar
+            $parts = explode("_", $productId);
+            $stars = end($parts); // məsələn 40
+
+            // INVOICE GÖNDƏR
+            Telegram::sendInvoice([
+                'chat_id' => $chatId,
+                'title' => $package->name,
+                'description' => "Unlock {$package->scan_count} additional scans in VitalScan.",
+                'payload' => "pkg_{$package->id}",
+                'provider_token' => '', // Stars üçün boş olmalıdır!
+                'currency' => 'XTR', // Stars valyutası
+                'prices' => [
+                    ["label" => "{$package->scan_count} Scans", "amount" => intval($stars)]
+                ],
+            ]);
+        }
+    }
+
+    public function successPayment($update)
+    {
+        if (!empty($update['message']['successful_payment'])) {
+
+            $payment = $update['message']['successful_payment'];
+            $payload = $payment['invoice_payload'];
+            $chatId = $update['message']['chat']['id'];
+
+            if ($payload === 'pkg_20') {
+                $msg = "🎉 You have successfully purchased *20 extra scans*!";
+            }
+
+            if ($payload === 'pkg_50') {
+                $msg = "🔥 You have successfully purchased *50 extra scans*!";
+            }
+
+            Telegram::sendMessage([
+                'chat_id' => $chatId,
+                'text' => $msg,
+                'parse_mode' => 'Markdown'
+            ]);
+
+            return;
+        }
+    }
 
 }

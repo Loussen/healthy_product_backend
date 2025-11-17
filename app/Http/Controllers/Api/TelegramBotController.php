@@ -9,6 +9,7 @@ use App\Models\Customers;
 use App\Models\Packages;
 use App\Models\ScanResults;
 use App\Models\Subscription;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -106,8 +107,10 @@ class TelegramBotController extends BaseController
         }
 
         // 🟡 Dil seçimi menyusu
-        if ($text === '/language') {
-            return $this->showLanguageSelection($chatId);
+        if ((!empty($callback) && $data == "choose_language") || $text === '/language') {
+            $this->showLanguageSelection($chatId);
+
+            return;
         }
 
         // 🟠 Dil seçilib
@@ -127,8 +130,7 @@ class TelegramBotController extends BaseController
         $getCustomer = Customers::where('telegram_id',$from->getId())->first();
 
         // 🟣 Kateqoriya menyusu
-        $categoryTranslations = $this->translate('category');
-        if (in_array($text, $categoryTranslations, true) || $text === '/category') {
+        if ((!empty($callback) && $data == "choose_category") || $text === '/category') {
             if(!$getCustomer->language) {
                 $this->showLanguageSelection($chatId);
 
@@ -173,13 +175,31 @@ class TelegramBotController extends BaseController
             $this->showLanguageSelection($chatId);
         }
 
+        if($text == '/profile') {
+            $this->getProfileData($chatId,$from);
+
+            return;
+        }
+
         $languageCode = $getCustomer->language ?? 'en';
         $getWord = $this->translate('unexpected');
+
+        $keyboard = [
+            [
+                ['text' => 'Choose a language', 'callback_data' => "choose_language"]
+            ],
+            [
+                ['text' => 'Choose a category', 'callback_data' => "choose_category"]
+            ],
+        ];
 
         Telegram::sendMessage([
             'chat_id' => $chatId,
             'text' => $getWord[$languageCode],
-            'parse_mode' => 'Markdown'
+            'resize_keyboard' => true,
+            'reply_markup' => json_encode([
+                'inline_keyboard' => $keyboard
+            ])
         ]);
 
         return response()->json(['ok' => true]);
@@ -637,12 +657,12 @@ Category: **$categoryName**, Language: **$language**."
             ];
         } elseif($type == 'back_home') {
             $messages = [
-                'az' => "🔙 Ana menyuya qayıt",
-                'en' => "🔙 Back to main menu",
-                'ru' => "🔙 Вернуться в главное меню",
-                'tr' => "🔙 Ana menüye dön",
-                'es_ES' => "🔙 Volver al menú principal",
-                'de_DE' => "🔙 Zur Hauptmenü zurückkehren",
+                'az' => "🏠 Ana menyuya qayıt",
+                'en' => "🏠 Back to main menu",
+                'ru' => "🏠 Вернуться в главное меню",
+                'tr' => "🏠 Ana menüye dön",
+                'es_ES' => "🏠 Volver al menú principal",
+                'de_DE' => "🏠 Zur Hauptmenü zurückkehren",
             ];
         } elseif($type == 'unexpected') {
             $messages = [
@@ -952,6 +972,48 @@ Category: **$categoryName**, Language: **$language**."
             'chat_id' => $chatId,
             'text' => $msg,
             'parse_mode' => 'Markdown'
+        ]);
+    }
+
+    private function getProfileData($chatId, $from)
+    {
+        $getCustomer = Customers::where('telegram_id', $from->getId())->first();
+
+        $msg = "👤 Your Profile
+
+• *Name:* " . $getCustomer->name . " " . $getCustomer->surname . "
+• *Username:* @" . $getCustomer->telegram_username . "
+• *Credits:* 45
+• *Premium:* No
+• *Joined:* " . Carbon::parse($getCustomer->created_at)->format('d/m/Y') . "
+
+Choose an action:";
+
+        $keyboard = [
+            [
+                ['text' => 'Usage History', 'callback_data' => "usage_history"]
+            ],
+            [
+                ['text' => 'Payment History', 'callback_data' => "payment_history"]
+            ],
+            [
+                ['text' => 'Buy Package', 'callback_data' => "profile_buy_package"]
+            ],
+            [
+                ['text' => 'Support', 'callback_data' => "support"]
+            ],
+            [
+                ['text' => 'Back to Home', 'callback_data' => "back_home"]
+            ],
+        ];
+
+        Telegram::sendMessage([
+            'chat_id' => $chatId,
+            'text' => $msg,
+            'resize_keyboard' => true,
+            'reply_markup' => json_encode([
+                'inline_keyboard' => $keyboard
+            ])
         ]);
     }
 

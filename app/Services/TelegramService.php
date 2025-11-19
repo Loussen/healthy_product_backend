@@ -602,16 +602,65 @@ Category: **$categoryName**, Language: **$languageName**."
                 $date = Carbon::parse($payment->created_at)->format('d/m/Y');
 
                 // Məbləği Ulduzlara çeviririk (Təxmin: Məbləğ kopeck/cent kimi ən kiçik vahiddədirsə)
-                $amountStars = number_format($payment->amount / 100, 0); // Varsayılan olaraq 100-ə bölürük
+                $amountStars = number_format($payment->amount, 0); // Varsayılan olaraq 100-ə bölürük
 
                 $text .= "--------------------------------------\n";
                 $text .= "🗓 *{$lang['date']}:* {$date}\n";
                 $text .= "📦 *{$lang['package']}:* {$packageName}\n";
-                $text .= "💰 *{$lang['amount']}:* {$amountStars} Ulduz\n";
+                $text .= "💰 *{$lang['amount']}:* {$amountStars} ⭐️\n";
                 $text .= "✅ *{$lang['status']}:* {$status}\n";
             }
             $text .= "--------------------------------------\n";
-            $text .= "_{$lang['back_to_profile']} düyməsindən geri qayıdın._";
+            $text .= $lang['back_instruction'];
+        }
+
+        // Profilə geri qayıt düyməsi
+        $keyboard = [
+            [['text' => $lang['back_to_profile'], 'callback_data' => "profile"]],
+        ];
+
+        $this->sendMessage($chatId, $text, 'Markdown', ['inline_keyboard' => $keyboard]);
+    }
+
+    public function sendUsageHistory(int $chatId, $from): void
+    {
+        $customer = $this->getCustomerByFrom($from);
+        $languageCode = $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE;
+
+        $translations = $this->translate('usage_history', [], $languageCode);
+        $lang = $translations[$languageCode] ?? $translations[TelegramConstants::DEFAULT_LANGUAGE];
+
+        // 1. Son 10 skan nəticəsini tapırıq
+        $scanResults = $customer->scan_results()
+            ->where('check',1)
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get();
+
+        $text = "{$lang['title']}\n\n";
+
+        if ($scanResults->isEmpty()) {
+            $text .= $lang['no_history'];
+        } else {
+            foreach ($scanResults as $result) {
+
+                // AI cavabını deşifrə edirik
+                $aiResponse = json_decode($result->response, true);
+
+                // Lazım olan məlumatları çıxarırıq
+                $productName = $aiResponse['product_name'] ?? 'N/A';
+                $healthScore = $aiResponse['health_score'] ?? 'N/A';
+
+                $date = Carbon::parse($result->created_at)->format('d/m/Y H:i');
+
+                $text .= "--------------------------------------\n";
+                $text .= "🗓 *{$lang['date']}:* {$date}\n";
+                $text .= "📦 *{$lang['product']}:* {$productName}\n";
+                $text .= "💯 *{$lang['score']}:* {$healthScore}\n";
+                $text .= "⏱ *{$lang['time']}:* {$result->response_time} ms\n";
+            }
+            $text .= "--------------------------------------\n";
+            $text .= $lang['back_instruction'];
         }
 
         // Profilə geri qayıt düyməsi

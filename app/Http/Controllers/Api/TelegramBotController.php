@@ -110,6 +110,11 @@ class TelegramBotController extends BaseController
                 $this->telegramService->getProfileData($chatId, $from);
                 return response()->json(['ok' => true]);
             }
+
+            if ($data === 'usage_history') {
+                $this->telegramService->sendUsageHistory($chatId, $from);
+                return response()->json(['ok' => true]);
+            }
             // ... usage_history, payment_history, support kimi digər callback-lər də buraya əlavə oluna bilər.
         }
 
@@ -138,6 +143,12 @@ class TelegramBotController extends BaseController
                 break;
             case TelegramConstants::COMMAND_SUPPORT_US: // Yeni əmr
                 $this->telegramService->sendSupportLink($chatId, $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE);
+                break;
+            case TelegramConstants::COMMAND_USAGE_HISTORY: // Yeni əmr
+                $this->telegramService->sendUsageHistory($chatId, $from);
+                break;
+            case TelegramConstants::COMMAND_PAYMENT_HISTORY: // Yeni əmr
+                $this->telegramService->sendPaymentHistory($chatId, $from);
                 break;
             default:
                 // 5. ŞƏKİL GÖNDƏRİLMƏSİ

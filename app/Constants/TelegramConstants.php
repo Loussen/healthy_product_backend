@@ -32,6 +32,9 @@ class TelegramConstants
     public const COMMAND_ABOUT_US = '/about_us';
     public const COMMAND_SUPPORT_US = '/support';
 
+    public const COMMAND_USAGE_HISTORY = '/usage';
+    public const COMMAND_PAYMENT_HISTORY = '/payment_history';
+
     public const ATTEMPT_COUNT = 5;
 
     public const FREE_SCAN_LIMIT = 3;

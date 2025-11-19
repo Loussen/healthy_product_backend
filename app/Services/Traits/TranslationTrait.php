@@ -411,7 +411,8 @@ trait TranslationTrait
                     'status' => "Status",
                     'active' => "✅ Aktiv",
                     'completed' => "🟢 Tamamlandı",
-                    'back_to_profile' => "⬅️ Profilə Geri",
+                    'back_to_profile' => "⬅️ Profilə Geri", // Düymənin mətni
+                    'back_instruction' => "_⬅️ Profilə Geri_ düyməsindən geri qayıdın." // Tam təlimat mətni
                 ],
                 'en' => [
                     'title' => "💳 Payment History",
@@ -423,6 +424,7 @@ trait TranslationTrait
                     'active' => "✅ Active",
                     'completed' => "🟢 Completed",
                     'back_to_profile' => "⬅️ Back to Profile",
+                    'back_instruction' => "_⬅️ Back to Profile_ button to return."
                 ],
                 'ru' => [
                     'title' => "💳 История Платежей",
@@ -434,6 +436,7 @@ trait TranslationTrait
                     'active' => "✅ Активно",
                     'completed' => "🟢 Завершено",
                     'back_to_profile' => "⬅️ Назад к Профилю",
+                    'back_instruction' => "_⬅️ Назад к Профилю_ кнопкой, чтобы вернуться."
                 ],
                 'tr' => [
                     'title' => "💳 Ödeme Geçmişi",
@@ -445,6 +448,7 @@ trait TranslationTrait
                     'active' => "✅ Aktif",
                     'completed' => "🟢 Tamamlandı",
                     'back_to_profile' => "⬅️ Profile Geri",
+                    'back_instruction' => "_⬅️ Profile Geri_ düğmesinden geri dönün."
                 ],
                 'es_ES' => [
                     'title' => "💳 Historial de Pagos",
@@ -456,6 +460,7 @@ trait TranslationTrait
                     'active' => "✅ Activo",
                     'completed' => "🟢 Completado",
                     'back_to_profile' => "⬅️ Volver al Perfil",
+                    'back_instruction' => "_⬅️ Volver al Perfil_ botón para volver."
                 ],
                 'de_DE' => [
                     'title' => "💳 Zahlungsverlauf",
@@ -467,6 +472,70 @@ trait TranslationTrait
                     'active' => "✅ Aktiv",
                     'completed' => "🟢 Abgeschlossen",
                     'back_to_profile' => "⬅️ Zurück zum Profil",
+                    'back_instruction' => "_⬅️ Zurück zum Profil_ Taste, um zurückzukehren."
+                ],
+            ];
+        } elseif ($type == 'usage_history') {
+            $messages = [
+                'az' => [
+                    'title' => "📊 İstifadə Tarixçəsi",
+                    'no_history' => "Skan qeydi tapılmadı.",
+                    'date' => "Tarix",
+                    'product' => "Məhsul",
+                    'score' => "Sağlamlıq Balı",
+                    'time' => "Cavab Vaxtı",
+                    'back_to_profile' => "⬅️ Profilə Geri",
+                    'back_instruction' => "_⬅️ Profilə Geri_ düyməsindən geri qayıdın."
+                ],
+                'en' => [
+                    'title' => "📊 Usage History",
+                    'no_history' => "No scan records found.",
+                    'date' => "Date",
+                    'product' => "Product",
+                    'score' => "Health Score",
+                    'time' => "Response Time",
+                    'back_to_profile' => "⬅️ Back to Profile",
+                    'back_instruction' => "_⬅️ Back to Profile_ button to return."
+                ],
+                'ru' => [
+                    'title' => "📊 История Использования",
+                    'no_history' => "Записи сканирования не найдены.",
+                    'date' => "Дата",
+                    'product' => "Продукт",
+                    'score' => "Оценка Здоровья",
+                    'time' => "Время Ответа",
+                    'back_to_profile' => "⬅️ Назад к Профилю",
+                    'back_instruction' => "_⬅️ Назад к Профилю_ кнопкой, чтобы вернуться."
+                ],
+                'tr' => [
+                    'title' => "📊 Kullanım Geçmişi",
+                    'no_history' => "Tarama kaydı bulunamadı.",
+                    'date' => "Tarih",
+                    'product' => "Ürün",
+                    'score' => "Sağlık Skoru",
+                    'time' => "Yanıt Süresi",
+                    'back_to_profile' => "⬅️ Profile Geri",
+                    'back_instruction' => "_⬅️ Profile Geri_ düğmesinden geri dönün."
+                ],
+                'es_ES' => [
+                    'title' => "📊 Historial de Uso",
+                    'no_history' => "No se encontraron registros de escaneo.",
+                    'date' => "Fecha",
+                    'product' => "Producto",
+                    'score' => "Puntuación de Salud",
+                    'time' => "Tiempo de Respuesta",
+                    'back_to_profile' => "⬅️ Volver al Perfil",
+                    'back_instruction' => "_⬅️ Volver al Perfil_ botón para volver."
+                ],
+                'de_DE' => [
+                    'title' => "📊 Nutzungsverlauf",
+                    'no_history' => "Keine Scan-Aufzeichnungen gefunden.",
+                    'date' => "Datum",
+                    'product' => "Produkt",
+                    'score' => "Gesundheitspunktzahl",
+                    'time' => "Antwortzeit",
+                    'back_to_profile' => "⬅️ Zurück zum Profil",
+                    'back_instruction' => "_⬅️ Zurück zum Profil_ Taste, um zurückzukehren."
                 ],
             ];
         }

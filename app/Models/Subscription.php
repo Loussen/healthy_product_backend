@@ -36,6 +36,11 @@ class Subscription extends Model
     |--------------------------------------------------------------------------
     */
 
+    public function package()
+    {
+        return $this->belongsTo(Packages::class, 'product_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

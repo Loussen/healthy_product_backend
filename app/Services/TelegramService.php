@@ -11,6 +11,7 @@ use App\Models\Packages;
 use App\Models\ScanResults;
 use App\Models\Subscription;
 use App\Services\Traits\TranslationTrait;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -70,6 +71,27 @@ class TelegramService
         }
 
         Telegram::sendMessage($data);
+    }
+
+    public function sendChatAction(int $chatId, string $action = 'upload_photo'): void
+    {
+        Telegram::sendChatAction([
+            'chat_id' => $chatId,
+            'action' => $action,
+        ]);
+    }
+
+    public function deleteMessage(int $chatId, int $messageId): bool
+    {
+        try {
+            return Telegram::deleteMessage([
+                'chat_id' => $chatId,
+                'message_id' => $messageId,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning("Mesaj silinərkən səhv baş verdi: " . $e->getMessage());
+            return false;
+        }
     }
 
     // --- B. AI VƏ SKAN MƏNTİQİ ---
@@ -154,7 +176,7 @@ Category: **$categoryName**, Language: **$languageName**."
 
         if (!$aiResponseData['check']) {
             Cache::put($key, $attempts + 1, now()->addMinutes(5));
-            if ($attempts >= 3 && $activePackage) {
+            if ($attempts >= TelegramConstants::FREE_SCAN_LIMIT && $activePackage) {
                 $activePackage->decrement('remaining_scans');
             }
         } elseif ($aiResponseData['check'] && $activePackage) {
@@ -176,7 +198,7 @@ Category: **$categoryName**, Language: **$languageName**."
             ->first();
 
         // 1. Limit Yoxlamaları
-        if ($customer->scan_results()->count() >= 3 && !$activePackage) {
+        if ($customer->scan_results()->count() >= TelegramConstants::FREE_SCAN_LIMIT && !$activePackage) {
             $getWord = $this->translate('out_of_scan', [], $languageCode);
             $this->sendMessage($chatId, $getWord[$languageCode]);
             $this->showStarPackages($chatId, $languageCode); // Paketləri də göstər
@@ -186,7 +208,7 @@ Category: **$categoryName**, Language: **$languageName**."
         $key = 'scan_limit_for_unchecked_' . $from->getId();
         $attempts = Cache::get($key, 0);
 
-        if ($attempts >= 5) {
+        if ($attempts >= TelegramConstants::ATTEMPT_COUNT) {
             $getWord = $this->translate('scan_limit_unreached_error', [], $languageCode);
             $this->sendMessage($chatId, $getWord[$languageCode], 'Markdown');
             return;
@@ -199,7 +221,8 @@ Category: **$categoryName**, Language: **$languageName**."
         $fileId = $photo['file_id'] ?? null;
 
         if (!$fileId) {
-            $this->sendMessage($chatId, "⚠️ Foto oxuna bilmədi. Yenidən göndərin.");
+            $getWord = $this->translate('image_not_readable', [], $languageCode);
+            $this->sendMessage($chatId, $getWord[$languageCode]);
             return;
         }
 
@@ -216,13 +239,28 @@ Category: **$categoryName**, Language: **$languageName**."
         $categoryName = $category->getTranslation('name', 'en');
 
         $getWord = $this->translate('please_wait', [], $languageCode);
-        $this->sendMessage($chatId, $getWord[$languageCode]);
+        $sentMessage = Telegram::sendMessage([
+            'chat_id' => $chatId,
+            'text' => $getWord[$languageCode],
+        ]);
+        $waitingMessageId = $sentMessage->getMessageId();
+
+        Log::info($waitingMessageId);
+
+        $this->sendChatAction($chatId);
 
         // 3. AI Analiz
-        $aiResponse = $this->getOpenAIResponse($fullUrl, $categoryName, $languageName);
-        $aiResponseData = json_decode($aiResponse->choices[0]->message->content, true);
+        try {
+            $aiResponse = $this->getOpenAIResponse($fullUrl, $categoryName, $languageName);
+            $aiResponseData = json_decode($aiResponse->choices[0]->message->content, true);
+        } catch (\Exception $e) {
+            Log::error("OpenAI səhvi: " . $e->getMessage());
+            $aiResponseData = ['check' => false]; // Analiz uğursuz olsa belə, mesajı silməyə davam etmək üçün
+        }
 
         $timeMs = (int)((microtime(true) - $startTime) * 1000);
+
+        $this->deleteMessage($chatId, $waitingMessageId);
 
         // 4. Nəticəni Yaddaşa Yazmaq
         $this->saveScanResult($customer, $aiResponseData, $path, $timeMs, $activePackage, $key, $attempts);
@@ -244,14 +282,17 @@ Category: **$categoryName**, Language: **$languageName**."
         $worst = $data['worst_ingredients'] ?? [];
         $detailText = $data['detail_text'] ?? '';
 
-        $ingredientsText = !empty($ingredients) ? "🧪 *Ingredients:*\n" . implode(", ", $ingredients) . "\n" : '';
-        $bestText = !empty($best) ? "🌿 *Best Ingredients:*\n" . "• " . implode("\n• ", $best) . "\n" : '';
-        $worstText = !empty($worst) ? "⚠️ *Worst Ingredients:*\n" . "• " . implode("\n• ", $worst) . "\n" : '';
-        $detailText = !empty($detailText) ? "ℹ️ *Details:*\n" . "• " . $detailText . "\n" : '';
+        $ingredientsText = !empty($ingredients) ? implode(", ", $ingredients) . "\n" : 'Məlumat yoxdur/Not available.';
+        $bestText = !empty($best) ? "• " . implode("\n• ", $best) . "\n" : 'Məlumat yoxdur/Not available.';
+        $worstText = !empty($worst) ? "• " . implode("\n• ", $worst) . "\n" : 'Məlumat yoxdur/Not available.';
+        $detailText = !empty($detailText) ? $detailText . "\n" : 'Məlumat yoxdur/Not available.';
+
 
         $translateData['product_name'] = $data['product_name'] ?? 'Unknown';
         $translateData['category'] = $categoryName ?? $data['category'];
         $translateData['health_score'] = $data['health_score'] ?? 'N/A';
+
+        // Tərcümə metoduna ötürülən məlumatların açarlarını yeniləyin
         $translateData['ingredients'] = $ingredientsText;
         $translateData['best_ingredients'] = $bestText;
         $translateData['worst_ingredients'] = $worstText;
@@ -376,20 +417,31 @@ Category: **$categoryName**, Language: **$languageName**."
             $keyboard[] = [['text' => $btnText, 'callback_data' => TelegramConstants::CALLBACK_BUY_PREFIX . $pkg->product_id_for_purchase]];
         }
 
-        $this->sendMessage($chatId, $this->translate('out_of_scan_packages', [], $languageCode)['en'], null, ['inline_keyboard' => $keyboard]);
+        $this->sendMessage($chatId, $this->translate('out_of_scan_packages', [], $languageCode)[$languageCode], null, ['inline_keyboard' => $keyboard]);
     }
 
-    public function sendInvoice(int $chatId, Packages $package): void
+    public function sendInvoice(int $chatId, Packages $package, string $languageCode): void
     {
+        // 1. Tərcümə məlumatlarını hazırlayın
+        $translateData = [
+            'scan_count' => $package->scan_count,
+        ];
+        $translations = $this->translate('invoice', $translateData);
+        $lang = $translations[$languageCode] ?? $translations[TelegramConstants::DEFAULT_LANGUAGE];
+
+        // 2. Paket adını tərcümə edin
+        $title = $package->getTranslation('name', $languageCode) ?? $package->name;
+
+        // 3. Fakturanı göndərin
         Telegram::sendInvoice([
             'chat_id' => $chatId,
-            'title' => $package->name,
-            'description' => "Unlock {$package->scan_count} additional scans in VitalScan.",
+            'title' => $title, // Tərcümə olunmuş paket adı
+            'description' => $lang['description'], // Tərcümə olunmuş təsvir
             'payload' => TelegramConstants::PACKAGE_PAYLOAD_PREFIX . $package->id,
             'provider_token' => TelegramConstants::TELEGRAM_STARS_PROVIDER_TOKEN,
             'currency' => TelegramConstants::TELEGRAM_STARS_CURRENCY,
             'prices' => [
-                ["label" => "{$package->scan_count} Scans", "amount" => intval($package->telegram_star_price)]
+                ["label" => $lang['label'], "amount" => intval($package->telegram_star_price)] // Tərcümə olunmuş etiket
             ],
         ]);
     }
@@ -397,6 +449,7 @@ Category: **$categoryName**, Language: **$languageName**."
     public function handleSuccessfulPayment(Update $update, $from): void
     {
         $customer = $this->getCustomerByFrom($from);
+        $languageCode = $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE; // Dil kodunu götürürük
         $payment = $update['message']['successful_payment'];
         $payload = $payment['invoice_payload'];
         $chatId = $update['message']['chat']['id'];
@@ -405,7 +458,9 @@ Category: **$categoryName**, Language: **$languageName**."
         $package = Packages::find($packageId);
 
         if (!$package) {
-            $this->sendMessage($chatId, "❗ Payment received, but package not found.");
+            // Bu səhv mesajını da tərcümə etmək daha yaxşıdır
+            $errorMsg = $this->translate('payment_error', [], $languageCode)[$languageCode] ?? "❗ Payment received, but package not found.";
+            $this->sendMessage($chatId, $errorMsg);
             return;
         }
 
@@ -430,8 +485,14 @@ Category: **$categoryName**, Language: **$languageName**."
             ]);
         });
 
-        $msg = "🎉 You have successfully purchased *{$package->scan_count} extra scans*!\n"
-            . "✨ Package: *{$package->name}*";
+        // YENİ KOD: Tərcümə metodundan istifadə
+        $translateData = [
+            'scan_count' => $package->scan_count,
+            'package_name' => $package->getTranslation('name', $languageCode), // Paketin adını da tərcümə edirik
+        ];
+
+        $getWord = $this->translate('payment_success', $translateData);
+        $msg = $getWord[$languageCode];
 
         $this->sendMessage($chatId, $msg, 'Markdown');
     }
@@ -454,25 +515,125 @@ Category: **$categoryName**, Language: **$languageName**."
     {
         $getCustomer = $this->getCustomerByFrom($from);
 
-        $msg = "👤 Your Profile
+        $languageCode = $getCustomer->language ?? TelegramConstants::DEFAULT_LANGUAGE;
+        $translations = $this->translate('profile_menu', [], $languageCode);
+        $lang = $translations[$languageCode];
 
-• *Name:* " . $getCustomer->name . " " . $getCustomer->surname . "
-• *Username:* @" . $getCustomer->telegram_username . "
-• *Credits:* 45 (Not implemented yet)
-• *Premium:* No (Not implemented yet)
-• *Joined:* " . \Carbon\Carbon::parse($getCustomer->created_at)->format('d/m/Y') . "
+        $averageHealthScore = $getCustomer->scan_results()->where('product_score', '>', 0)->avg('product_score');
 
-Choose an action:";
+        $getPremiumStatus = $getCustomer->packages()
+            ->where('remaining_scans', '>', 0)
+            ->first();
+
+        $premiumStatusText = $getPremiumStatus ? $lang['yes'] : $lang['no'];
+
+        $msg = "{$lang['title']}
+
+• 📛 *{$lang['name']}:* " . $getCustomer->name . " " . $getCustomer->surname . "
+• 🌐 *{$lang['username']}:* @" . $getCustomer->telegram_username . "
+• ✨ *{$lang['credits']}:* 45 (Not implemented yet)
+• ✨ *{$lang['health_score']}:* " . round($averageHealthScore) . "%
+• 👑 *{$lang['premium']}:* " . $premiumStatusText . "
+• 📅 *{$lang['joined']}:* " . Carbon::parse($getCustomer->created_at)->format('d/m/Y') . "
+
+{$lang['action']}:";
 
         $keyboard = [
-            [['text' => 'Usage History', 'callback_data' => "usage_history"]],
-            [['text' => 'Payment History', 'callback_data' => "payment_history"]],
-            [['text' => 'Buy Package', 'callback_data' => "profile_buy_package"]],
-            [['text' => 'Support', 'callback_data' => "support"]],
-            [['text' => 'Back to Home', 'callback_data' => "choose_language"]],
+            [['text' => $lang['usage'], 'callback_data' => "usage_history"]],
+            [['text' => $lang['payment'], 'callback_data' => "payment_history"]],
+            [['text' => $lang['buy'], 'callback_data' => "profile_buy_package"]],
+            // Qeyd: Əgər COMMAND_SUPPORT_US əmrini düzəltmişiksə, bu düyməni də ona uyğunlaşdırmaq olar.
+            [['text' => $lang['support'], 'callback_data' => "support"]],
+            [['text' => $lang['back'], 'callback_data' => "choose_language"]],
         ];
 
         $this->sendMessage($chatId, $msg, 'Markdown', ['inline_keyboard' => $keyboard]);
+    }
+
+    public function sendSupportLink(int $chatId, string $languageCode): void
+    {
+        $supportLink = env('TELEGRAM_SUPPORT_LINK', 'https://t.me/support_example'); // Öz support linkiniz
+
+        $messages = [
+            'az' => "💬 *Dəstək:* Hər hansı sualınız, təklifiniz və ya probleminiz varsa, lütfən, birbaşa bizimlə əlaqə saxlayın 👇",
+            'en' => "💬 *Support:* If you have any questions, suggestions, or issues, please contact us directly below 👇",
+            'ru' => "💬 *Поддержка:* Если у вас есть вопросы, предложения или проблемы, свяжитесь с нами напрямую 👇",
+            'tr' => "💬 *Destek:* Herhangi bir sorunuz, öneriniz veya sorununuz varsa, lütfen bizimle doğrudan iletişime geçin 👇",
+            'es_ES' => "💬 *Soporte:* Si tienes alguna pregunta, sugerencia o problema, por favor contáctanos directamente 👇",
+            'de_DE' => "💬 *Support:* Wenn Sie Fragen, Anregungen oder Probleme haben, kontaktieren Sie uns bitte direkt 👇",
+        ];
+
+        $keyboard = [
+            [['text' => '📬 VitalScan Support', 'url' => $supportLink]],
+        ];
+
+        $text = $messages[$languageCode] ?? $messages[TelegramConstants::DEFAULT_LANGUAGE];
+
+        $this->sendMessage($chatId, $text, 'Markdown', ['inline_keyboard' => $keyboard]);
+    }
+
+    public function sendPaymentHistory(int $chatId, $from): void
+    {
+        $customer = $this->getCustomerByFrom($from);
+        $languageCode = $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE;
+
+        $translations = $this->translate('payment_history', [], $languageCode);
+        $lang = $translations[$languageCode] ?? $translations[TelegramConstants::DEFAULT_LANGUAGE];
+
+        // 1. Son 10 ödənişi Subscription modelindən tapırıq
+        $payments = $customer->subscriptions()
+            ->where('platform', 'telegram')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $text = "{$lang['title']}\n\n";
+
+        if ($payments->isEmpty()) {
+            $text .= $lang['no_history'];
+        } else {
+            foreach ($payments as $payment) {
+                // Paketin adını tərcümə edirik (ehtiyac olsa)
+                $packageName = $payment->package->getTranslation('name', $languageCode) ?? $payment->package->name;
+
+                // Statusu tərcümə edirik
+                $status = ($payment->status === SubscriptionStatus::ACTIVE->value) ? $lang['active'] : $lang['completed'];
+
+                // Tarixi formatlayırıq
+                $date = Carbon::parse($payment->created_at)->format('d/m/Y');
+
+                // Məbləği Ulduzlara çeviririk (Təxmin: Məbləğ kopeck/cent kimi ən kiçik vahiddədirsə)
+                $amountStars = number_format($payment->amount / 100, 0); // Varsayılan olaraq 100-ə bölürük
+
+                $text .= "--------------------------------------\n";
+                $text .= "🗓 *{$lang['date']}:* {$date}\n";
+                $text .= "📦 *{$lang['package']}:* {$packageName}\n";
+                $text .= "💰 *{$lang['amount']}:* {$amountStars} Ulduz\n";
+                $text .= "✅ *{$lang['status']}:* {$status}\n";
+            }
+            $text .= "--------------------------------------\n";
+            $text .= "_{$lang['back_to_profile']} düyməsindən geri qayıdın._";
+        }
+
+        // Profilə geri qayıt düyməsi
+        $keyboard = [
+            [['text' => $lang['back_to_profile'], 'callback_data' => "profile"]],
+        ];
+
+        $this->sendMessage($chatId, $text, 'Markdown', ['inline_keyboard' => $keyboard]);
+    }
+
+    public function showUsage(int $chatId, string $languageCode, $from): void
+    {
+        $getCustomer = $this->getCustomerByFrom($from);
+
+        $allScans = $getCustomer->scan_results()
+            ->count();
+
+        $allScans > config('services.free_package_limit') ? config('services.free_package_limit') : $allScans;
+
+        $keyboard = [];
+
+        $this->sendMessage($chatId, $this->translate('out_of_scan_packages', [], $languageCode)['en'], null, ['inline_keyboard' => $keyboard]);
     }
 
     public function getStaticPageData(int $chatId, string $type = 'privacy'): void

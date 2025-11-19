@@ -90,6 +90,26 @@ class TelegramBotController extends BaseController
                 $this->telegramService->showStarPackages($chatId, $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE);
                 return response()->json(['ok' => true]);
             }
+
+            if($data == 'usage') {
+                $this->telegramService->showUsage($chatId,$customer->language ?? TelegramConstants::DEFAULT_LANGUAGE,$from);
+                return response()->json(['ok' => true]);
+            }
+
+            if($data == 'support') {
+                $this->telegramService->sendSupportLink($chatId,$customer->language ?? TelegramConstants::DEFAULT_LANGUAGE);
+                return response()->json(['ok' => true]);
+            }
+
+            if ($data === 'payment_history') {
+                $this->telegramService->sendPaymentHistory($chatId, $from);
+                return response()->json(['ok' => true]);
+            }
+
+            if ($data === 'profile') {
+                $this->telegramService->getProfileData($chatId, $from);
+                return response()->json(['ok' => true]);
+            }
             // ... usage_history, payment_history, support kimi digər callback-lər də buraya əlavə oluna bilər.
         }
 
@@ -115,6 +135,9 @@ class TelegramBotController extends BaseController
             case TelegramConstants::COMMAND_TERMS:
             case TelegramConstants::COMMAND_ABOUT_US:
                 $this->telegramService->getStaticPageData($chatId, ltrim($text, '/'));
+                break;
+            case TelegramConstants::COMMAND_SUPPORT_US: // Yeni əmr
+                $this->telegramService->sendSupportLink($chatId, $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE);
                 break;
             default:
                 // 5. ŞƏKİL GÖNDƏRİLMƏSİ
@@ -151,6 +174,13 @@ class TelegramBotController extends BaseController
 
     private function handleBuyPackageCallback(string $data, int $chatId): void
     {
+        $update = $this->getCurrentUpdate(); // Update obyektini almaq üçün bəzi xüsusi kod lazım ola bilər,
+        // lakin mövcud controller strukturu ilə aşağıdakı kimi düzəldirik:
+        $from = $this->getSenderFromUpdate($update);
+        $customer = $this->telegramService->getCustomerByFrom($from);
+        $languageCode = $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE;
+
+
         $productId = str_replace(TelegramConstants::CALLBACK_BUY_PREFIX, '', $data);
         $package = Packages::where('product_id_for_purchase', $productId)->first();
 
@@ -159,7 +189,12 @@ class TelegramBotController extends BaseController
             return;
         }
 
-        $this->telegramService->sendInvoice($chatId, $package);
+        // DÜZƏLİŞ BURADADIR: Dil kodunu ötürün
+        $this->telegramService->sendInvoice($chatId, $package, $languageCode);
+    }
+
+    private function getCurrentUpdate() {
+        return Telegram::getWebhookUpdate();
     }
 
     private function checkLanguageAndShowCategories(int $chatId, $from): void

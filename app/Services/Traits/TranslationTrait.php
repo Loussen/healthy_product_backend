@@ -145,9 +145,13 @@ trait TranslationTrait
 📦 *Kateqoriya:* {$data['category']}
 💯 *Sağlamlıq balı:* {$data['health_score']}
 
+🧪 *Tərkibi:*
 {$data['ingredients']}
+🌿 *Ən Yaxşı Tərkiblər:*
 {$data['best_ingredients']}
+⚠️ *Ən Pis Tərkiblər:*
 {$data['worst_ingredients']}
+ℹ️ *Ətraflı:*
 {$data['details']}
 
 🕒 *Cavab vaxtı:* {$data['response_time']} ms\n",
@@ -158,9 +162,13 @@ trait TranslationTrait
 📦 *Category:* {$data['category']}
 💯 *Health Score:* {$data['health_score']}
 
+🧪 *Ingredients:*
 {$data['ingredients']}
+🌿 *Best Ingredients:*
 {$data['best_ingredients']}
+⚠️ *Worst Ingredients:*
 {$data['worst_ingredients']}
+ℹ️ *Details:*
 {$data['details']}
 
 🕒 *Response time:* {$data['response_time']} ms\n",
@@ -171,9 +179,13 @@ trait TranslationTrait
 📦 *Категория:* {$data['category']}
 💯 *Оценка здоровья:* {$data['health_score']}
 
+🧪 *Ингредиенты:*
 {$data['ingredients']}
+🌿 *Лучшие Ингредиенты:*
 {$data['best_ingredients']}
+⚠️ *Худшие Ингредиенты:*
 {$data['worst_ingredients']}
+ℹ️ *Подробности:*
 {$data['details']}
 
 🕒 *Время ответа:* {$data['response_time']} мс\n",
@@ -184,9 +196,13 @@ trait TranslationTrait
 📦 *Kategori:* {$data['category']}
 💯 *Sağlık Skoru:* {$data['health_score']}
 
+🧪 *İçindekiler:*
 {$data['ingredients']}
+🌿 *En İyi İçindekiler:*
 {$data['best_ingredients']}
+⚠️ *En Kötü İçindekiler:*
 {$data['worst_ingredients']}
+ℹ️ *Detaylar:*
 {$data['details']}
 
 🕒 *Yanıt süresi:* {$data['response_time']} ms\n",
@@ -197,9 +213,13 @@ trait TranslationTrait
 📦 *Categoría:* {$data['category']}
 💯 *Puntuación de salud:* {$data['health_score']}
 
+🧪 *Ingredientes:*
 {$data['ingredients']}
+🌿 *Mejores Ingredientes:*
 {$data['best_ingredients']}
+⚠️ *Peores Ingredientes:*
 {$data['worst_ingredients']}
+ℹ️ *Detalles:*
 {$data['details']}
 
 🕒 *Tiempo de respuesta:* {$data['response_time']} ms\n",
@@ -210,12 +230,244 @@ trait TranslationTrait
 📦 *Kategorie:* {$data['category']}
 💯 *Gesundheitspunktzahl:* {$data['health_score']}
 
+🧪 *Zutaten:*
 {$data['ingredients']}
+🌿 *Beste Zutaten:*
 {$data['best_ingredients']}
+⚠️ *Schlechteste Zutaten:*
 {$data['worst_ingredients']}
+ℹ️ *Details:*
 {$data['details']}
 
 🕒 *Antwortzeit:* {$data['response_time']} ms\n",
+            ];
+        } elseif ($type == 'profile_menu') {
+            $messages = [
+                'az' => [
+                    'title' => "👤 Profiliniz",
+                    'name' => "Ad / Soyad",
+                    'username' => "İstifadəçi Adı",
+                    'credits' => "Kreditlər",
+                    'premium' => "Premium Status",
+                    'joined' => "Qoşulma Tarixi",
+                    'health_score' => "Sağlamlıq Skoru", // YENİ
+                    'action' => "Bir əməliyyat seçin",
+                    'usage' => "📊 İstifadə Tarixçəsi",
+                    'payment' => "💳 Ödəniş Tarixçəsi",
+                    'buy' => "⭐️ Paket Al",
+                    'support' => "💬 Dəstək",
+                    'back' => "🏠 Ana Səhifəyə Qayıt",
+                    'yes' => 'Bəli',
+                    'no' => 'Xeyr'
+                ],
+                'en' => [
+                    'title' => "👤 Your Profile",
+                    'name' => "Name / Surname",
+                    'username' => "Username",
+                    'credits' => "Credits",
+                    'premium' => "Premium Status",
+                    'joined' => "Joined Date",
+                    'health_score' => "Health Score", // YENİ
+                    'action' => "Choose an action",
+                    'usage' => "📊 Usage History",
+                    'payment' => "💳 Payment History",
+                    'buy' => "⭐️ Buy Package",
+                    'support' => "💬 Support",
+                    'back' => "🏠 Back to Home",
+                    'yes' => 'Yes',
+                    'no' => 'No'
+                ],
+                'ru' => [
+                    'title' => "👤 Ваш Профиль",
+                    'name' => "Имя / Фамилия",
+                    'username' => "Имя Пользователя",
+                    'credits' => "Кредиты",
+                    'premium' => "Премиум Статус",
+                    'joined' => "Дата Присоединения",
+                    'health_score' => "Оценка Здоровья", // YENİ
+                    'action' => "Выберите действие",
+                    'usage' => "📊 История Использования",
+                    'payment' => "💳 История Платежей",
+                    'buy' => "⭐️ Купить Пакет",
+                    'support' => "💬 Поддержка",
+                    'back' => "🏠 На Главную",
+                    'yes' => 'Да',
+                    'no' => 'Нет'
+                ],
+                'tr' => [
+                    'title' => "👤 Profiliniz",
+                    'name' => "Ad / Soyad",
+                    'username' => "Kullanıcı Adı",
+                    'credits' => "Krediler",
+                    'premium' => "Premium Durumu",
+                    'joined' => "Katılma Tarihi",
+                    'health_score' => "Sağlık Skoru", // YENİ
+                    'action' => "Bir eylem seçin",
+                    'usage' => "📊 Kullanım Geçmişi",
+                    'payment' => "💳 Ödeme Geçmişi",
+                    'buy' => "⭐️ Paket Satın Al",
+                    'support' => "💬 Destek",
+                    'back' => "🏠 Ana Sayfaya Dön",
+                    'yes' => 'Evet',
+                    'no' => 'Hayır'
+                ],
+                'es_ES' => [
+                    'title' => "👤 Tu Perfil",
+                    'name' => "Nombre / Apellido",
+                    'username' => "Nombre de Usuario",
+                    'credits' => "Créditos",
+                    'premium' => "Estado Premium",
+                    'joined' => "Fecha de registro",
+                    'health_score' => "Puntuación de Salud", // YENİ
+                    'action' => "Elige una acción",
+                    'usage' => "📊 Historial de Uso",
+                    'payment' => "💳 Historial de Pagos",
+                    'buy' => "⭐️ Comprar Paquete",
+                    'support' => "💬 Soporte",
+                    'back' => "🏠 Volver a Inicio",
+                    'yes' => 'Sí',
+                    'no' => 'No'
+                ],
+                'de_DE' => [
+                    'title' => "👤 Ihr Profil",
+                    'name' => "Name / Nachname",
+                    'username' => "Benutzername",
+                    'credits' => "Guthaben",
+                    'premium' => "Premium Status",
+                    'joined' => "Beitrittsdatum",
+                    'health_score' => "Gesundheitspunktzahl", // YENİ
+                    'action' => "Wählen Sie eine Aktion",
+                    'usage' => "📊 Nutzungsverlauf",
+                    'payment' => "💳 Zahlungsverlauf",
+                    'buy' => "⭐️ Paket Kaufen",
+                    'support' => "💬 Support",
+                    'back' => "🏠 Zur Startseite",
+                    'yes' => 'Ja',
+                    'no' => 'Nein'
+                ],
+            ];
+        } elseif ($type == 'image_not_readable') {
+            $messages = [
+                'az' => "⚠️ Foto oxuna bilmədi. Yenidən göndərin.",
+                'en' => "⚠️ The photo could not be read. Please send it again.",
+                'ru' => "⚠️ Фото не удалось прочитать. Отправьте его снова.",
+                'tr' => "⚠️ Fotoğraf okunamadı. Lütfen tekrar gönderin.",
+                'es_ES' => "⚠️ La foto no pudo ser leída. Por favor, envíala de nuevo.",
+                'de_DE' => "⚠️ Das Foto konnte nicht gelesen werden. Bitte senden Sie es erneut.",
+            ];
+        } elseif ($type == 'payment_success') {
+            $messages = [
+                'az' => "🎉 Siz uğurla *{$data['scan_count']} əlavə skan* satın aldınız!\n✨ Paket: *{$data['package_name']}*",
+                'en' => "🎉 You have successfully purchased *{$data['scan_count']} extra scans*!\n✨ Package: *{$data['package_name']}*",
+                'ru' => "🎉 Вы успешно приобрели *{$data['scan_count']} дополнительных сканов*!\n✨ Пакет: *{$data['package_name']}*",
+                'tr' => "🎉 Başarıyla *{$data['scan_count']} ek tarama* satın aldınız!\n✨ Paket: *{$data['package_name']}*",
+                'es_ES' => "🎉 ¡Ha comprado con éxito *{$data['scan_count']} escaneos adicionales*!\n✨ Paquete: *{$data['package_name']}*",
+                'de_DE' => "🎉 Sie haben erfolgreich *{$data['scan_count']} zusätzliche Scans* erworben!\n✨ Paket: *{$data['package_name']}*",
+            ];
+        } elseif ($type == 'payment_error') {
+            $messages = [
+                'az' => "❗ Ödəniş alındı, lakin paket tapılmadı.",
+                'en' => "❗ Payment received, but package not found.",
+                'ru' => "❗ Платёж получен, но пакет не найден.",      // ƏLAVƏ OLUNDU
+                'tr' => "❗ Ödeme alındı, ancak paket bulunamadı.",     // ƏLAVƏ OLUNDU
+                'es_ES' => "❗ Pago recibido, pero el paquete no fue encontrado.", // ƏLAVƏ OLUNDU
+                'de_DE' => "❗ Zahlung erhalten, aber das Paket wurde nicht gefunden.", // ƏLAVƏ OLUNDU
+            ];
+        } elseif ($type == 'invoice') {
+            $messages = [
+                'az' => [
+                    'description' => "VitalScan-da {$data['scan_count']} əlavə skan əldə edin.",
+                    'label' => "{$data['scan_count']} Skan",
+                ],
+                'en' => [
+                    'description' => "Unlock {$data['scan_count']} additional scans in VitalScan.",
+                    'label' => "{$data['scan_count']} Scans",
+                ],
+                'ru' => [
+                    'description' => "Разблокируйте {$data['scan_count']} дополнительных сканов в VitalScan.",
+                    'label' => "{$data['scan_count']} Сканов",
+                ],
+                'tr' => [
+                    'description' => "VitalScan'de {$data['scan_count']} ek tarama kilidini açın.",
+                    'label' => "{$data['scan_count']} Tarama",
+                ],
+                'es_ES' => [
+                    'description' => "Desbloquea {$data['scan_count']} escaneos adicionales en VitalScan.",
+                    'label' => "{$data['scan_count']} Escaneos",
+                ],
+                'de_DE' => [
+                    'description' => "Schalte {$data['scan_count']} zusätzliche Scans in VitalScan frei.",
+                    'label' => "{$data['scan_count']} Scans",
+                ],
+            ];
+        } elseif ($type == 'payment_history') {
+            $messages = [
+                'az' => [
+                    'title' => "💳 Ödəniş Tarixçəsi",
+                    'no_history' => "Ödəniş qeydi tapılmadı.",
+                    'date' => "Tarix",
+                    'package' => "Paket",
+                    'amount' => "Məbləğ (Ulduz)",
+                    'status' => "Status",
+                    'active' => "✅ Aktiv",
+                    'completed' => "🟢 Tamamlandı",
+                    'back_to_profile' => "⬅️ Profilə Geri",
+                ],
+                'en' => [
+                    'title' => "💳 Payment History",
+                    'no_history' => "No payment records found.",
+                    'date' => "Date",
+                    'package' => "Package",
+                    'amount' => "Amount (Stars)",
+                    'status' => "Status",
+                    'active' => "✅ Active",
+                    'completed' => "🟢 Completed",
+                    'back_to_profile' => "⬅️ Back to Profile",
+                ],
+                'ru' => [
+                    'title' => "💳 История Платежей",
+                    'no_history' => "Записи о платежах не найдены.",
+                    'date' => "Дата",
+                    'package' => "Пакет",
+                    'amount' => "Сумма (Звезды)",
+                    'status' => "Статус",
+                    'active' => "✅ Активно",
+                    'completed' => "🟢 Завершено",
+                    'back_to_profile' => "⬅️ Назад к Профилю",
+                ],
+                'tr' => [
+                    'title' => "💳 Ödeme Geçmişi",
+                    'no_history' => "Ödeme kaydı bulunamadı.",
+                    'date' => "Tarih",
+                    'package' => "Paket",
+                    'amount' => "Miktar (Yıldız)",
+                    'status' => "Durum",
+                    'active' => "✅ Aktif",
+                    'completed' => "🟢 Tamamlandı",
+                    'back_to_profile' => "⬅️ Profile Geri",
+                ],
+                'es_ES' => [
+                    'title' => "💳 Historial de Pagos",
+                    'no_history' => "No se encontraron registros de pago.",
+                    'date' => "Fecha",
+                    'package' => "Paquete",
+                    'amount' => "Cantidad (Estrellas)",
+                    'status' => "Estado",
+                    'active' => "✅ Activo",
+                    'completed' => "🟢 Completado",
+                    'back_to_profile' => "⬅️ Volver al Perfil",
+                ],
+                'de_DE' => [
+                    'title' => "💳 Zahlungsverlauf",
+                    'no_history' => "Keine Zahlungsaufzeichnungen gefunden.",
+                    'date' => "Datum",
+                    'package' => "Paket",
+                    'amount' => "Betrag (Sterne)",
+                    'status' => "Status",
+                    'active' => "✅ Aktiv",
+                    'completed' => "🟢 Abgeschlossen",
+                    'back_to_profile' => "⬅️ Zurück zum Profil",
+                ],
             ];
         }
 

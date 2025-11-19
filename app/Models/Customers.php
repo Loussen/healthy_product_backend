@@ -58,6 +58,11 @@ class Customers extends Authenticatable
             ->withTimestamps();
     }
 
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class,'customer_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | SCOPES

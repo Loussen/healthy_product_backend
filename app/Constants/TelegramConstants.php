@@ -30,6 +30,11 @@ class TelegramConstants
     public const COMMAND_PRIVACY = '/privacy';
     public const COMMAND_TERMS = '/terms';
     public const COMMAND_ABOUT_US = '/about_us';
+    public const COMMAND_SUPPORT_US = '/support';
+
+    public const ATTEMPT_COUNT = 5;
+
+    public const FREE_SCAN_LIMIT = 3;
 
     // Mətnlərdə istifadə olunan dillərin adları/kodları xəritəsi
     public const LANGUAGE_MAP = [

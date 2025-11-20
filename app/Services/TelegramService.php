@@ -468,7 +468,7 @@ Category: **$categoryName**, Language: **$languageName**."
             $btnText .= " – {$pkg->telegram_star_price} ⭐";
 
             $keyboard[] = [['text' => $btnText, 'callback_data' => TelegramConstants::CALLBACK_BUY_PREFIX . $pkg->product_id_for_purchase]];
-            $keyboard[] = [['text' => "💎 TON Coin", 'callback_data' => "ton_buy_" . $pkg->product_id_for_purchase]];
+//            $keyboard[] = [['text' => "💎 TON Coin", 'callback_data' => "ton_buy_" . $pkg->product_id_for_purchase]];
         }
 
         $this->sendMessage($chatId, $this->translate('out_of_scan_packages', [], $languageCode)[$languageCode], null, ['inline_keyboard' => $keyboard]);
@@ -486,7 +486,7 @@ Category: **$categoryName**, Language: **$languageName**."
         // 2. Ödəniş linki yaratmaq üçün Wallet Pay API-ni çağırın
         // Bu hissə üçün Wallet Pay SDK və ya HTTP Client istifadə etməlisiniz.
 
-        /* $tonAmount = $package->ton_price;
+        $tonAmount = 1;
         $payload = 'ton_purchase_' . $package->id;
 
         // Wallet Pay API-yə müraciət (nümunə üçün)
@@ -496,10 +496,11 @@ Category: **$categoryName**, Language: **$languageName**."
             $payload,
             $title // Məhsulun adı
         );
-        */
+
+        Log::info($paymentLink);
 
         // Nümunə: Əgər link uğurla yaradılıbsa...
-        $paymentLink = "https://pay.wallet.tg/w/invoice/a1b2c3d4"; // Wallet Pay-dən gələn link
+//        $paymentLink = "https://pay.wallet.tg/w/invoice/a1b2c3d4"; // Wallet Pay-dən gələn link
 
         if ($paymentLink) {
             $msg = "💎 *{$title}* paketi üçün TON ilə ödəniş etmək istəyirsiniz.\n\n"

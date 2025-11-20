@@ -39,8 +39,9 @@ class TonWalletService
             return null;
         }
 
-        // Ödəniş linkinin yaradılması üçün API Endpoint
-        $endpoint = "{$this->baseUrl}/create/order";
+        // 1. Düzəliş BURADADIR: Wallet Pay-in tələb etdiyi dəqiq endpoint-i yoxlayın.
+        // Fərz edək ki, "createOrder" istifadə edirlər (sənədlərdə ən çox rast gəlinən forma).
+        $endpoint = "{$this->baseUrl}/createOrder";
 
         // Tələb olunan məlumatlar
         $data = [
@@ -55,9 +56,16 @@ class TonWalletService
         ];
 
         try {
+            // Debug üçün API Açarını Log etməyə ehtiyac yoxdur, çünki bu, TƏHLÜKƏSİZLİK RİSKİ yaradır.
+            // Əvvəlki mesajınızdakı Log::info("API_KEY: ".$this->apiKey); sətirini buraxırıq.
+
             $response = Http::withHeaders([
                 'X-API-Key' => $this->apiKey,
             ])->post($endpoint, $data);
+
+            // Response-u Log edin (sadəcə statusu yoxlayın, bütün cavabı log etməyin)
+            Log::info("Wallet Pay Response Status: " . $response->status());
+
 
             // API cavabının yoxlanılması
             if ($response->successful() && isset($response->json()['data']['payLink'])) {
@@ -67,9 +75,15 @@ class TonWalletService
                 return $response->json()['data']['payLink'];
             }
 
+            // Əgər status 400-499 aralığındadırsa, səbəbi log edin
+            $errorDetails = $response->json();
+            $errorMessage = $errorDetails['message'] ?? $response->body();
+
+
             // Uğursuz API cavabı və ya cavab strukturunun səhv olması
             Log::error('Wallet Pay API səhvi.', [
                 'status' => $response->status(),
+                'message' => $errorMessage,
                 'payload' => $data,
                 'response_body' => $response->body()
             ]);

@@ -18,3 +18,4 @@
 <x-backpack::menu-item title="Subscriptions" icon="la la-question" :link="backpack_url('subscription')" />
 <x-backpack::menu-item title="Device tokens" icon="la la-question" :link="backpack_url('device-token')" />
 <x-backpack::menu-item title="Push notifications" icon="la la-question" :link="backpack_url('push-notification')" />
+<x-backpack::menu-item title="Telegram logs" icon="la la-question" :link="backpack_url('telegram-log')" />

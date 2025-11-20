@@ -32,6 +32,7 @@ Route::group([
     Route::crud('subscription', 'SubscriptionCrudController');
     Route::crud('device-token', 'DeviceTokenCrudController');
     Route::crud('push-notification', 'PushNotificationCrudController');
+    Route::crud('telegram-log', 'TelegramLogCrudController');
 }); // this should be the absolute last line of this file
 
 /**

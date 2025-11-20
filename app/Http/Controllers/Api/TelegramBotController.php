@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Constants\TelegramConstants;
 use App\Models\Customers;
 use App\Models\Packages;
+use App\Services\DebugWithTelegramService;
 use App\Services\TelegramService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Telegram\Bot\Laravel\Facades\Telegram;
 use Telegram\Bot\Objects\CallbackQuery;
 
@@ -23,7 +23,6 @@ class TelegramBotController extends BaseController
     public function handleWebhook(Request $request)
     {
         $update = Telegram::commandsHandler(true);
-        Log::info($update);
 
         $callback = $update->callback_query ?? null;
         $message = $update->getMessage();
@@ -40,12 +39,13 @@ class TelegramBotController extends BaseController
 
         $from = $this->getSenderFromUpdate($update);
         if (!$from) {
-            Log::error('Göndərən (from) tapılmadı.');
+            $log = new DebugWithTelegramService();
+            $log->debug("Could not retrieve sender data");
             return response('Could not retrieve sender data', 200);
         }
 
         // İstifadçini sinxronlaşdır
-        $customer = $this->telegramService->syncTelegramUser($from);
+        $customer = $this->telegramService->syncTelegramUser($from, $update);
 
         $chatId = $message->chat->id ?? ($callback->message->chat->id ?? null);
         $text = trim($message->getText() ?? '');

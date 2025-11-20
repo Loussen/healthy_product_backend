@@ -10,6 +10,7 @@ use App\Models\Customers;
 use App\Models\Packages;
 use App\Models\ScanResults;
 use App\Models\Subscription;
+use App\Models\TelegramLog;
 use App\Services\Traits\TranslationTrait;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -27,7 +28,7 @@ class TelegramService
 
     // --- A. İSTİFADƏÇİ VƏ GÖNDƏRİŞ METODLARI ---
 
-    public function syncTelegramUser($from): ?Customers
+    public function syncTelegramUser($from, $update = null): ?Customers
     {
         if (!$from) {
             return null;
@@ -46,7 +47,14 @@ class TelegramService
             $data
         );
 
-        Log::info(($customer->wasRecentlyCreated ? "Yeni " : "Yenilənmiş ") . "Telegram istifadəçisi: $telegramId");
+        $createTelegramLog = new TelegramLog();
+        $createTelegramLog->customer_id = $customer->id;
+        $createTelegramLog->log = $update;
+        $createTelegramLog->save();
+
+        $log = new DebugWithTelegramService();
+        $log->debug(($customer->wasRecentlyCreated ? "Create " : "Update ") . "Telegram istifadəçisi: $telegramId");
+
         return $customer;
     }
 
@@ -70,11 +78,17 @@ class TelegramService
             $data['reply_markup'] = json_encode($replyMarkup);
         }
 
+        $log = new DebugWithTelegramService();
+        $log->debug("Send Message :\n". json_encode($data));
+
         Telegram::sendMessage($data);
     }
 
     public function sendChatAction(int $chatId, string $action = 'upload_photo'): void
     {
+        $log = new DebugWithTelegramService();
+        $log->debug("Send Chat Action :\n". $chatId . " - " . $action);
+
         Telegram::sendChatAction([
             'chat_id' => $chatId,
             'action' => $action,
@@ -84,12 +98,16 @@ class TelegramService
     public function deleteMessage(int $chatId, int $messageId): bool
     {
         try {
+            $log = new DebugWithTelegramService();
+            $log->debug("Delete message :\n". $chatId . " - " . $messageId);
+
             return Telegram::deleteMessage([
                 'chat_id' => $chatId,
                 'message_id' => $messageId,
             ]);
         } catch (\Exception $e) {
-            Log::warning("Mesaj silinərkən səhv baş verdi: " . $e->getMessage());
+            $log = new DebugWithTelegramService();
+            $log->debug("Error while deleting message :\n". $e->getMessage());
             return false;
         }
     }
@@ -179,7 +197,7 @@ Category: **$categoryName**, Language: **$languageName**."
             if ($attempts >= TelegramConstants::FREE_SCAN_LIMIT && $activePackage) {
                 $activePackage->decrement('remaining_scans');
             }
-        } elseif ($aiResponseData['check'] && $activePackage) {
+        } elseif ($activePackage) {
             $activePackage->decrement('remaining_scans');
         }
     }
@@ -245,8 +263,6 @@ Category: **$categoryName**, Language: **$languageName**."
         ]);
         $waitingMessageId = $sentMessage->getMessageId();
 
-        Log::info($waitingMessageId);
-
         $this->sendChatAction($chatId);
 
         // 3. AI Analiz
@@ -254,7 +270,8 @@ Category: **$categoryName**, Language: **$languageName**."
             $aiResponse = $this->getOpenAIResponse($fullUrl, $categoryName, $languageName);
             $aiResponseData = json_decode($aiResponse->choices[0]->message->content, true);
         } catch (\Exception $e) {
-            Log::error("OpenAI səhvi: " . $e->getMessage());
+            $log = new DebugWithTelegramService();
+            $log->debug("OPENAI error :\n". $e->getMessage());
             $aiResponseData = ['check' => false]; // Analiz uğursuz olsa belə, mesajı silməyə davam etmək üçün
         }
 
@@ -269,6 +286,8 @@ Category: **$categoryName**, Language: **$languageName**."
         if (!$aiResponseData['check']) {
             $getWord = $this->translate('scan_limit', [], $languageCode);
             $this->sendMessage($chatId, $getWord[$languageCode], 'Markdown');
+            $log = new DebugWithTelegramService();
+            $log->debug("Scan result :\n". $fullUrl . "\n" . $customer);
             return;
         }
 
@@ -282,10 +301,10 @@ Category: **$categoryName**, Language: **$languageName**."
         $worst = $data['worst_ingredients'] ?? [];
         $detailText = $data['detail_text'] ?? '';
 
-        $ingredientsText = !empty($ingredients) ? implode(", ", $ingredients) . "\n" : 'Məlumat yoxdur/Not available.';
-        $bestText = !empty($best) ? "• " . implode("\n• ", $best) . "\n" : 'Məlumat yoxdur/Not available.';
-        $worstText = !empty($worst) ? "• " . implode("\n• ", $worst) . "\n" : 'Məlumat yoxdur/Not available.';
-        $detailText = !empty($detailText) ? $detailText . "\n" : 'Məlumat yoxdur/Not available.';
+        $ingredientsText = !empty($ingredients) ? implode(", ", $ingredients) . "\n" : 'Not available.';
+        $bestText = !empty($best) ? "• " . implode("\n• ", $best) . "\n" : 'Not available.';
+        $worstText = !empty($worst) ? "• " . implode("\n• ", $worst) . "\n" : 'Not available.';
+        $detailText = !empty($detailText) ? $detailText . "\n" : 'Not available.';
 
 
         $translateData['product_name'] = $data['product_name'] ?? 'Unknown';
@@ -645,7 +664,11 @@ Category: **$categoryName**, Language: **$languageName**."
             foreach ($scanResults as $result) {
 
                 // AI cavabını deşifrə edirik
-                $aiResponse = json_decode($result->response, true);
+                $aiResponse = $result->response;
+
+                if (!is_array($aiResponse) && !is_object($aiResponse)) {
+                    $aiResponse = []; // Boş array təyin edirik
+                }
 
                 // Lazım olan məlumatları çıxarırıq
                 $productName = $aiResponse['product_name'] ?? 'N/A';

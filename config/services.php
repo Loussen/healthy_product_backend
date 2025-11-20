@@ -45,4 +45,10 @@ return [
 
     'default_locale' => 'az',
 
+    'wallet_pay' => [
+        'base_url' => env('WALLET_PAY_BASE_URL','DEFAULT_URL'),
+        'api_key' => env('WALLET_PAY_API_KEY', 'DEFAULT_API_KEY'),
+        'bot_username' => 'VitalScanBot'
+    ]
+
 ];

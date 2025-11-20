@@ -137,6 +137,15 @@ trait TranslationTrait
                 'es_ES' => "⭐ *Elige un paquete para continuar*\nSelecciona un paquete para aumentar tu límite de escaneos.",
                 'de_DE' => "⭐ *Wähle ein Paket, um fortzufahren*\nWähle unten ein Paket, um dein Scanlimit zu erhöhen.",
             ];
+        } elseif ($type == 'not_registered') {
+            $messages = [
+                'az' => "🚫 Qeydiyyatdan keçməmisiniz. Qeydiyyat üçün lütfən /start yazın.",
+                'en' => "🚫 You are not registered. Please /start to register.",
+                'ru' => "🚫 Вы не зарегистрированы. Пожалуйста, используйте /start для регистрации.",
+                'tr' => "🚫 Kayıtlı değilsiniz. Lütfen kayıt olmak için /start komutunu kullanın.",
+                'es_ES' => "🚫 No estás registrado. Por favor, usa /start para registrarte.",
+                'de_DE' => "🚫 Sie sind nicht registriert. Bitte verwenden Sie /start zur Registrierung.",
+            ];
         } elseif ($type == 'scan_result') {
             $messages = [
                 'az' =>
@@ -247,7 +256,7 @@ trait TranslationTrait
                     'title' => "👤 Profiliniz",
                     'name' => "Ad / Soyad",
                     'username' => "İstifadəçi Adı",
-                    'credits' => "Kreditlər",
+                    'credits' => "Qalan Skan Sayı",
                     'premium' => "Premium Status",
                     'joined' => "Qoşulma Tarixi",
                     'health_score' => "Sağlamlıq Skoru", // YENİ
@@ -258,13 +267,14 @@ trait TranslationTrait
                     'support' => "💬 Dəstək",
                     'back' => "🏠 Ana Səhifəyə Qayıt",
                     'yes' => 'Bəli',
-                    'no' => 'Xeyr'
+                    'no' => 'Xeyr',
+                    'my_packages' => '🎁 Aktiv Paketlərim',
                 ],
                 'en' => [
                     'title' => "👤 Your Profile",
                     'name' => "Name / Surname",
                     'username' => "Username",
-                    'credits' => "Credits",
+                    'credits' => "Remaining Scans",
                     'premium' => "Premium Status",
                     'joined' => "Joined Date",
                     'health_score' => "Health Score", // YENİ
@@ -275,13 +285,14 @@ trait TranslationTrait
                     'support' => "💬 Support",
                     'back' => "🏠 Back to Home",
                     'yes' => 'Yes',
-                    'no' => 'No'
+                    'no' => 'No',
+                    'my_packages' => '🎁 My Active Packages',
                 ],
                 'ru' => [
                     'title' => "👤 Ваш Профиль",
                     'name' => "Имя / Фамилия",
                     'username' => "Имя Пользователя",
-                    'credits' => "Кредиты",
+                    'credits' => "Осталось Сканирований",
                     'premium' => "Премиум Статус",
                     'joined' => "Дата Присоединения",
                     'health_score' => "Оценка Здоровья", // YENİ
@@ -292,13 +303,14 @@ trait TranslationTrait
                     'support' => "💬 Поддержка",
                     'back' => "🏠 На Главную",
                     'yes' => 'Да',
-                    'no' => 'Нет'
+                    'no' => 'Нет',
+                    'my_packages' => '🎁 Мои Активные Пакеты',
                 ],
                 'tr' => [
                     'title' => "👤 Profiliniz",
                     'name' => "Ad / Soyad",
                     'username' => "Kullanıcı Adı",
-                    'credits' => "Krediler",
+                    'credits' => "Kalan Tarama Sayısı",
                     'premium' => "Premium Durumu",
                     'joined' => "Katılma Tarihi",
                     'health_score' => "Sağlık Skoru", // YENİ
@@ -309,13 +321,14 @@ trait TranslationTrait
                     'support' => "💬 Destek",
                     'back' => "🏠 Ana Sayfaya Dön",
                     'yes' => 'Evet',
-                    'no' => 'Hayır'
+                    'no' => 'Hayır',
+                    'my_packages' => '🎁 Aktif Paketlerim',
                 ],
                 'es_ES' => [
                     'title' => "👤 Tu Perfil",
                     'name' => "Nombre / Apellido",
                     'username' => "Nombre de Usuario",
-                    'credits' => "Créditos",
+                    'credits' => "Escaneos Restantes",
                     'premium' => "Estado Premium",
                     'joined' => "Fecha de registro",
                     'health_score' => "Puntuación de Salud", // YENİ
@@ -326,13 +339,14 @@ trait TranslationTrait
                     'support' => "💬 Soporte",
                     'back' => "🏠 Volver a Inicio",
                     'yes' => 'Sí',
-                    'no' => 'No'
+                    'no' => 'No',
+                    'my_packages' => '🎁 Mis Paquetes Activos',
                 ],
                 'de_DE' => [
                     'title' => "👤 Ihr Profil",
                     'name' => "Name / Nachname",
                     'username' => "Benutzername",
-                    'credits' => "Guthaben",
+                    'credits' => "Verbleibende Scans",
                     'premium' => "Premium Status",
                     'joined' => "Beitrittsdatum",
                     'health_score' => "Gesundheitspunktzahl", // YENİ
@@ -343,7 +357,59 @@ trait TranslationTrait
                     'support' => "💬 Support",
                     'back' => "🏠 Zur Startseite",
                     'yes' => 'Ja',
-                    'no' => 'Nein'
+                    'no' => 'Nein',
+                    'my_packages' => '🎁 Meine Aktiven Pakete',
+                ],
+            ];
+        } elseif ($type == 'my_packages_list') {
+            $messages = [
+                'az' => [
+                    'title' => "🎁 Aktiv Paketlərim",
+                    'no_packages' => "Hazırda aktiv paketiniz yoxdur.",
+                    'package_name' => "Paket Adı",
+                    'remaining_scans' => "Qalan Skan",
+                    'created_at' => "Başlama Tarixi", // YENİLƏNDİ
+                    'back_instruction' => "_Profilə Geri düyməsi ilə əvvəlki səhifəyə qayıdın._",
+                ],
+                'en' => [
+                    'title' => "🎁 My Active Packages",
+                    'no_packages' => "You currently have no active packages.",
+                    'package_name' => "Package Name",
+                    'remaining_scans' => "Remaining Scans",
+                    'created_at' => "Purchase Date", // YENİLƏNDİ
+                    'back_instruction' => "_Use the Back to Profile button to return to the previous page._",
+                ],
+                'ru' => [
+                    'title' => "🎁 Мои Активные Пакеты",
+                    'no_packages' => "В настоящее время у вас нет активных пакетов.",
+                    'package_name' => "Название Пакета",
+                    'remaining_scans' => "Осталось Сканов",
+                    'created_at' => "Дата Покупки", // YENİLƏNDİ
+                    'back_instruction' => "_Вернитесь на предыдущую страницу с помощью кнопки «Назад к Профилю»._",
+                ],
+                'tr' => [
+                    'title' => "🎁 Aktif Paketlerim",
+                    'no_packages' => "Şu anda aktif bir paketiniz bulunmamaktadır.",
+                    'package_name' => "Paket Adı",
+                    'remaining_scans' => "Kalan Tarama",
+                    'created_at' => "Başlangıç Tarihi", // YENİLƏNDİ
+                    'back_instruction' => "_Profile Geri düğmesinden önceki sayfaya dönün._",
+                ],
+                'es_ES' => [
+                    'title' => "🎁 Mis Paquetes Activos",
+                    'no_packages' => "Actualmente no tienes paquetes activos.",
+                    'package_name' => "Nombre del Paquete",
+                    'remaining_scans' => "Escaneos Restantes",
+                    'created_at' => "Fecha de Compra", // YENİLƏNDİ
+                    'back_instruction' => "_Utilice el botón Volver al Perfil para regresar a la página anterior._",
+                ],
+                'de_DE' => [
+                    'title' => "🎁 Meine Aktiven Pakete",
+                    'no_packages' => "Sie haben derzeit keine aktiven Pakete.",
+                    'package_name' => "Paketname",
+                    'remaining_scans' => "Verbleibende Scans",
+                    'created_at' => "Kaufdatum", // YENİLƏNDİ
+                    'back_instruction' => "_Kehren Sie mit der Schaltfläche 'Zurück zum Profil' zur vorherigen Seite zurück._",
                 ],
             ];
         } elseif ($type == 'image_not_readable') {

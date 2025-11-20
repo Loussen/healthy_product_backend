@@ -60,7 +60,41 @@ class TelegramService
 
     public function getCustomerByFrom($from): ?Customers
     {
-        return Customers::where('telegram_id', $from->getId())->first();
+        $telegramId = $from->getId();
+        $customer = Customers::where('telegram_id', $telegramId)->first();
+
+        if (!$customer) {
+            // 1. Dil kodunu belirliyoruz (Müşteri yoksa varsayılan dili kullanırız)
+            // Varsayalım ki varsayılan dil EN'dir.
+            $languageCode = TelegramConstants::DEFAULT_LANGUAGE ?? 'en';
+
+            // 2. Mesajı çeviriyoruz (Önceki adımlardan 'not_registered' anahtarını kullandığımızı varsayalım)
+            // Eğer 'not_registered' anahtarınız yoksa, eklemeniz gerekir (aşağıdaki notta mevcut).
+            $errorMsgKey = 'not_registered';
+            $defaultMsg = "🚫 You are not registered. Please /start to register.";
+
+            $translations = $this->translate($errorMsgKey, [], $languageCode);
+            $text = $translations[$languageCode] ?? $defaultMsg;
+
+
+            // 3. Cache Kontrolü: Bu kullanıcıya son 5 dakikada bildirim gönderildi mi?
+            $cacheKey = 'notified_' . $telegramId;
+
+            if (!Cache::has($cacheKey)) {
+
+                // Mesajı gönder
+                Telegram::sendMessage([
+                    'chat_id' => $telegramId,
+                    'text' => $text,
+                    'parse_mode' => 'Markdown'
+                ]);
+
+                // Cache'e bir flag koy (5 dakika süreyle)
+                Cache::put($cacheKey, true, now()->addMinutes(5));
+            }
+        }
+
+        return $customer;
     }
 
     public function sendMessage(int $chatId, string $text, string $parseMode = null, array $replyMarkup = []): void
@@ -434,9 +468,53 @@ Category: **$categoryName**, Language: **$languageName**."
             $btnText .= " – {$pkg->telegram_star_price} ⭐";
 
             $keyboard[] = [['text' => $btnText, 'callback_data' => TelegramConstants::CALLBACK_BUY_PREFIX . $pkg->product_id_for_purchase]];
+            $keyboard[] = [['text' => "💎 TON Coin", 'callback_data' => "ton_buy_" . $pkg->product_id_for_purchase]];
         }
 
         $this->sendMessage($chatId, $this->translate('out_of_scan_packages', [], $languageCode)[$languageCode], null, ['inline_keyboard' => $keyboard]);
+    }
+
+    public function sendTonInvoice(int $chatId, Packages $package): void
+    {
+        // 1. Tərcümə məlumatlarını hazırlayın
+        $translateData = ['scan_count' => $package->scan_count];
+        $translations = $this->translate('invoice', $translateData);
+        $lang = $translations["en"] ?? $translations[TelegramConstants::DEFAULT_LANGUAGE];
+
+        $title = $package->getTranslation('name', "en") ?? $package->name;
+
+        // 2. Ödəniş linki yaratmaq üçün Wallet Pay API-ni çağırın
+        // Bu hissə üçün Wallet Pay SDK və ya HTTP Client istifadə etməlisiniz.
+
+        /* $tonAmount = $package->ton_price;
+        $payload = 'ton_purchase_' . $package->id;
+
+        // Wallet Pay API-yə müraciət (nümunə üçün)
+        $paymentLink = (new TonWalletService())->createTonInvoice(
+            $tonAmount,
+            'TON', // Valyuta
+            $payload,
+            $title // Məhsulun adı
+        );
+        */
+
+        // Nümunə: Əgər link uğurla yaradılıbsa...
+        $paymentLink = "https://pay.wallet.tg/w/invoice/a1b2c3d4"; // Wallet Pay-dən gələn link
+
+        if ($paymentLink) {
+            $msg = "💎 *{$title}* paketi üçün TON ilə ödəniş etmək istəyirsiniz.\n\n"
+                . "💰 Məbləğ: *{$package->ton_price} TON*\n\n"
+                . "Aşağıdakı düyməni sıxaraq *Wallet* tətbiqində ödənişi tamamlayın.";
+
+            $keyboard = [
+                // Ödəniş linkinə yönləndirən URL düyməsi
+                [['text' => "💸 {$package->ton_price} TON ilə Ödə", 'url' => $paymentLink]],
+            ];
+
+            $this->sendMessage($chatId, $msg, 'Markdown', ['inline_keyboard' => $keyboard]);
+        } else {
+            $this->sendMessage($chatId, "❗ TON ödənişi zamanı xəta baş verdi.");
+        }
     }
 
     public function sendInvoice(int $chatId, Packages $package, string $languageCode): void
@@ -546,11 +624,15 @@ Category: **$categoryName**, Language: **$languageName**."
 
         $premiumStatusText = $getPremiumStatus ? $lang['yes'] : $lang['no'];
 
+        $totalRemainingScans = $getCustomer->packages()
+            ->where('remaining_scans', '>', 0)
+            ->sum('remaining_scans');
+
         $msg = "{$lang['title']}
 
 • 📛 *{$lang['name']}:* " . $getCustomer->name . " " . $getCustomer->surname . "
 • 🌐 *{$lang['username']}:* @" . $getCustomer->telegram_username . "
-• ✨ *{$lang['credits']}:* 45 (Not implemented yet)
+• ✨ *{$lang['credits']}:* " . $totalRemainingScans . "
 • ✨ *{$lang['health_score']}:* " . round($averageHealthScore) . "%
 • 👑 *{$lang['premium']}:* " . $premiumStatusText . "
 • 📅 *{$lang['joined']}:* " . Carbon::parse($getCustomer->created_at)->format('d/m/Y') . "
@@ -561,12 +643,69 @@ Category: **$categoryName**, Language: **$languageName**."
             [['text' => $lang['usage'], 'callback_data' => "usage_history"]],
             [['text' => $lang['payment'], 'callback_data' => "payment_history"]],
             [['text' => $lang['buy'], 'callback_data' => "profile_buy_package"]],
+            [['text' => $lang['my_packages'], 'callback_data' => "my_packages_list"]],
             // Qeyd: Əgər COMMAND_SUPPORT_US əmrini düzəltmişiksə, bu düyməni də ona uyğunlaşdırmaq olar.
             [['text' => $lang['support'], 'callback_data' => "support"]],
             [['text' => $lang['back'], 'callback_data' => "choose_language"]],
         ];
 
         $this->sendMessage($chatId, $msg, 'Markdown', ['inline_keyboard' => $keyboard]);
+    }
+
+    public function sendMyPackagesList(int $chatId, $from): void
+    {
+        $customer = $this->getCustomerByFrom($from);
+        $languageCode = $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE;
+
+        // 1. Aktiv Paket Siyahısının tərcüməsini götürün
+        $translations = $this->translate('my_packages_list', [], $languageCode);
+        $langList = $translations[$languageCode] ?? $translations[TelegramConstants::DEFAULT_LANGUAGE];
+
+        // 2. Profilə geri qayıt düyməsi üçün mətn götürün
+        $profileTranslations = $this->translate('profile_menu', [], $languageCode);
+        $langProfile = $profileTranslations[$languageCode] ?? $profileTranslations[TelegramConstants::DEFAULT_LANGUAGE];
+
+        // 3. Aktiv paketləri götürün (qalan skan > 0)
+        $activePackages = $customer->packages()
+            ->where('remaining_scans', '>', 0)
+            ->orderByDesc('created_at')
+            ->get();
+
+        Log::info($activePackages);
+
+        $text = "{$langList['title']}\n\n";
+
+        if ($activePackages->isEmpty()) {
+            $text .= $langList['no_packages'];
+        } else {
+            foreach ($activePackages as $package) {
+
+                // Əsas Paketin adını tərcümə edirik
+                $packageName = $package->package->getTranslation('name', $languageCode) ?? $package->package->name;
+
+                $text .= "--------------------------------------\n";
+                $text .= "📦 *{$langList['package_name']}:* {$packageName}\n";
+                $text .= "💯 *{$langList['remaining_scans']}:* {$package->remaining_scans}\n";
+
+                // Bitmə tarixini formatlayırıq
+                if ($package->created_at) {
+                    $expiryDate = Carbon::parse($package->created_at)->format('d/m/Y');
+                    $text .= "📅 *{$langList['created_at']}:* {$expiryDate}\n";
+                } else {
+                    // Əgər bitmə tarixi yoxdursa (ömürlük paketdirsə)
+                    $text .= "📅 *{$langList['created_at']}:* N/A\n";
+                }
+            }
+            $text .= "--------------------------------------\n";
+            $text .= $langList['back_instruction'];
+        }
+
+        // Profilə geri qayıt düyməsi (Mətn `profile_menu` açarından götürülür)
+        $keyboard = [
+            [['text' => $langProfile['back'], 'callback_data' => "profile"]],
+        ];
+
+        $this->sendMessage($chatId, $text, 'Markdown', ['inline_keyboard' => $keyboard]);
     }
 
     public function sendSupportLink(int $chatId, string $languageCode): void

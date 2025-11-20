@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\ExternalApi;
+use App\Services\DebugWithTelegramService;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,5 +24,28 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->report(function (Throwable $e) {
+
+            // Xətanın status kodunu yoxlayın
+            $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+
+            // Kritik xətaları (500 və yuxarı) Telegram-a göndərin
+            if ($statusCode >= 500) {
+
+                $log = new DebugWithTelegramService();
+
+                $errorInfo = [
+                    'type' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'status' => $statusCode,
+                    'url' => request()->fullUrl(),
+                    'method' => request()->method(),
+                ];
+
+                // Debug sinfiniz array-i qəbul edir və onu JSON formatında göndərir.
+                $log->debug($errorInfo);
+            }
+        });
     })->create();

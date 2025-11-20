@@ -115,6 +115,22 @@ class TelegramBotController extends BaseController
                 $this->telegramService->sendUsageHistory($chatId, $from);
                 return response()->json(['ok' => true]);
             }
+
+            if ($data === 'my_packages_list') {
+                $this->telegramService->sendMyPackagesList($chatId, $from);
+                return response()->json(['ok' => true]);
+            }
+
+            if (str_starts_with($data, 'ton_buy_')) {
+                $productId = str_replace('ton_buy_', '', $data);
+                $package = Packages::where('product_id_for_purchase', $productId)->first();
+
+                if ($package) {
+                    // YENİ METODU ÇAĞIRIRIQ
+                    $this->telegramService->sendTonInvoice($chatId, $package);
+                    return response()->json(['ok' => true]);
+                }
+            }
             // ... usage_history, payment_history, support kimi digər callback-lər də buraya əlavə oluna bilər.
         }
 

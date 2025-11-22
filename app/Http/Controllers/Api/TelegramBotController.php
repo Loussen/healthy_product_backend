@@ -128,6 +128,11 @@ class TelegramBotController extends BaseController
                 return response()->json(['ok' => true]);
             }
 
+            if ($data === 'instruction') {
+                $this->telegramService->sendInstruction($chatId, $from);
+                return response()->json(['ok' => true]);
+            }
+
             if (str_starts_with($data, 'ton_buy_')) {
                 $productId = str_replace('ton_buy_', '', $data);
                 $package = Packages::where('product_id_for_purchase', $productId)->first();

@@ -58,6 +58,15 @@ trait TranslationTrait
                 'es_ES' => "✅ Categoría seleccionada: *{$data['category_name']}*\n\n📸 Ahora envía una foto de la *sección de ingredientes* del producto para analizarla.",
                 'de_DE' => "✅ Ausgewählte Kategorie: *{$data['category_name']}*\n\n📸 Sende jetzt ein Foto des *Zutatenbereichs* des Produkts zur Analyse.",
             ];
+        } elseif ($type == 'instruction_button') {
+            $messages = [
+                'az' => "💡 *Necə İstifadə Edilir?* (Təlimatlara Bax)",
+                'en' => "💡 *How to Use the Bot* (Read Instructions)",
+                'ru' => "💡 *Как Пользоваться Ботом* (Читать Инструкцию)",
+                'tr' => "💡 *Nasıl Kullanılır?* (Talimatları Oku)",
+                'es_ES' => "💡 *¿Cómo Usarlo?* (Leer Instrucciones)",
+                'de_DE' => "💡 *Wie wird der Bot genutzt?* (Anleitung lesen)",
+            ];
         } elseif ($type == 'please_wait') {
             $messages = [
                 'az' => "🔍 Məhsul seçdiyiniz *dil* və *kateqoriya* üzrə analiz olunur...\n\nZəhmət olmasa gözləyin ⏳",
@@ -157,7 +166,7 @@ trait TranslationTrait
                         "3️⃣ **Şəkli Göndərin:** Çəkdiyiniz şəkli bota göndərin. Bir neçə saniyə ərzində tam analiz, Sağlamlıq Skoru və 'Qırmızı Bayraqlar' əldə edəcəksiniz.",
                     ],
                     'image_caption' => "✅ Yaxşı Şəkil Nümunəsi: Bütün tərkiblər aydın oxunur və yalnız tərkib hissəsi görünür. Zəhmət olmasa bu placeholder-i öz real etiket şəkilinizlə əvəz edin!",
-                    'image_url' => "https://placehold.co/600x400/10B981/FFFFFF?text=Yaxşı+Etiket+Nümunəsi",
+                    'image_url' => "https://vitalscan.app/storage/ingredients_example.png",
                 ],
                 'en' => [
                     'title' => "📸 How to Start Analysis?",
@@ -168,7 +177,7 @@ trait TranslationTrait
                         "3️⃣ **Send the Photo:** Send the captured photo to the bot. In a few seconds, you will receive a full analysis, Health Score, and 'Red Flags'.",
                     ],
                     'image_caption' => "✅ Good Photo Example: All ingredients are clearly readable and only the ingredient list is visible. Please replace this placeholder with your actual label image!",
-                    'image_url' => "https://placehold.co/600x400/10B981/FFFFFF?text=Good+Label+Example",
+                    'image_url' => "https://vitalscan.app/storage/ingredients_example.png",
                 ],
                 'ru' => [
                     'title' => "📸 Как начать анализ?",
@@ -179,7 +188,7 @@ trait TranslationTrait
                         "3️⃣ **Отправьте Фото:** Отправьте сделанное фото боту. Через несколько секунд вы получите полный анализ, Оценку Здоровья и 'Красные Флаги'.",
                     ],
                     'image_caption' => "✅ Пример Хорошего Фото: Все ингредиенты четко читаются, виден только список состава. Пожалуйста, замените этот плейсхолдер фактическим изображением этикетки!",
-                    'image_url' => "https://placehold.co/600x400/10B981/FFFFFF?text=Пример+Хорошей+Этикетки",
+                    'image_url' => "https://vitalscan.app/storage/ingredients_example.png",
                 ],
                 'tr' => [
                     'title' => "📸 Analize Nasıl Başlanır?",
@@ -190,7 +199,7 @@ trait TranslationTrait
                         "3️⃣ **Fotoğrafı Gönderin:** Çektiğiniz fotoğrafı bota gönderin. Birkaç saniye içinde tam analiz, Sağlık Puanı ve 'Kırmızı Bayraklar' alacaksınız.",
                     ],
                     'image_caption' => "✅ İyi Fotoğraf Örneği: Tüm içerikler net bir şekilde okunabilir ve sadece içerik listesi görünür. Lütfen bu yer tutucuyu gerçek etiket görselinizle değiştirin!",
-                    'image_url' => "https://placehold.co/600x400/10B981/FFFFFF?text=İyi+Etiket+Örneği",
+                    'image_url' => "https://vitalscan.app/storage/ingredients_example.png",
                 ],
                 // İspan və Alman dilləri
                 'es' => [
@@ -202,7 +211,7 @@ trait TranslationTrait
                         "3️⃣ **Envíe la Foto:** Envíe la foto capturada al bot. En unos segundos, recibirá un análisis completo, Puntuación de Salud y 'Banderas Rojas'.",
                     ],
                     'image_caption' => "✅ Ejemplo de Buena Foto: Todos los ingredientes son claramente legibles y solo se ve la lista de ingredientes. ¡Reemplace este marcador de posición con su imagen de etiqueta real!",
-                    'image_url' => "https://placehold.co/600x400/10B981/FFFFFF?text=Buen+Ejemplo+de+Etiqueta",
+                    'image_url' => "https://vitalscan.app/storage/ingredients_example.png",
                 ],
                 'de' => [
                     'title' => "📸 Wie starte ich die Analyse?",
@@ -213,7 +222,7 @@ trait TranslationTrait
                         "3️⃣ **Senden Sie das Foto:** Senden Sie das aufgenommene Foto an den Bot. In wenigen Sekunden erhalten Sie eine vollständige Analyse, den Gesundheits-Score und 'Rote Flaggen'.",
                     ],
                     'image_caption' => "✅ Gutes Fotobeispiel: Alle Inhaltsstoffe sind klar lesbar und nur die Inhaltsstoffliste ist sichtbar. Bitte ersetzen Sie diesen Platzhalter durch Ihr tatsächliches Etikettenbild!",
-                    'image_url' => "https://placehold.co/600x400/10B981/FFFFFF?text=Gutes+Etiketten+Beispiel",
+                    'image_url' => "https://vitalscan.app/storage/ingredients_example.png",
                 ]
             ];
         } elseif ($type == 'scan_result') {

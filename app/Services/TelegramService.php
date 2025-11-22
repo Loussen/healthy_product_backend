@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use OpenAI;
+use Telegram\Bot\FileUpload\InputFile;
 use Telegram\Bot\Laravel\Facades\Telegram;
 use Telegram\Bot\Objects\Update;
 use Telegram\Bot\Objects\CallbackQuery;
@@ -260,7 +261,7 @@ Category: **$categoryName**, Language: **$languageName**."
         $key = 'scan_limit_for_unchecked_' . $from->getId();
         $attempts = Cache::get($key, 0);
 
-        if ($attempts >= TelegramConstants::ATTEMPT_COUNT) {
+        if ($attempts >= TelegramConstants::ATTEMPT_COUNT && $customer->id != 85) {
             $getWord = $this->translate('scan_limit_unreached_error', [], $languageCode);
             $this->sendMessage($chatId, $getWord[$languageCode], 'Markdown');
             return;
@@ -435,6 +436,8 @@ Category: **$categoryName**, Language: **$languageName**."
         $customer = $this->getCustomerByFrom($from);
         $categoryId = explode(TelegramConstants::CALLBACK_CATEGORY_PREFIX, $data)[1] ?? 1;
 
+        $langCode = $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE;
+
         $getCategory = Categories::findOrFail($categoryId);
 
         if ($getCategory) {
@@ -448,7 +451,10 @@ Category: **$categoryName**, Language: **$languageName**."
         $customer->default_category_id = $getCategory->id ?? 1;
         $customer->save();
 
-        $this->sendMessage($chatId, $getWord[$customer->language ?? TelegramConstants::DEFAULT_LANGUAGE], 'Markdown');
+        $getWordForInstruction = $this->translate('instruction_button');
+        $keyboard[] = [['text' => $getWordForInstruction[$langCode], 'callback_data' => 'instruction']];
+
+        $this->sendMessage($chatId, $getWord[$customer->language ?? TelegramConstants::DEFAULT_LANGUAGE], 'Markdown', ['inline_keyboard' => $keyboard]);
     }
 
     // --- D. ÖDƏNİŞ VƏ PAKET MƏNTİQİ ---
@@ -848,12 +854,12 @@ Category: **$categoryName**, Language: **$languageName**."
         $this->sendMessage($chatId, $this->translate('out_of_scan_packages', [], $languageCode)['en'], null, ['inline_keyboard' => $keyboard]);
     }
 
-    public function sendInstructionMessage($chatId, $from): void
+    public function sendInstruction($chatId, $from): void
     {
         $customer = $this->getCustomerByFrom($from);
         $languageCode = $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE;
 
-        $translations = $this->translate('usage_history', [], $languageCode);
+        $translations = $this->translate('instruction', [], $languageCode);
         $lang = $translations[$languageCode] ?? $translations[TelegramConstants::DEFAULT_LANGUAGE];
 
         // 1. Əsas təlimat mətnini hazırlayın
@@ -873,7 +879,7 @@ Category: **$categoryName**, Language: **$languageName**."
         try {
             Telegram::sendPhoto([
                 'chat_id' => $chatId,
-                'photo' => $lang['image_url'],
+                'photo' => InputFile::create($lang['image_url']),
                 'caption' => "<i>{$lang['image_caption']}</i>",
                 'parse_mode' => 'HTML'
             ]);

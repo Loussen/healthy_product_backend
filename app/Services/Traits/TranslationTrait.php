@@ -146,6 +146,76 @@ trait TranslationTrait
                 'es_ES' => "🚫 No estás registrado. Por favor, usa /start para registrarte.",
                 'de_DE' => "🚫 Sie sind nicht registriert. Bitte verwenden Sie /start zur Registrierung.",
             ];
+        } elseif ($type == 'instruction') {
+            $messages = [
+                'az' => [
+                    'title' => "📸 Analizə Necə Başlamalı?",
+                    'instruction_text' => "VitalScan AI botundan istifadə etmək çox sadədir. Zəhmət olmasa aşağıdakı addımları izləyin:",
+                    'steps' => [
+                        "1️⃣ **Dil və Kateqoriya Seçin:** Bot ilə ünsiyyətə başlamaq üçün əvvəlcə istədiyiniz dili və analiz etmək istədiyiniz məhsulun kateqoriyasını seçin.",
+                        "2️⃣ **Etiket Şəklini Çəkin:** Məhsulun **yalnız tərkiblərin** göstərildiyi hissəsinin aydın və yaxın plan şəklini çəkin. (Nümunə aşağıda)",
+                        "3️⃣ **Şəkli Göndərin:** Çəkdiyiniz şəkli bota göndərin. Bir neçə saniyə ərzində tam analiz, Sağlamlıq Skoru və 'Qırmızı Bayraqlar' əldə edəcəksiniz.",
+                    ],
+                    'image_caption' => "✅ Yaxşı Şəkil Nümunəsi: Bütün tərkiblər aydın oxunur və yalnız tərkib hissəsi görünür. Zəhmət olmasa bu placeholder-i öz real etiket şəkilinizlə əvəz edin!",
+                    'image_url' => "https://placehold.co/600x400/10B981/FFFFFF?text=Yaxşı+Etiket+Nümunəsi",
+                ],
+                'en' => [
+                    'title' => "📸 How to Start Analysis?",
+                    'instruction_text' => "Using the VitalScan AI bot is very simple. Please follow the steps below:",
+                    'steps' => [
+                        "1️⃣ **Select Language & Category:** To begin interacting with the bot, first choose your desired language and the product category you want to analyze.",
+                        "2️⃣ **Take Label Photo:** Take a clear, close-up photo of the product's section where **only the ingredients** are shown. (Example below)",
+                        "3️⃣ **Send the Photo:** Send the captured photo to the bot. In a few seconds, you will receive a full analysis, Health Score, and 'Red Flags'.",
+                    ],
+                    'image_caption' => "✅ Good Photo Example: All ingredients are clearly readable and only the ingredient list is visible. Please replace this placeholder with your actual label image!",
+                    'image_url' => "https://placehold.co/600x400/10B981/FFFFFF?text=Good+Label+Example",
+                ],
+                'ru' => [
+                    'title' => "📸 Как начать анализ?",
+                    'instruction_text' => "Использовать бот VitalScan AI очень просто. Пожалуйста, следуйте инструкциям ниже:",
+                    'steps' => [
+                        "1️⃣ **Выберите Язык и Категорию:** Для начала работы с ботом выберите желаемый язык и категорию продукта, который хотите анализировать.",
+                        "2️⃣ **Сделайте Фото Этикетки:** Сделайте четкое фото крупным планом той части продукта, где указан **ТОЛЬКО состав**.",
+                        "3️⃣ **Отправьте Фото:** Отправьте сделанное фото боту. Через несколько секунд вы получите полный анализ, Оценку Здоровья и 'Красные Флаги'.",
+                    ],
+                    'image_caption' => "✅ Пример Хорошего Фото: Все ингредиенты четко читаются, виден только список состава. Пожалуйста, замените этот плейсхолдер фактическим изображением этикетки!",
+                    'image_url' => "https://placehold.co/600x400/10B981/FFFFFF?text=Пример+Хорошей+Этикетки",
+                ],
+                'tr' => [
+                    'title' => "📸 Analize Nasıl Başlanır?",
+                    'instruction_text' => "VitalScan AI botunu kullanmak çok kolaydır. Lütfen aşağıdaki adımları izleyin:",
+                    'steps' => [
+                        "1️⃣ **Dil ve Kategori Seçin:** Bot ile etkileşime başlamak için öncelikle istediğiniz dili ve analiz etmek istediğiniz ürün kategorisini seçin.",
+                        "2️⃣ **Etiket Fotoğrafı Çekin:** Ürünün **yalnızca içeriklerinin** gösterildiği bölümünün net ve yakın plan fotoğrafını çekin. (Örnek aşağıda)",
+                        "3️⃣ **Fotoğrafı Gönderin:** Çektiğiniz fotoğrafı bota gönderin. Birkaç saniye içinde tam analiz, Sağlık Puanı ve 'Kırmızı Bayraklar' alacaksınız.",
+                    ],
+                    'image_caption' => "✅ İyi Fotoğraf Örneği: Tüm içerikler net bir şekilde okunabilir ve sadece içerik listesi görünür. Lütfen bu yer tutucuyu gerçek etiket görselinizle değiştirin!",
+                    'image_url' => "https://placehold.co/600x400/10B981/FFFFFF?text=İyi+Etiket+Örneği",
+                ],
+                // İspan və Alman dilləri
+                'es' => [
+                    'title' => "📸 ¿Cómo iniciar el análisis?",
+                    'instruction_text' => "Usar el bot VitalScan AI es muy simple. Por favor, siga los pasos a continuación:",
+                    'steps' => [
+                        "1️⃣ **Seleccione Idioma y Categoría:** Para comenzar a interactuar con el bot, primero elija su idioma deseado y la categoría del producto que desea analizar.",
+                        "2️⃣ **Tome una Foto de la Etiqueta:** Tome una foto clara y de primer plano de la sección del producto donde **solo se muestran los ingredientes** (Ejemplo abajo).",
+                        "3️⃣ **Envíe la Foto:** Envíe la foto capturada al bot. En unos segundos, recibirá un análisis completo, Puntuación de Salud y 'Banderas Rojas'.",
+                    ],
+                    'image_caption' => "✅ Ejemplo de Buena Foto: Todos los ingredientes son claramente legibles y solo se ve la lista de ingredientes. ¡Reemplace este marcador de posición con su imagen de etiqueta real!",
+                    'image_url' => "https://placehold.co/600x400/10B981/FFFFFF?text=Buen+Ejemplo+de+Etiqueta",
+                ],
+                'de' => [
+                    'title' => "📸 Wie starte ich die Analyse?",
+                    'instruction_text' => "Die Verwendung des VitalScan AI Bots ist sehr einfach. Bitte folgen Sie den nachstehenden Schritten:",
+                    'steps' => [
+                        "1️⃣ **Sprache & Kategorie wählen:** Um mit dem Bot zu interagieren, wählen Sie zuerst Ihre gewünschte Sprache und die Produktkategorie, die Sie analysieren möchten.",
+                        "2️⃣ **Etikettenfoto machen:** Machen Sie ein klares, nah aufgenommenes Foto des Produktabschnitts, auf dem **nur die Inhaltsstoffe** aufgeführt sind (Beispiel unten).",
+                        "3️⃣ **Senden Sie das Foto:** Senden Sie das aufgenommene Foto an den Bot. In wenigen Sekunden erhalten Sie eine vollständige Analyse, den Gesundheits-Score und 'Rote Flaggen'.",
+                    ],
+                    'image_caption' => "✅ Gutes Fotobeispiel: Alle Inhaltsstoffe sind klar lesbar und nur die Inhaltsstoffliste ist sichtbar. Bitte ersetzen Sie diesen Platzhalter durch Ihr tatsächliches Etikettenbild!",
+                    'image_url' => "https://placehold.co/600x400/10B981/FFFFFF?text=Gutes+Etiketten+Beispiel",
+                ]
+            ];
         } elseif ($type == 'scan_result') {
             $messages = [
                 'az' =>

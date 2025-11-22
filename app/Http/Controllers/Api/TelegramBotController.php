@@ -8,6 +8,7 @@ use App\Models\Packages;
 use App\Services\DebugWithTelegramService;
 use App\Services\TelegramService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Telegram\Bot\Laravel\Facades\Telegram;
 use Telegram\Bot\Objects\CallbackQuery;
 
@@ -37,10 +38,16 @@ class TelegramBotController extends BaseController
             return response('No message', 200);
         }
 
+//        if ($update->my_chat_member) {
+//            Log::info("Bot chat member status changed: ".$update->my_chat_member->new_chat_member->status);
+//            return response('OK', 200);
+//        }
+
         $from = $this->getSenderFromUpdate($update);
         if (!$from) {
             $log = new DebugWithTelegramService();
-            $log->debug("Could not retrieve sender data");
+            $log->debug("Could not retrieve sender data \n".$update);
+            Log::info("Could not retrieve sender data \n".$update);
             return response('Could not retrieve sender data', 200);
         }
 
@@ -166,6 +173,9 @@ class TelegramBotController extends BaseController
             case TelegramConstants::COMMAND_PAYMENT_HISTORY: // Yeni əmr
                 $this->telegramService->sendPaymentHistory($chatId, $from);
                 break;
+            case TelegramConstants::COMMAND_INSTRUCTION: // Yeni əmr
+                $this->telegramService->sendInstruction($chatId, $from);
+                break;
             default:
                 // 5. ŞƏKİL GÖNDƏRİLMƏSİ
                 if ($message->has('photo')) {
@@ -188,7 +198,11 @@ class TelegramBotController extends BaseController
             $from = $update->message->from;
         } elseif ($update->callback_query) {
             $from = $update->callback_query->from;
-        } else {
+        }
+//        elseif ($update->my_chat_member) {
+//            $from = $update->my_chat_member->from;
+//        }
+        else {
             return null;
         }
 

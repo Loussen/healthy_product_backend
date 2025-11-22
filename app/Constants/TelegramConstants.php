@@ -34,8 +34,9 @@ class TelegramConstants
 
     public const COMMAND_USAGE_HISTORY = '/usage';
     public const COMMAND_PAYMENT_HISTORY = '/payment_history';
+    public const COMMAND_INSTRUCTION = '/instruction';
 
-    public const ATTEMPT_COUNT = 5;
+    public const ATTEMPT_COUNT = 3;
 
     public const FREE_SCAN_LIMIT = 3;
 

@@ -288,7 +288,7 @@ Category: **$categoryName**, Language: **$languageName**."
         $fullUrl = asset('storage/' . $path);
 
         $category = Categories::find($customer->default_category_id);
-        $categoryName = $category->getTranslation('name', 'en');
+        $categoryName = $category->getTranslation('name', $languageCode);
 
         $getWord = $this->translate('please_wait', [], $languageCode);
         $sentMessage = Telegram::sendMessage([
@@ -846,6 +846,40 @@ Category: **$categoryName**, Language: **$languageName**."
         $keyboard = [];
 
         $this->sendMessage($chatId, $this->translate('out_of_scan_packages', [], $languageCode)['en'], null, ['inline_keyboard' => $keyboard]);
+    }
+
+    public function sendInstructionMessage($chatId, $from): void
+    {
+        $customer = $this->getCustomerByFrom($from);
+        $languageCode = $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE;
+
+        $translations = $this->translate('usage_history', [], $languageCode);
+        $lang = $translations[$languageCode] ?? $translations[TelegramConstants::DEFAULT_LANGUAGE];
+
+        // 1. Əsas təlimat mətnini hazırlayın
+        $text = "<b>{$lang['title']}</b>\n\n";
+        $text .= $lang['instruction_text'] . "\n\n";
+        $text .= implode("\n\n", $lang['steps']);
+
+        // Mətni göndərin
+        Telegram::sendMessage([
+            'chat_id' => $chatId,
+            'text' => $text,
+            'parse_mode' => 'HTML',
+        ]);
+
+        // 2. Şəkli (Nümunəni) göndərin
+        // Qeyd: Telegram::sendPhoto üçün $messages['image_url'] səhvsiz işləyən bir HTTP URL olmalıdır.
+        try {
+            Telegram::sendPhoto([
+                'chat_id' => $chatId,
+                'photo' => $lang['image_url'],
+                'caption' => "<i>{$lang['image_caption']}</i>",
+                'parse_mode' => 'HTML'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Təlimat şəkli göndərilərkən xəta: ' . $e->getMessage());
+        }
     }
 
     public function getStaticPageData(int $chatId, string $type = 'privacy'): void

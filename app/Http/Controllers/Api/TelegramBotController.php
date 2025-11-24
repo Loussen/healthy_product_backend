@@ -66,6 +66,25 @@ class TelegramBotController extends BaseController
 
         // 3. CALLBACK SORĞULARI
         if (!empty($callback)) {
+
+            switch ($data) {
+                case 'faucetpay_add':
+                case 'faucetpay_edit':
+                    // requestFaucetPayEmail çağrıldığında, bot kullanıcının next_action'ını 'waiting_for_faucetpay_email' olarak ayarlar.
+                    $this->telegramService->requestFaucetPayEmail($chatId, $from, $data === 'faucetpay_edit');
+                    Telegram::answerCallbackQuery(['callback_query_id' => $callback->id, 'text' => "E-poçt gözlənilir..."]);
+                    return response()->json(['ok' => true]);
+
+                case 'faucetpay_delete':
+                    // Silme işlemini direkt yapar ve durumu sıfırlar (next_action'a gerek yok).
+                    $this->telegramService->deleteFaucetPayEmail($chatId, $from);
+                    Telegram::answerCallbackQuery(['callback_query_id' => $callback->id, 'text' => "Silindi."]);
+                    return response()->json(['ok' => true]);
+
+                // Diğer FaucetPay callback'leri (örneğin 'faucetpay_menu' gibi) buraya eklenebilir.
+                // ...
+            }
+
             if (str_starts_with($data, TelegramConstants::CALLBACK_BUY_PREFIX)) {
                 $this->handleBuyPackageCallback($data, $chatId);
                 return response()->json(['ok' => true]);
@@ -146,6 +165,15 @@ class TelegramBotController extends BaseController
             // ... usage_history, payment_history, support kimi digər callback-lər də buraya əlavə oluna bilər.
         }
 
+        if ($customer->next_action === 'waiting_for_faucetpay_email') {
+            // Kullanıcının gönderdiği metin (potansiyel e-posta) işleyiciye yönlendirilir
+            $this->telegramService->saveFaucetPayEmail($chatId, $from, $text);
+
+            // İşlem tamamlandı (başarılı veya başarısız doğrulama mesajı gönderildi).
+            // processFaucetPayEmailInput fonksiyonu başarılı olursa next_action'ı null yapmalıdır.
+            return response()->json(['ok' => true]);
+        }
+
         // 4. MƏTN ƏMRLƏRİ
         switch ($text) {
             case TelegramConstants::COMMAND_START:
@@ -180,6 +208,9 @@ class TelegramBotController extends BaseController
                 break;
             case TelegramConstants::COMMAND_INSTRUCTION: // Yeni əmr
                 $this->telegramService->sendInstruction($chatId, $from);
+                break;
+            case TelegramConstants::COMMAND_EARN: // Yeni əmr
+                $this->telegramService->requestFaucetPayEmail($chatId, $from, false);
                 break;
             default:
                 // 5. ŞƏKİL GÖNDƏRİLMƏSİ

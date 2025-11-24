@@ -461,29 +461,107 @@ Category: **$categoryName**, Language: **$languageName**."
 
     public function showStarPackages(int $chatId, string $languageCode): void
     {
+        // Fərz edirik ki, Packages modelinizdə 'telegram_old_star_price' sütunu mövcuddur.
         $packages = Packages::all();
 
         $keyboard = [];
         foreach ($packages as $pkg) {
-            $btnText = "{$pkg->telegram_emoji} {$pkg->getTranslation('name',$languageCode)} – {$pkg->scan_count} scans";
 
+            // Əsas mətn: Emoji, ad və scan sayı
+            $btnText = "{$pkg->telegram_emoji} {$pkg->getTranslation('name',$languageCode)} – {$pkg->telegram_scan_count} scans";
+
+            // Endirim faizi əlavə olunur
             if ($pkg->saving > 0) {
                 $btnText .= " (−{$pkg->saving}%)";
             }
 
+            // Köhnə qiymət varsa və cari qiymətdən fərqlidirsə, onu əlavə edirik (Formatlama olmadan, sadəcə dəyəri göstərmək üçün)
+            if (!empty($pkg->telegram_star_old_price) && $pkg->telegram_star_old_price > $pkg->telegram_star_price) {
+                $old = $this->strikethrough($pkg->telegram_star_old_price . " ⭐");
+                $btnText .= " {$old}";
+            }
+
+            // Cari qiyməti əlavə edirik.
             $btnText .= " – {$pkg->telegram_star_price} ⭐";
 
+            // Düymələr HTML parse mode ilə göndərilsə də, mətn həmişə sadə qalacaq.
+
             $keyboard[] = [['text' => $btnText, 'callback_data' => TelegramConstants::CALLBACK_BUY_PREFIX . $pkg->product_id_for_purchase]];
-//            $keyboard[] = [['text' => "💎 TON Coin", 'callback_data' => "ton_buy_" . $pkg->product_id_for_purchase]];
         }
 
-        $this->sendMessage($chatId, $this->translate('out_of_scan_packages', [], $languageCode)[$languageCode], null, ['inline_keyboard' => $keyboard]);
+        // Parse mode olaraq 'HTML' qalır (gələcəkdə əsas mesaj mətnində formatlama etmək istəsəniz lazımlı olacaq).
+        $this->sendMessage($chatId, $this->translate('out_of_scan_packages', [], $languageCode)[$languageCode], 'HTML', ['inline_keyboard' => $keyboard]);
+    }
+
+    private function strikethrough(string $text): string
+    {
+        $chars = preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY);
+        return implode("̶", $chars) . "̶";
+    }
+
+    public function saveFaucetPayEmail(int $chatId, $from, $email)
+    {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Telegram::sendMessage([
+                'chat_id' => $chatId,
+                'text' => "❌ Girdiğiniz e-posta adresi geçerli değil. Lütfen doğru FaucetPay e-posta adresinizi tekrar gönderin."
+            ]);
+            return;
+        }
+
+        $customer = $this->getCustomerByFrom($from);
+
+        $customer->faucet_pay_email = $email;
+        $customer->save();
+
+        Telegram::sendMessage([
+            'chat_id' => $chatId,
+            'text' => "🎉 FaucetPay e-posta adresiniz (`{$email}`) başarıyla kaydedildi! Ödül almaya hazırsınız."
+        ]);
+    }
+
+    public function requestFaucetPayEmail(int $chatId, $from, bool $isEdit)
+    {
+        $referralLink = 'https://faucetpay.io/?r=9506706';
+
+        $customer = $this->getCustomerByFrom($from);
+
+        $prompt = $isEdit
+            ? "Lütfen yeni FaucetPay e-posta adresinizi girin. (Mevcut: *{$customer->faucetpay_email}*)"
+            : "Ödüllerinizi almak için FaucetPay hesabınızla ilişkili e-posta adresini girin:";
+
+        // Yeni Kullanıcılar için Kayıt Bilgisi
+        $infoText = "\n\n---\n";
+        $infoText .= "⚠️ **Önemli:** Eğer bir FaucetPay hesabınız yoksa, ödülleri alamazsınız.\n";
+        $infoText .= "Lütfen öncelikle bu link üzerinden kaydolun ve e-posta adresinizi bize gönderin:\n";
+        $infoText .= "➡️ [FaucetPay Kayıt Linki]({$referralLink})";
+        $infoText .= "\n---\n";
+
+        Telegram::sendMessage([
+            'chat_id' => $chatId, // Kullanıcının chat ID'si
+            'text' => $prompt . $infoText,
+            'parse_mode' => 'Markdown',
+            'disable_web_page_preview' => false // Linkin görünür olması için
+        ]);
+    }
+
+    public function deleteFaucetPayEmail(int $chatId, $from)
+    {
+        $customer = $this->getCustomerByFrom($from);
+
+        $customer->faucet_pay_email = null;
+        $customer->save();
+
+        Telegram::sendMessage([
+            'chat_id' => $chatId,
+            'text' => "✅ FaucetPay e-posta adresiniz başarıyla silindi. Yeni bir adres eklemek için /earn komutunu kullanın."
+        ]);
     }
 
     public function sendTonInvoice(int $chatId, Packages $package): void
     {
         // 1. Tərcümə məlumatlarını hazırlayın
-        $translateData = ['scan_count' => $package->scan_count];
+        $translateData = ['scan_count' => $package->telegram_scan_count];
         $translations = $this->translate('invoice', $translateData);
         $lang = $translations["en"] ?? $translations[TelegramConstants::DEFAULT_LANGUAGE];
 
@@ -528,7 +606,7 @@ Category: **$categoryName**, Language: **$languageName**."
     {
         // 1. Tərcümə məlumatlarını hazırlayın
         $translateData = [
-            'scan_count' => $package->scan_count,
+            'scan_count' => $package->telegram_scan_count,
         ];
         $translations = $this->translate('invoice', $translateData);
         $lang = $translations[$languageCode] ?? $translations[TelegramConstants::DEFAULT_LANGUAGE];
@@ -583,7 +661,7 @@ Category: **$categoryName**, Language: **$languageName**."
             CustomerPackages::create([
                 'customer_id' => $customer->id,
                 'package_id' => $package->id,
-                'remaining_scans' => $package->scan_count,
+                'remaining_scans' => $package->telegram_scan_count,
                 'subscription_id' => $purchase->id,
                 'status' => SubscriptionStatus::ACTIVE->value,
             ]);
@@ -591,7 +669,7 @@ Category: **$categoryName**, Language: **$languageName**."
 
         // YENİ KOD: Tərcümə metodundan istifadə
         $translateData = [
-            'scan_count' => $package->scan_count,
+            'scan_count' => $package->telegram_scan_count,
             'package_name' => $package->getTranslation('name', $languageCode), // Paketin adını da tərcümə edirik
         ];
 

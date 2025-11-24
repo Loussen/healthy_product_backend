@@ -501,17 +501,30 @@ Category: **$categoryName**, Language: **$languageName**."
 
     public function saveFaucetPayEmail(int $chatId, $from, $email)
     {
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $customer = $this->getCustomerByFrom($from);
+
+        if($email == '/empty') {
+            $customer->faucet_pay_email = null;
+            $customer->next_action = null;
+            $customer->save();
+
             Telegram::sendMessage([
                 'chat_id' => $chatId,
-                'text' => "❌ Girdiğiniz e-posta adresi geçerli değil. Lütfen doğru FaucetPay e-posta adresinizi tekrar gönderin."
+                'text' => "🚮 Faucet pay email adresiniz silindi"
             ]);
             return;
         }
 
-        $customer = $this->getCustomerByFrom($from);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Telegram::sendMessage([
+                'chat_id' => $chatId,
+                'text' => "❌ Girdiğiniz e-posta adresi geçerli değil. Lütfen doğru FaucetPay e-posta adresinizi tekrar gönderin"
+            ]);
+            return;
+        }
 
         $customer->faucet_pay_email = $email;
+        $customer->next_action = null;
         $customer->save();
 
         Telegram::sendMessage([
@@ -520,22 +533,27 @@ Category: **$categoryName**, Language: **$languageName**."
         ]);
     }
 
-    public function requestFaucetPayEmail(int $chatId, $from, bool $isEdit)
+    public function requestFaucetPayEmail(int $chatId, $from)
     {
         $referralLink = 'https://faucetpay.io/?r=9506706';
 
         $customer = $this->getCustomerByFrom($from);
 
-        $prompt = $isEdit
-            ? "Lütfen yeni FaucetPay e-posta adresinizi girin. (Mevcut: *{$customer->faucetpay_email}*)"
+        $prompt = $customer->faucet_pay_email
+            ? "Lütfen yeni FaucetPay e-posta adresinizi girin. (Mevcut: *{$customer->faucet_pay_email}*)"
             : "Ödüllerinizi almak için FaucetPay hesabınızla ilişkili e-posta adresini girin:";
 
+        $prompt .= " veya bosh gondermek isterseniz /empty komutunu yazin";
+
         // Yeni Kullanıcılar için Kayıt Bilgisi
-        $infoText = "\n\n---\n";
+        $infoText = "\n\n\n";
         $infoText .= "⚠️ **Önemli:** Eğer bir FaucetPay hesabınız yoksa, ödülleri alamazsınız.\n";
         $infoText .= "Lütfen öncelikle bu link üzerinden kaydolun ve e-posta adresinizi bize gönderin:\n";
         $infoText .= "➡️ [FaucetPay Kayıt Linki]({$referralLink})";
-        $infoText .= "\n---\n";
+        $infoText .= "\n\n";
+
+        $customer->next_action = "waiting_for_faucetpay_email";
+        $customer->save();
 
         Telegram::sendMessage([
             'chat_id' => $chatId, // Kullanıcının chat ID'si
@@ -550,6 +568,7 @@ Category: **$categoryName**, Language: **$languageName**."
         $customer = $this->getCustomerByFrom($from);
 
         $customer->faucet_pay_email = null;
+        $customer->next_action = null;
         $customer->save();
 
         Telegram::sendMessage([

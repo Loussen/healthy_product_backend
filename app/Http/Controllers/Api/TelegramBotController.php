@@ -71,7 +71,7 @@ class TelegramBotController extends BaseController
                 case 'faucetpay_add':
                 case 'faucetpay_edit':
                     // requestFaucetPayEmail çağrıldığında, bot kullanıcının next_action'ını 'waiting_for_faucetpay_email' olarak ayarlar.
-                    $this->telegramService->requestFaucetPayEmail($chatId, $from, $data === 'faucetpay_edit');
+                    $this->telegramService->requestFaucetPayEmail($chatId, $from);
                     Telegram::answerCallbackQuery(['callback_query_id' => $callback->id, 'text' => "E-poçt gözlənilir..."]);
                     return response()->json(['ok' => true]);
 
@@ -209,8 +209,12 @@ class TelegramBotController extends BaseController
             case TelegramConstants::COMMAND_INSTRUCTION: // Yeni əmr
                 $this->telegramService->sendInstruction($chatId, $from);
                 break;
-            case TelegramConstants::COMMAND_EARN: // Yeni əmr
-                $this->telegramService->requestFaucetPayEmail($chatId, $from, false);
+//            case TelegramConstants::COMMAND_EARN: // Yeni əmr
+//                $this->telegramService->requestFaucetPayEmail($chatId, $from);
+//                break;
+            case "/empty": // Yeni əmr
+                $customer->next_action = null;
+                $customer->save();
                 break;
             default:
                 // 5. ŞƏKİL GÖNDƏRİLMƏSİ

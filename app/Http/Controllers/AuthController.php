@@ -7,6 +7,8 @@ use App\Models\Customers;
 use App\Models\Otp;
 use App\Services\DebugWithTelegramService;
 use App\Services\OtpService;
+use Firebase\JWT\JWK;
+use Firebase\JWT\JWT;
 use Google_Client;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -470,12 +472,14 @@ class AuthController extends BaseController
                 return $this->sendError('apple_auth_error', 'Email not provided', 422);
             }
 
+            $customer = Customers::firstWhere('email', $email);
+
             $customer = Customers::updateOrCreate(
                 ['email' => $email],
                 [
-                    'name'            => $request->name ?: ($payload['name'] ?? 'Apple User'),
-                    'surname'         => $request->surname ?? '',
-                    'apple_id'        => $request->apple_id,
+                    'name'    => $request->name ?: ($customer->name ?? 'Apple User'),
+                    'surname' => $request->surname ?: ($customer->surname ?? ''),
+                    'apple_id'=> $request->apple_id,
                     'email_verified_at' => now(),
                 ]
             );
@@ -526,12 +530,13 @@ class AuthController extends BaseController
             return null;
         }
 
-        $publicKey = JWK::parseKeySet(['keys' => $appleKeys['keys']])[$kid] ?? null;
-        if (!$publicKey) {
+        $keySet = JWK::parseKeySet($appleKeys);
+        $key    = $keySet[$kid] ?? null;
+        if (!$key) {
             return null;
         }
 
-        $payload = (array) JWT::decode($identityToken, $publicKey, [$alg]);
+        $payload = (array) JWT::decode($identityToken, $key);
 
         if (($payload['aud'] ?? null) !== $appleClientId) {
             return null; // token bu uygulamaya ait değil

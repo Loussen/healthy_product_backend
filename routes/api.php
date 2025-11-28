@@ -30,6 +30,7 @@ Route::controller(AuthController::class)->name('auth.')->group(function(){
 //    Route::get('google/callback', 'handleGoogleCallback');
 
     Route::post('/google/sign_in', 'signInWithGoogle');
+    Route::post('/apple/sign_in', 'signInWithApple');
     Route::post('get-bearer-token', 'getBearerToken');
     Route::post('forget-password', 'forgetPassword');
     Route::post('reset-password', 'resetPassword');

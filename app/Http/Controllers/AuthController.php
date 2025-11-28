@@ -445,4 +445,102 @@ class AuthController extends BaseController
 
         return $this->sendResponse('success', 'Password changed');
     }
+
+    public function signInWithApple(Request $request): JsonResponse
+    {
+        $request->validate([
+            'identity_token'     => 'required|string',
+            'authorization_code' => 'required|string', // gelecekte server-side token exchange için lazım
+            'email'              => 'nullable|email',
+            'name'               => 'nullable|string',
+            'surname'            => 'nullable|string',
+            'apple_id'           => 'required|string',
+        ]);
+
+        try {
+            $payload = $this->verifyAppleIdentityToken($request->identity_token);
+
+            if (!$payload) {
+                return $this->sendError('apple_auth_error', 'Invalid identity token', 401);
+            }
+
+            // Apple bazen email’i sadece ilk oturumda gönderir; gelmediyse request’ten veya mevcut kayıttan almak gerekir
+            $email = $payload['email'] ?? $request->email;
+            if (!$email) {
+                return $this->sendError('apple_auth_error', 'Email not provided', 422);
+            }
+
+            $customer = Customers::updateOrCreate(
+                ['email' => $email],
+                [
+                    'name'            => $request->name ?: ($payload['name'] ?? 'Apple User'),
+                    'surname'         => $request->surname ?? '',
+                    'apple_id'        => $request->apple_id,
+                    'email_verified_at' => now(),
+                ]
+            );
+
+            $token = $customer->createToken('auth_token')->plainTextToken;
+
+            Otp::create([
+                'email'      => $customer->email,
+                'otp'        => '000000',
+                'expire_at'  => now()->addMinutes(10),
+                'verified'   => 1,
+                'user_data'  => json_encode([
+                    'name'    => $customer->name,
+                    'surname' => $customer->surname,
+                    'email'   => $customer->email,
+                ]),
+            ]);
+
+            return $this->sendResponse([
+                'access_token' => $token,
+                'token_type'   => 'Bearer',
+                'user'         => $customer,
+            ], 'Apple login success');
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success'  => false,
+                'message'  => 'Authentication failed',
+                'response' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function verifyAppleIdentityToken(string $identityToken): ?array
+    {
+        $appleClientId = config('services.apple.client_id'); // örn: com.vscan.vitalscan
+        $appleKeys     = Cache::remember('apple_sign_in_jwks', 60, function () {
+            $json = file_get_contents('https://appleid.apple.com/auth/keys');
+            return json_decode($json, true);
+        });
+
+        $headers = json_decode(base64_decode(explode('.', $identityToken)[0]), true);
+        $kid     = $headers['kid'] ?? null;
+        $alg     = $headers['alg'] ?? 'RS256';
+
+        if (!$kid || empty($appleKeys['keys'])) {
+            return null;
+        }
+
+        $publicKey = JWK::parseKeySet(['keys' => $appleKeys['keys']])[$kid] ?? null;
+        if (!$publicKey) {
+            return null;
+        }
+
+        $payload = (array) JWT::decode($identityToken, $publicKey, [$alg]);
+
+        if (($payload['aud'] ?? null) !== $appleClientId) {
+            return null; // token bu uygulamaya ait değil
+        }
+
+        if (($payload['exp'] ?? 0) < time()) {
+            return null; // token süresi dolmuş
+        }
+
+        return $payload;
+    }
 }

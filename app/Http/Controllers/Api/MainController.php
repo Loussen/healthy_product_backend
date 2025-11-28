@@ -329,11 +329,11 @@ class MainController extends BaseController
             $key = 'scan_limit_for_unchecked_' . $user->email;
             $attempts = Cache::get($key, 0);
 
-            if ($attempts >= 5) {
-                $log->debug('Scan limit for unchecked: '.$user->email);
-                return $this->sendError("scan_limit_unreached_error", "Scan limit reached!
-You've temporarily reached your scan limit due to an unrecognized or unclear image. Please try again in a few moments and ensure the product ingredient image is clear and readable.", 429);
-            }
+//            if ($attempts >= 5) {
+//                $log->debug('Scan limit for unchecked: '.$user->email);
+//                return $this->sendError("scan_limit_unreached_error", "Scan limit reached!
+//You've temporarily reached your scan limit due to an unrecognized or unclear image. Please try again in a few moments and ensure the product ingredient image is clear and readable.", 429);
+//            }
 
             // Handle file upload
             if ($request->hasFile('image')) {

@@ -348,6 +348,9 @@ trait TranslationTrait
                     'yes' => 'Bəli',
                     'no' => 'Xeyr',
                     'my_packages' => '🎁 Aktiv Paketlərim',
+                    'faucet_pay_email_status' => "FaucetPay E-poçt", // YENİ
+                    'earn_menu' => "💰 Qazan", // YENİ: Menyu çıxarıldı
+                    'not_set' => 'Təyin Edilməyib', // YENİ: FaucetPay durumu üçün
                 ],
                 'en' => [
                     'title' => "👤 Your Profile",
@@ -366,6 +369,9 @@ trait TranslationTrait
                     'yes' => 'Yes',
                     'no' => 'No',
                     'my_packages' => '🎁 My Active Packages',
+                    'faucet_pay_email_status' => "FaucetPay Email", // YENİ
+                    'earn_menu' => "💰 Earn", // YENİ: Menu çıxarıldı
+                    'not_set' => 'Not Set', // YENİ: FaucetPay durumu üçün
                 ],
                 'ru' => [
                     'title' => "👤 Ваш Профиль",
@@ -384,6 +390,9 @@ trait TranslationTrait
                     'yes' => 'Да',
                     'no' => 'Нет',
                     'my_packages' => '🎁 Мои Активные Пакеты',
+                    'faucet_pay_email_status' => "FaucetPay Email", // YENİ
+                    'earn_menu' => "💰 Заработать", // YENİ: Меню çıxarıldı
+                    'not_set' => 'Не Установлено', // YENİ: FaucetPay durumu üçün
                 ],
                 'tr' => [
                     'title' => "👤 Profiliniz",
@@ -402,6 +411,9 @@ trait TranslationTrait
                     'yes' => 'Evet',
                     'no' => 'Hayır',
                     'my_packages' => '🎁 Aktif Paketlerim',
+                    'faucet_pay_email_status' => "FaucetPay E-posta", // YENİ
+                    'earn_menu' => "💰 Kazan", // YENİ: Menüsü çıxarıldı
+                    'not_set' => 'Ayarlanmadı', // YENİ: FaucetPay durumu üçün
                 ],
                 'es_ES' => [
                     'title' => "👤 Tu Perfil",
@@ -420,6 +432,9 @@ trait TranslationTrait
                     'yes' => 'Sí',
                     'no' => 'No',
                     'my_packages' => '🎁 Mis Paquetes Activos',
+                    'faucet_pay_email_status' => "Correo FaucetPay", // YENİ
+                    'earn_menu' => "💰 Ganar", // YENİ: Menú çıxarıldı
+                    'not_set' => 'No Establecido', // YENİ: FaucetPay durumu üçün
                 ],
                 'de_DE' => [
                     'title' => "👤 Ihr Profil",
@@ -438,6 +453,9 @@ trait TranslationTrait
                     'yes' => 'Ja',
                     'no' => 'Nein',
                     'my_packages' => '🎁 Meine Aktiven Pakete',
+                    'faucet_pay_email_status' => "FaucetPay E-Mail", // YENİ
+                    'earn_menu' => "💰 Verdienen", // YENİ: Menü çıxarıldı
+                    'not_set' => 'Nicht Festgelegt', // YENİ: FaucetPay durumu üçün
                 ],
             ];
         } elseif ($type == 'my_packages_list') {

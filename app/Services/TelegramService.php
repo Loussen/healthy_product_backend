@@ -59,7 +59,7 @@ class TelegramService
         return $customer;
     }
 
-    public function getCustomerByFrom($from): ?Customers
+    public function getCustomerByFrom($from, $resetNextAction = true): ?Customers
     {
         $telegramId = $from->getId();
         $customer = Customers::where('telegram_id', $telegramId)->first();
@@ -93,6 +93,11 @@ class TelegramService
                 // Cache'e bir flag koy (5 dakika süreyle)
                 Cache::put($cacheKey, true, now()->addMinutes(5));
             }
+        }
+
+        if($resetNextAction && $customer->next_action !== null) {
+            $customer->next_action = null;
+            $customer->save();
         }
 
         return $customer;
@@ -518,7 +523,7 @@ Category: **$categoryName**, Language: **$languageName**."
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Telegram::sendMessage([
                 'chat_id' => $chatId,
-                'text' => "❌ Girdiğiniz e-posta adresi geçerli değil. Lütfen doğru FaucetPay e-posta adresinizi tekrar gönderin"
+                'text' => "❌ Girdiğiniz e-posta adresi geçerli değil. Lütfen doğru FaucetPay e-posta adresinizi tekrar gönderin\n\nBosh gondermek isterseniz /empty komutunu yazin"
             ]);
             return;
         }
@@ -537,7 +542,7 @@ Category: **$categoryName**, Language: **$languageName**."
     {
         $referralLink = 'https://faucetpay.io/?r=9506706';
 
-        $customer = $this->getCustomerByFrom($from);
+        $customer = $this->getCustomerByFrom($from,false);
 
         $prompt = $customer->faucet_pay_email
             ? "Lütfen yeni FaucetPay e-posta adresinizi girin. (Mevcut: *{$customer->faucet_pay_email}*)"
@@ -714,6 +719,8 @@ Category: **$categoryName**, Language: **$languageName**."
 
     public function getProfileData(int $chatId, $from): void
     {
+        // Qeyd: Bu metod komanda (/profile) vasitəsilə çağırıldığı üçün
+        // next_action sıfırlanmalıdır. (getCustomerByFrom metodunuzda true parametrinə əmin olun).
         $getCustomer = $this->getCustomerByFrom($from);
 
         $languageCode = $getCustomer->language ?? TelegramConstants::DEFAULT_LANGUAGE;
@@ -732,6 +739,9 @@ Category: **$categoryName**, Language: **$languageName**."
             ->where('remaining_scans', '>', 0)
             ->sum('remaining_scans');
 
+        // YENİ: FaucetPay e-poçt statusu
+        $faucetPayEmail = $getCustomer->faucet_pay_email ?? $lang['not_set'];
+
         $msg = "{$lang['title']}
 
 • 📛 *{$lang['name']}:* " . $getCustomer->name . " " . $getCustomer->surname . "
@@ -739,16 +749,17 @@ Category: **$categoryName**, Language: **$languageName**."
 • ✨ *{$lang['credits']}:* " . $totalRemainingScans . "
 • ✨ *{$lang['health_score']}:* " . round($averageHealthScore) . "%
 • 👑 *{$lang['premium']}:* " . $premiumStatusText . "
+• 📧 *{$lang['faucet_pay_email_status']}:* " . $faucetPayEmail . "
 • 📅 *{$lang['joined']}:* " . Carbon::parse($getCustomer->created_at)->format('d/m/Y') . "
 
 {$lang['action']}:";
 
         $keyboard = [
+            [['text' => $lang['earn_menu'], 'callback_data' => "earn"]], // YENİ DÜYMƏ
             [['text' => $lang['usage'], 'callback_data' => "usage_history"]],
             [['text' => $lang['payment'], 'callback_data' => "payment_history"]],
             [['text' => $lang['buy'], 'callback_data' => "profile_buy_package"]],
             [['text' => $lang['my_packages'], 'callback_data' => "my_packages_list"]],
-            // Qeyd: Əgər COMMAND_SUPPORT_US əmrini düzəltmişiksə, bu düyməni də ona uyğunlaşdırmaq olar.
             [['text' => $lang['support'], 'callback_data' => "support"]],
             [['text' => $lang['back'], 'callback_data' => "choose_language"]],
         ];

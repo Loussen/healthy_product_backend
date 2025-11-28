@@ -152,6 +152,11 @@ class TelegramBotController extends BaseController
                 return response()->json(['ok' => true]);
             }
 
+            if ($data === 'earn') {
+                $this->telegramService->requestFaucetPayEmail($chatId, $from);
+                return response()->json(['ok' => true]);
+            }
+
             if (str_starts_with($data, 'ton_buy_')) {
                 $productId = str_replace('ton_buy_', '', $data);
                 $package = Packages::where('product_id_for_purchase', $productId)->first();
@@ -209,9 +214,9 @@ class TelegramBotController extends BaseController
             case TelegramConstants::COMMAND_INSTRUCTION: // Yeni əmr
                 $this->telegramService->sendInstruction($chatId, $from);
                 break;
-//            case TelegramConstants::COMMAND_EARN: // Yeni əmr
-//                $this->telegramService->requestFaucetPayEmail($chatId, $from);
-//                break;
+            case TelegramConstants::COMMAND_EARN: // Yeni əmr
+                $this->telegramService->requestFaucetPayEmail($chatId, $from);
+                break;
             case "/empty": // Yeni əmr
                 $customer->next_action = null;
                 $customer->save();

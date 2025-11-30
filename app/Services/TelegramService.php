@@ -508,6 +508,12 @@ Category: **$categoryName**, Language: **$languageName**."
     {
         $customer = $this->getCustomerByFrom($from);
 
+        $langCode = $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE;
+
+        $getWord = $this->translate('faucet_pay_email_messages', [], $langCode);
+
+        $lang = $getWord[$langCode];
+
         if($email == '/empty') {
             $customer->faucet_pay_email = null;
             $customer->next_action = null;
@@ -515,7 +521,7 @@ Category: **$categoryName**, Language: **$languageName**."
 
             Telegram::sendMessage([
                 'chat_id' => $chatId,
-                'text' => "🚮 Faucet pay email adresiniz silindi"
+                'text' => $lang['deleted']
             ]);
             return;
         }
@@ -523,7 +529,7 @@ Category: **$categoryName**, Language: **$languageName**."
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Telegram::sendMessage([
                 'chat_id' => $chatId,
-                'text' => "❌ Girdiğiniz e-posta adresi geçerli değil. Lütfen doğru FaucetPay e-posta adresinizi tekrar gönderin\n\nBosh gondermek isterseniz /empty komutunu yazin"
+                'text' => $lang['invalid']
             ]);
             return;
         }
@@ -534,27 +540,34 @@ Category: **$categoryName**, Language: **$languageName**."
 
         Telegram::sendMessage([
             'chat_id' => $chatId,
-            'text' => "🎉 FaucetPay e-posta adresiniz (`{$email}`) başarıyla kaydedildi! Ödül almaya hazırsınız."
+            'text' => sprintf($lang['success'], $customer->faucet_pay_email)
         ]);
     }
 
     public function requestFaucetPayEmail(int $chatId, $from)
     {
+        // FaucetPay kayıt linki sabit kalır
         $referralLink = 'https://faucetpay.io/?r=9506706';
 
-        $customer = $this->getCustomerByFrom($from,false);
+        $customer = $this->getCustomerByFrom($from, false);
 
-        $prompt = $customer->faucet_pay_email
-            ? "Lütfen yeni FaucetPay e-posta adresinizi girin. (Mevcut: *{$customer->faucet_pay_email}*)"
-            : "Ödüllerinizi almak için FaucetPay hesabınızla ilişkili e-posta adresini girin:";
+        // Müşterinin dilini al ve çevirileri yükle
+        $languageCode = $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE;
+        $translations = $this->translate('faucet_pay_email_messages', [], $languageCode);
+        $lang = $translations[$languageCode];
 
-        $prompt .= " veya bosh gondermek isterseniz /empty komutunu yazin";
+        // Kullanıcının mevcut e-postasına göre prompt seçimi
+        if ($customer->faucet_pay_email) {
+            // Mevcut e-posta varsa, prompt_existing çevirisini ve e-postayı kullan
+            $prompt = sprintf($lang['prompt_existing'], $customer->faucet_pay_email);
+        } else {
+            // Mevcut e-posta yoksa, prompt_new çevirisini kullan
+            $prompt = $lang['prompt_new'];
+        }
 
-        // Yeni Kullanıcılar için Kayıt Bilgisi
+        // Yeni Kullanıcılar için Kayıt Bilgisi (info_important çevirisini ve referans linkini kullan)
         $infoText = "\n\n\n";
-        $infoText .= "⚠️ **Önemli:** Eğer bir FaucetPay hesabınız yoksa, ödülleri alamazsınız.\n";
-        $infoText .= "Lütfen öncelikle bu link üzerinden kaydolun ve e-posta adresinizi bize gönderin:\n";
-        $infoText .= "➡️ [FaucetPay Kayıt Linki]({$referralLink})";
+        $infoText .= sprintf($lang['info_important'], $referralLink);
         $infoText .= "\n\n";
 
         $customer->next_action = "waiting_for_faucetpay_email";

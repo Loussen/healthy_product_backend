@@ -155,6 +155,63 @@ trait TranslationTrait
                 'es_ES' => "🚫 No estás registrado. Por favor, usa /start para registrarte.",
                 'de_DE' => "🚫 Sie sind nicht registriert. Bitte verwenden Sie /start zur Registrierung.",
             ];
+        } elseif ($type == 'faucet_pay_email_messages') {
+            $messages = [
+                'az' => [
+                    'deleted' => "🚮 FaucetPay e-poçt adresiniz silindi.",
+                    'invalid' => "❌ Daxil etdiyiniz e-poçt ünvanı etibarlı deyil. Zəhmət olmasa, doğru FaucetPay e-poçt adresinizi yenidən göndərin.\n\nBoş göndərmək istəyirsinizsə `/empty` əmrini yazın.",
+                    'success' => "🎉 FaucetPay e-poçt adresiniz (`%s`) uğurla qeydə alındı! Mükafat almağa hazırsınız.",
+                    // YENİ PROMPT MESAJLARI
+                    'prompt_existing' => "Lütfən yeni FaucetPay e-poçt adresinizi daxil edin. (Mövcud: *%s*)\n\nVə ya boş göndərmək istəyirsinizsə `/empty` əmrini yazın.",
+                    'prompt_new' => "Mükafatlarınızı almaq üçün FaucetPay hesabınızla əlaqəli e-poçt adresini daxil edin:\n\nVə ya boş göndərmək istəyirsinizsə `/empty` əmrini yazın.",
+                    'info_important' => "⚠️ **Vacib:** Əgər FaucetPay hesabınız yoxdursa, mükafatları ala bilməzsiniz.\nLütfən əvvəlcə bu link üzərindən qeydiyyatdan keçin və e-poçt adresinizi bizə göndərin:\n➡️ [FaucetPay Qeydiyyat Linki](%s)",
+                ],
+                'en' => [
+                    'deleted' => "🚮 FaucetPay email address has been deleted.",
+                    'invalid' => "❌ The email address you entered is not valid. Please send your correct FaucetPay email address again.\n\nTo send an empty value, type the `/empty` command.",
+                    'success' => "🎉 Your FaucetPay email address (`%s`) has been successfully registered! You are now ready to receive rewards.",
+                    // YENİ PROMPT MESAJLARI
+                    'prompt_existing' => "Please enter your new FaucetPay email address. (Current: *%s*)\n\nOr type the `/empty` command if you want to send an empty value.",
+                    'prompt_new' => "Enter the email address associated with your FaucetPay account to receive your rewards:\n\nOr type the `/empty` command if you want to send an empty value.",
+                    'info_important' => "⚠️ **Important:** If you do not have a FaucetPay account, you cannot receive rewards.\nPlease register first via this link and then send us your email address:\n➡️ [FaucetPay Registration Link](%s)",
+                ],
+                'ru' => [
+                    'deleted' => "🚮 Адрес электронной почты FaucetPay удален.",
+                    'invalid' => "❌ Введенный вами адрес электронной почты недействителен. Пожалуйста, отправьте свой правильный адрес FaucetPay еще раз.\n\nЧтобы отправить пустое значение, введите команду `/empty`.",
+                    'success' => "🎉 Ваш адрес электронной почты FaucetPay (`%s`) успешно зарегистрирован! Вы готовы получать вознаграждения.",
+                    // YENİ PROMPT MESAJLARI
+                    'prompt_existing' => "Пожалуйста, введите ваш новый адрес электронной почты FaucetPay. (Текущий: *%s*)\n\nИли введите команду `/empty`, если хотите отправить пустое значение.",
+                    'prompt_new' => "Введите адрес электронной почты, связанный с вашей учетной записью FaucetPay, для получения вознаграждений:\n\nИли введите команду `/empty`, если хотите отправить пустое значение.",
+                    'info_important' => "⚠️ **Важно:** Если у вас нет учетной записи FaucetPay, вы не сможете получить вознаграждения.\nПожалуйста, сначала зарегистрируйтесь по этой ссылке, а затем отправьте нам свой адрес электронной почты:\n➡️ [Ссылка для регистрации FaucetPay](%s)",
+                ],
+                'tr' => [
+                    'deleted' => "🚮 FaucetPay e-posta adresiniz silindi.",
+                    'invalid' => "❌ Girdiğiniz e-posta adresi geçerli değil. Lütfen doğru FaucetPay e-posta adresinizi tekrar gönderin.\n\nBoş göndermek isterseniz `/empty` komutunu yazın.",
+                    'success' => "🎉 FaucetPay e-posta adresiniz (`%s`) başarıyla kaydedildi! Ödül almaya hazırsınız.",
+                    // YENİ PROMPT MESAJLARI
+                    'prompt_existing' => "Lütfen yeni FaucetPay e-posta adresinizi girin. (Mevcut: *%s*)\n\nVeya boş göndermek isterseniz `/empty` komutunu yazın.",
+                    'prompt_new' => "Ödüllerinizi almak için FaucetPay hesabınızla ilişkili e-posta adresini girin:\n\nVeya boş göndermek isterseniz `/empty` komutunu yazın.",
+                    'info_important' => "⚠️ **Önemli:** Eğer bir FaucetPay hesabınız yoksa, ödülleri alamazsınız.\nLütfen öncelikle bu link üzerinden kaydolun ve e-posta adresinizi bize gönderin:\n➡️ [FaucetPay Kayıt Linki](%s)",
+                ],
+                'es_ES' => [
+                    'deleted' => "🚮 La dirección de correo electrónico de FaucetPay ha sido eliminada.",
+                    'invalid' => "❌ La dirección de correo electrónico que ingresó no es válida. Por favor, envíe su dirección de correo electrónico FaucetPay correcta de nuevo.\n\nPara enviar un valor vacío, escriba el comando `/empty`.",
+                    'success' => "🎉 ¡Su dirección de correo electrónico FaucetPay (`%s`) ha sido registrada con éxito! Ahora está listo para recibir recompensas.",
+                    // YENİ PROMPT MESAJLARI
+                    'prompt_existing' => "Por favor, ingrese su nueva dirección de correo electrónico FaucetPay. (Actual: *%s*)\n\nO escriba el comando `/empty` si desea enviar un valor vacío.",
+                    'prompt_new' => "Ingrese la dirección de correo electrónico asociada a su cuenta FaucetPay para recibir sus recompensas:\n\nO escriba el comando `/empty` si desea enviar un valor vacío.",
+                    'info_important' => "⚠️ **Importante:** Si no tiene una cuenta FaucetPay, no podrá recibir recompensas.\nPor favor, regístrese primero a través de este enlace y luego envíenos su dirección de correo electrónico:\n➡️ [Enlace de Registro FaucetPay](%s)",
+                ],
+                'de_DE' => [
+                    'deleted' => "🚮 Die FaucetPay E-Mail-Adresse wurde gelöscht.",
+                    'invalid' => "❌ Die eingegebene E-Mail-Adresse ist ungültig. Bitte senden Sie Ihre korrekte FaucetPay E-Mail-Adresse erneut.\n\nUm einen leeren Wert zu senden, geben Sie den Befehl `/empty` ein.",
+                    'success' => "🎉 Ihre FaucetPay E-Mail-Adresse (`%s`) wurde erfolgreich registriert! Sie sind nun bereit, Belohnungen zu erhalten.",
+                    // YENİ PROMPT MESAJLARI
+                    'prompt_existing' => "Bitte geben Sie Ihre neue FaucetPay E-Mail-Adresse ein. (Aktuell: *%s*)\n\nOder geben Sie den Befehl `/empty` ein, wenn Sie einen leeren Wert senden möchten.",
+                    'prompt_new' => "Geben Sie die mit Ihrem FaucetPay-Konto verknüpfte E-Mail-Adresse ein, um Ihre Prämien zu erhalten:\n\nOder geben Sie den Befehl `/empty` ein, wenn Sie einen leeren Wert senden möchten.",
+                    'info_important' => "⚠️ **Wichtig:** Wenn Sie kein FaucetPay-Konto haben, können Sie keine Prämien erhalten.\nBitte registrieren Sie sich zuerst über diesen Link und senden Sie uns dann Ihre E-Mail-Adresse:\n➡️ [FaucetPay Registrierungslink](%s)",
+                ],
+            ];
         } elseif ($type == 'instruction') {
             $messages = [
                 'az' => [

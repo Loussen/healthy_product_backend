@@ -16,6 +16,7 @@ use App\Models\Page;
 use App\Models\PushNotification;
 use App\Models\ScanResults;
 use App\Models\Subscription;
+use App\Services\AppStoreVerificationService;
 use App\Services\DebugWithTelegramService;
 use App\Services\GooglePayService;
 use App\Services\GooglePayVerificationService;
@@ -636,6 +637,7 @@ Please make sure the product ingredients are read correctly. After several faile
                     'is_popular' => $package->is_popular,
                     'product_id_for_payment' => $package->product_id_for_payment,
                     'product_id_for_purchase' => $package->product_id_for_purchase,
+                    'product_id_for_purchase_apple' => $package->product_id_for_purchase_apple,
                 ];
             });
 
@@ -1348,7 +1350,7 @@ Please make sure the product ingredients are read correctly. After several faile
         ], 'success');
     }
 
-    public function verifyPurchase(Request $request)
+    public function verifyPurchaseOld(Request $request)
     {
         $log = new DebugWithTelegramService();
 
@@ -1438,7 +1440,112 @@ Please make sure the product ingredients are read correctly. After several faile
             return $this->sendResponse('success', 'Purchase verified successfully.', 200);
 
         } catch (\Exception $e) {
-            $log->debug('Error verifying purchase2: ' . $e->getMessage());
+            $log->debug('Error verifying purchase: ' . $e->getMessage());
+            return $this->sendError('purchase_failed', 'An error occurred: ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function verifyPurchase(Request $request)
+    {
+        $log = new DebugWithTelegramService();
+
+        try {
+            $user = $request->user();
+
+            $validated = $request->validate([
+                'product_id' => 'required|string',
+                'platform' => 'required|in:ios,android',
+                'receipt_data' => 'required_if:platform,ios|string',
+                'transaction_id' => 'required_if:platform,ios|string',
+                'purchase_token' => 'required_if:platform,android|string',
+            ]);
+
+            // Platform'a göre purchase token belirle (duplicate check için)
+            $purchaseToken = $validated['platform'] === 'ios'
+                ? $validated['transaction_id']
+                : $validated['purchase_token'];
+
+            $existingPurchase = Subscription::where('purchase_token', $purchaseToken)->first();
+            if ($existingPurchase) {
+                return $this->sendResponse('already_exists', 'Purchase already exists.', 200);
+            }
+
+            // Platform'a göre doğrulama servisini seç
+            if ($validated['platform'] === 'ios') {
+                $appStoreService = new AppStoreVerificationService();
+                $purchaseInfo = $appStoreService->verifyPurchase(
+                    $validated['receipt_data'],
+                    $validated['transaction_id']
+                );
+
+                if (!$purchaseInfo->isValid) {
+                    return $this->sendError('invalid_purchase', 'Invalid purchase.', 400);
+                }
+
+                $orderId = $purchaseInfo->transactionId;
+            } else {
+                $googlePlayService = new GooglePayVerificationService();
+                $purchaseInfo = $googlePlayService->verifyPurchase(
+                    $validated['product_id'],
+                    $validated['purchase_token']
+                );
+
+                if ($purchaseInfo->purchaseState !== 0) {
+                    return $this->sendError('invalid_purchase', 'Invalid purchase state.', 400);
+                }
+
+                $orderId = $purchaseInfo->orderId;
+            }
+
+            // ... geri kalan kod aynı kalabilir, sadece $purchaseToken kullan ...
+
+            $activePackage = $user->packages()
+                ->where('created_at', '>=', now()->subMonth())
+                ->where('status', SubscriptionStatus::ACTIVE->value)
+                ->orderByDesc('id')
+                ->first();
+
+            $allScans = $user->scan_results()->count();
+            $permitScan = ($activePackage && $activePackage->remaining_scans > 0) ||
+                $allScans < config('services.free_package_limit');
+
+            if($activePackage && !$permitScan) {
+                $log->debug('Active package exists - ' . $user->id . " - ". $purchaseToken);
+                return $this->sendError('exist_active_package', 'Active package exists.', 400);
+            }
+
+            // iOS için product_id_for_purchase_apple, Android için product_id_for_purchase
+            $productColumn = $validated['platform'] === 'ios'
+                ? 'product_id_for_purchase_apple'
+                : 'product_id_for_purchase';
+
+            $product = Packages::where($productColumn, $validated['product_id'])->firstOrFail();
+
+            DB::transaction(function () use ($user, $validated, $purchaseInfo, $product, $purchaseToken, $orderId) {
+                $purchase = Subscription::create([
+                    'customer_id' => $user->id,
+                    'product_id' => $product->id,
+                    'purchase_token' => $purchaseToken,
+                    'platform' => $validated['platform'],
+                    'status' => SubscriptionStatus::ACTIVE->value,
+                    'transaction_id' => $orderId,
+                    'payment_details' => json_encode($purchaseInfo),
+                    'amount' => $product->price
+                ]);
+
+                CustomerPackages::create([
+                    'customer_id' => $user->id,
+                    'package_id' => $product->id,
+                    'remaining_scans' => $product->scan_count,
+                    'subscription_id' => $purchase->id,
+                    'status' => SubscriptionStatus::ACTIVE->value,
+                ]);
+            });
+
+            return $this->sendResponse('success', 'Purchase verified successfully.', 200);
+
+        } catch (\Exception $e) {
+            $log->debug('Error verifying purchase: ' . $e->getMessage());
             return $this->sendError('purchase_failed', 'An error occurred: ' . $e->getMessage(), 500);
         }
     }
@@ -1491,68 +1598,6 @@ Please make sure the product ingredients are read correctly. After several faile
                     }
                     break;
                 case 3: // REFUNDED
-                    $purchase->update(['status' => 'refunded']);
-                    // Scan sayısını düş
-                    if ($purchase->product->type === 'scan_pack') {
-                        $user = $purchase->user;
-                        $user->remaining_scans -= $purchase->product->scan_count;
-                        $user->save();
-                    }
-                    break;
-            }
-
-            // Log oluştur
-            PurchaseLog::create([
-                'user_id' => $purchase->user_id,
-                'product_id' => $purchase->product_id,
-                'event_type' => 'webhook_notification',
-                'payload' => json_encode($payload)
-            ]);
-
-            return $this->sendResponse('success', 'Webhook processed successfully.', 200);
-
-        } catch (\Exception $e) {
-            $log->debug('Error processing webhook: ' . $e->getMessage());
-            return $this->sendError('webhook_error', 'Error: ' . $e->getMessage(), 500);
-        }
-    }
-
-    public function webhookAppStore(Request $request)
-    {
-        $log = new DebugWithTelegramService();
-
-        try {
-            $payload = json_decode(file_get_contents('php://input'), true);
-            $log->debug('Webhook Payload: ' . json_encode($payload));
-
-            // App Store'dan gelen imzayı doğrula
-            $signature = $request->header('X-Apple-Signature');
-            if (!$this->verifyAppStoreSignature($signature, $request->getContent())) {
-                return $this->sendError('invalid_signature', 'Invalid signature.', 401);
-            }
-
-            $notificationType = $payload['notificationType'] ?? null;
-            $signedPayload = $payload['data']['signedPayload'] ?? null;
-
-            if (!$notificationType || !$signedPayload) {
-                return $this->sendError('invalid_payload', 'Missing required fields.', 400);
-            }
-
-            // Payload'ı decode et
-            $decodedPayload = $this->decodeAppStorePayload($signedPayload);
-
-            // Satın almayı bul
-            $purchase = UserPurchase::where('transaction_id', $decodedPayload['transactionId'])->first();
-            if (!$purchase) {
-                return $this->sendError('purchase_not_found', 'Purchase not found.', 404);
-            }
-
-            // Bildirim tipine göre işlem yap
-            switch ($notificationType) {
-                case 'CONSUMPTION_REQUEST':
-                    $purchase->update(['status' => 'completed']);
-                    break;
-                case 'REFUND':
                     $purchase->update(['status' => 'refunded']);
                     // Scan sayısını düş
                     if ($purchase->product->type === 'scan_pack') {

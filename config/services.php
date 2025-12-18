@@ -56,7 +56,7 @@ return [
         'bundle_id' => env('APPLE_BUNDLE_ID', 'com.vscan.vitalscan'),
         'issuer_id' => env('APPLE_ISSUER_ID'),
         'key_id' => env('APPLE_KEY_ID'),
-        'private_key' => env('APPLE_PRIVATE_KEY'),
+        'private_key_path' => env('APPLE_PRIVATE_KEY_PATH'),
     ],
 
 ];

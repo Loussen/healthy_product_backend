@@ -33,6 +33,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use OpenAI;
@@ -1440,13 +1441,14 @@ Please make sure the product ingredients are read correctly. After several faile
             return $this->sendResponse('success', 'Purchase verified successfully.', 200);
 
         } catch (\Exception $e) {
-            $log->debug('Error verifying purchase: ' . $e->getMessage());
+            $log->debug('Error verifying purchase1: ' . $e->getMessage());
             return $this->sendError('purchase_failed', 'An error occurred: ' . $e->getMessage(), 500);
         }
     }
 
     public function verifyPurchase(Request $request)
     {
+        Log::info("payment");
         $log = new DebugWithTelegramService();
 
         try {
@@ -1460,91 +1462,124 @@ Please make sure the product ingredients are read correctly. After several faile
                 'purchase_token' => 'required_if:platform,android|string',
             ]);
 
-            // Platform'a göre purchase token belirle (duplicate check için)
             $purchaseToken = $validated['platform'] === 'ios'
                 ? $validated['transaction_id']
                 : $validated['purchase_token'];
 
-            $existingPurchase = Subscription::where('purchase_token', $purchaseToken)->first();
-            if ($existingPurchase) {
+            // 🔒 Cache lock
+            $lockKey = 'purchase_lock_' . $purchaseToken;
+            $lock = Cache::lock($lockKey, 30);
+
+            if (!$lock->get()) {
+                return $this->sendResponse('processing', 'Purchase is being processed.', 200);
+            }
+
+            try {
+                // ✅ Sadece ACTIVE durumda olan aynı purchase_token var mı kontrol et
+                $existingActivePurchase = Subscription::where('purchase_token', $purchaseToken)
+                    ->where('status', SubscriptionStatus::ACTIVE->value)
+                    ->first();
+
+                if ($existingActivePurchase) {
+                    return $this->sendResponse('already_exists', 'Purchase already exists.', 200);
+                }
+
+                // Platform'a göre doğrulama
+                if ($validated['platform'] === 'ios') {
+                    $appStoreService = new AppStoreVerificationService();
+                    $purchaseInfo = $appStoreService->verifyPurchase(
+                        $validated['receipt_data'],
+                        $validated['transaction_id']
+                    );
+
+                    if (!$purchaseInfo->isValid) {
+                        return $this->sendError('invalid_purchase', 'Invalid purchase.', 400);
+                    }
+
+                    $orderId = $purchaseInfo->transactionId;
+                } else {
+                    $googlePlayService = new GooglePayVerificationService();
+                    $purchaseInfo = $googlePlayService->verifyPurchase(
+                        $validated['product_id'],
+                        $validated['purchase_token']
+                    );
+
+                    // Google Play purchase states:
+                    // 0 = Purchased
+                    // 1 = Cancelled
+                    // 2 = Pending
+                    if ($purchaseInfo->purchaseState !== 0) {
+                        return $this->sendError('invalid_purchase', 'Invalid purchase state.', 400);
+                    }
+
+                    $orderId = $purchaseInfo->orderId;
+                }
+
+                $activePackage = $user->packages()
+                    ->where('created_at', '>=', now()->subMonth())
+                    ->where('status', SubscriptionStatus::ACTIVE->value)
+                    ->orderByDesc('id')
+                    ->first();
+
+                $allScans = $user->scan_results()->count();
+                $permitScan = ($activePackage && $activePackage->remaining_scans > 0) ||
+                    $allScans < config('services.free_package_limit');
+
+                if ($activePackage && !$permitScan) {
+                    $log->debug('Active package exists - ' . $user->id . " - " . $purchaseToken);
+                    return $this->sendError('exist_active_package', 'Active package exists.', 400);
+                }
+
+                $productColumn = $validated['platform'] === 'ios'
+                    ? 'product_id_for_purchase_apple'
+                    : 'product_id_for_purchase';
+
+                $product = Packages::where($productColumn, $validated['product_id'])->firstOrFail();
+
+                DB::transaction(function () use ($user, $validated, $purchaseInfo, $product, $purchaseToken, $orderId) {
+                    // ✅ Transaction içinde de ACTIVE kontrolü yap (pessimistic lock)
+                    $exists = Subscription::where('purchase_token', $purchaseToken)
+                        ->where('status', SubscriptionStatus::ACTIVE->value)
+                        ->lockForUpdate()
+                        ->exists();
+
+                    if ($exists) {
+                        throw new \Exception('Duplicate active purchase detected');
+                    }
+
+                    $purchase = Subscription::create([
+                        'customer_id' => $user->id,
+                        'product_id' => $product->id,
+                        'purchase_token' => $purchaseToken,
+                        'platform' => $validated['platform'],
+                        'status' => SubscriptionStatus::ACTIVE->value,
+                        'transaction_id' => $orderId,
+                        'payment_details' => json_encode($purchaseInfo),
+                        'amount' => $product->price
+                    ]);
+
+                    CustomerPackages::create([
+                        'customer_id' => $user->id,
+                        'package_id' => $product->id,
+                        'remaining_scans' => $product->scan_count,
+                        'subscription_id' => $purchase->id,
+                        'status' => SubscriptionStatus::ACTIVE->value,
+                    ]);
+                });
+
+                Log::info("payment end");
+
+                return $this->sendResponse('success', 'Purchase verified successfully.', 200);
+
+            } finally {
+                $lock->release();
+            }
+
+        } catch (\Exception $e) {
+            if (str_contains($e->getMessage(), 'Duplicate')) {
                 return $this->sendResponse('already_exists', 'Purchase already exists.', 200);
             }
 
-            // Platform'a göre doğrulama servisini seç
-            if ($validated['platform'] === 'ios') {
-                $appStoreService = new AppStoreVerificationService();
-                $purchaseInfo = $appStoreService->verifyPurchase(
-                    $validated['receipt_data'],
-                    $validated['transaction_id']
-                );
-
-                if (!$purchaseInfo->isValid) {
-                    return $this->sendError('invalid_purchase', 'Invalid purchase.', 400);
-                }
-
-                $orderId = $purchaseInfo->transactionId;
-            } else {
-                $googlePlayService = new GooglePayVerificationService();
-                $purchaseInfo = $googlePlayService->verifyPurchase(
-                    $validated['product_id'],
-                    $validated['purchase_token']
-                );
-
-                if ($purchaseInfo->purchaseState !== 0) {
-                    return $this->sendError('invalid_purchase', 'Invalid purchase state.', 400);
-                }
-
-                $orderId = $purchaseInfo->orderId;
-            }
-
-            // ... geri kalan kod aynı kalabilir, sadece $purchaseToken kullan ...
-
-            $activePackage = $user->packages()
-                ->where('created_at', '>=', now()->subMonth())
-                ->where('status', SubscriptionStatus::ACTIVE->value)
-                ->orderByDesc('id')
-                ->first();
-
-            $allScans = $user->scan_results()->count();
-            $permitScan = ($activePackage && $activePackage->remaining_scans > 0) ||
-                $allScans < config('services.free_package_limit');
-
-            if($activePackage && !$permitScan) {
-                $log->debug('Active package exists - ' . $user->id . " - ". $purchaseToken);
-                return $this->sendError('exist_active_package', 'Active package exists.', 400);
-            }
-
-            // iOS için product_id_for_purchase_apple, Android için product_id_for_purchase
-            $productColumn = $validated['platform'] === 'ios'
-                ? 'product_id_for_purchase_apple'
-                : 'product_id_for_purchase';
-
-            $product = Packages::where($productColumn, $validated['product_id'])->firstOrFail();
-
-            DB::transaction(function () use ($user, $validated, $purchaseInfo, $product, $purchaseToken, $orderId) {
-                $purchase = Subscription::create([
-                    'customer_id' => $user->id,
-                    'product_id' => $product->id,
-                    'purchase_token' => $purchaseToken,
-                    'platform' => $validated['platform'],
-                    'status' => SubscriptionStatus::ACTIVE->value,
-                    'transaction_id' => $orderId,
-                    'payment_details' => json_encode($purchaseInfo),
-                    'amount' => $product->price
-                ]);
-
-                CustomerPackages::create([
-                    'customer_id' => $user->id,
-                    'package_id' => $product->id,
-                    'remaining_scans' => $product->scan_count,
-                    'subscription_id' => $purchase->id,
-                    'status' => SubscriptionStatus::ACTIVE->value,
-                ]);
-            });
-
-            return $this->sendResponse('success', 'Purchase verified successfully.', 200);
-
-        } catch (\Exception $e) {
             $log->debug('Error verifying purchase: ' . $e->getMessage());
             return $this->sendError('purchase_failed', 'An error occurred: ' . $e->getMessage(), 500);
         }

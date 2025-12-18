@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('purchase_token', function (Blueprint $table) {
+        Schema::table('subscriptions', function (Blueprint $table) {
             $table->unique(['purchase_token', 'status']);
         });
     }
@@ -21,7 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('purchase_token', function (Blueprint $table) {
+        Schema::table('subscriptions', function (Blueprint $table) {
             //
         });
     }

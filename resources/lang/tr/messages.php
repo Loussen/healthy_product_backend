@@ -20,6 +20,7 @@ return [
             'privacy' => 'Gizlilik',
             'conditions' => 'Koşullar',
             'social' => 'Sosyal',
+            'sources' => 'Kaynaklar',
         ]
     ],
     'slogan' => 'Sağlıklı yaşam için akıllı seçimler yapın',

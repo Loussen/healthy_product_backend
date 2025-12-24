@@ -20,6 +20,7 @@ return [
             'privacy' => 'Datenschutz',
             'conditions' => 'Bedingungen',
             'social' => 'Soziales',
+            'sources' => 'Quellen',
         ]
     ],
     'slogan' => 'Treffen Sie intelligente Entscheidungen für ein gesundes Leben',

@@ -20,6 +20,7 @@ return [
             'privacy' => 'Məxfilik',
             'conditions' => 'Şərtlər',
             'social' => 'Sosial',
+            'sources' => 'Mənbələr',
         ]
     ],
     'slogan' => 'Sağlam həyat üçün ağıllı seçimlər edin',

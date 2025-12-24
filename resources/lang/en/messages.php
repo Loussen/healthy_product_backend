@@ -20,6 +20,7 @@ return [
             'privacy' => 'Privacy',
             'conditions' => 'Terms',
             'social' => 'Social',
+            'sources' => 'Sources',
         ]
     ],
     'slogan' => 'Make smart choices for a healthy life',

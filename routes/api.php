@@ -83,6 +83,8 @@ Route::middleware('auth:sanctum')->name('main.')->controller(MainController::cla
     Route::post('purchase/product', 'verifyPurchase')->name('verifyPurchase');
 
     Route::get('get-order-history', 'getOrderHistory')->name('getOrderHistory');
+
+    Route::delete('delete-account', 'deleteAccount')->name('deleteAccount');
 });
 
 Route::post('google/subscriptions/webhook', [MainController::class, 'webhookGoogleSubscription'])->name('webhookGoogleSubscription');

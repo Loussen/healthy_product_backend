@@ -33,6 +33,7 @@
                 <ul class="list-unstyled">
                     <li><a href="{{ route('page',['slug' => 'privacy-policy', 'locale' => \Illuminate\Support\Facades\App::getLocale()]) }}">{{ __('messages.menus.footer_menu.privacy') }}</a></li>
                     <li><a href="{{ route('page',['slug' => 'terms-conditions', 'locale' => \Illuminate\Support\Facades\App::getLocale()]) }}">{{ __('messages.menus.footer_menu.conditions') }}</a></li>
+                    <li><a href="{{ route('page',['slug' => 'sources', 'locale' => \Illuminate\Support\Facades\App::getLocale()]) }}">{{ __('messages.menus.footer_menu.sources') }}</a></li>
                 </ul>
             </div>
             <div class="col-lg-2">

@@ -1685,4 +1685,17 @@ Please make sure the product ingredients are read correctly. After several faile
         return $this->sendResponse($response, 'success');
     }
 
+    public function deleteAccount(Request $request)
+    {
+        $user = $request->user();
+
+//        $user->subscriptions()->delete();
+//        $user->packages()->delete();
+//        $user->scan_results()->delete();
+
+//        $user->delete();
+
+        return $this->sendResponse('success', 'Account deleted successfully', 200);
+    }
+
 }

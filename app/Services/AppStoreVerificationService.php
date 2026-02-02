@@ -37,17 +37,18 @@ class AppStoreVerificationService
     public function verifyPurchase(string $receiptData, string $transactionId)
     {
         // Sandbox mı Production mı?
-//        $environment = config('app.env') === 'production'
-//            ? 'https://api.storekit.itunes.apple.com'
-//            : 'https://api.storekit-sandbox.itunes.apple.com';
+        $environment = config('app.env') === 'production'
+            ? 'https://api.storekit.itunes.apple.com'
+            : 'https://api.storekit-sandbox.itunes.apple.com';
 
-        $environment = 'https://api.storekit-sandbox.itunes.apple.com';
+//        $environment = 'https://api.storekit-sandbox.itunes.apple.com';
 
         $jwt = $this->generateJWT();
 
         Log::info('App Store API Request', [
             'environment' => $environment,
             'transactionId' => $transactionId,
+            'app_env' => config('app.env'),
         ]);
 
         $client = new Client([

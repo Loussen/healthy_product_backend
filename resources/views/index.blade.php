@@ -10,10 +10,10 @@
                     <p class="lead">{{ __('messages.slogan_text') }}</p>
                     <div class="d-flex gap-3 mt-4">
                         <a target="_blank" href="https://play.google.com/store/apps/details?id=com.healthyproduct.app" class="">
-                            <img src="{{ asset('assets/images/playstore.png') }}" alt="Play Store Vital Scan VScan" class="playstore">
+                            <img src="{{ asset('assets/images/playstore.png') }}" alt="Download Vital Scan on Google Play Store" class="playstore">
                         </a>
                         <a href="https://apps.apple.com/us/app/vital-scan/id6755874667" target="_blank" class="">
-                            <img src="{{ asset('assets/images/appstore.png') }}" alt="App Store Vital Scan VScan" class="appstore">
+                            <img src="{{ asset('assets/images/appstore.png') }}" alt="Download Vital Scan on Apple App Store" class="appstore">
                         </a>
                     </div>
                 </div>
@@ -21,25 +21,25 @@
                     <div id="cameraCarousel" class="carousel slide" data-bs-ride="carousel">
                         <div class="carousel-inner">
                             <div class="carousel-item active">
-                                <img src="{{ asset('assets/images/home-page-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                                <img src="{{ asset('assets/images/home-page-portrait.png') }}" class="d-block w-100 camera-content" alt="Vital Scan App Home Screen - Product ingredient scanner">
                             </div>
                             <div class="carousel-item">
-                                <img src="{{ asset('assets/images/screen_camera-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                                <img src="{{ asset('assets/images/screen_camera-portrait.png') }}" class="d-block w-100 camera-content" alt="Vital Scan Camera Scanner - Scan product labels instantly">
                             </div>
                             <div class="carousel-item">
-                                <img src="{{ asset('assets/images/result-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                                <img src="{{ asset('assets/images/result-portrait.png') }}" class="d-block w-100 camera-content" alt="Vital Scan Analysis Result - Health score and ingredient analysis">
                             </div>
                             <div class="carousel-item">
-                                <img src="{{ asset('assets/images/ingredients-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                                <img src="{{ asset('assets/images/ingredients-portrait.png') }}" class="d-block w-100 camera-content" alt="Vital Scan Ingredients Detail - Detailed ingredient breakdown">
                             </div>
                             <div class="carousel-item">
-                                <img src="{{ asset('assets/images/history-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                                <img src="{{ asset('assets/images/history-portrait.png') }}" class="d-block w-100 camera-content" alt="Vital Scan Scan History - Track your scanned products">
                             </div>
                             <div class="carousel-item">
-                                <img src="{{ asset('assets/images/profile-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                                <img src="{{ asset('assets/images/profile-portrait.png') }}" class="d-block w-100 camera-content" alt="Vital Scan User Profile - Personalized health preferences">
                             </div>
                             <div class="carousel-item">
-                                <img src="{{ asset('assets/images/splash_screen-portrait.png') }}" class="d-block w-100 camera-content" alt="VScan Vital Scan">
+                                <img src="{{ asset('assets/images/splash_screen-portrait.png') }}" class="d-block w-100 camera-content" alt="Vital Scan - Your vital scan compass for healthy living">
                             </div>
                         </div>
 
@@ -151,11 +151,11 @@
                     <h2>{{ __('messages.download_now') }}</h2>
                     <p class="lead">{{ __('messages.download_now_text') }}</p>
                     <div class="d-flex gap-3 mt-4">
-                        <a  target="_blank" href="https://play.google.com/store/apps/details?id=com.healthyproduct.app" class="store-badge">
-                            <img src="{{ asset('assets/images/playstore.png') }}" alt="App Store Vital Scan VScan">
+                        <a target="_blank" href="https://play.google.com/store/apps/details?id=com.healthyproduct.app" class="store-badge">
+                            <img src="{{ asset('assets/images/playstore.png') }}" alt="Download Vital Scan on Google Play Store">
                         </a>
                         <a href="https://apps.apple.com/us/app/vital-scan/id6755874667" target="_blank" class="store-badge">
-                            <img src="{{ asset('assets/images/appstore.png') }}" alt="Google Play Vital Scan VScan">
+                            <img src="{{ asset('assets/images/appstore.png') }}" alt="Download Vital Scan on Apple App Store">
                         </a>
                     </div>
                 </div>

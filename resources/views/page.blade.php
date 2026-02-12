@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
-@section('title',' - '.$page->title)
+@section('title', ' - ' . $page->title)
+
+@section('meta_description', Str::limit(strip_tags($page->content), 160))
 
 @section('content')
     <!-- Hero Section -->

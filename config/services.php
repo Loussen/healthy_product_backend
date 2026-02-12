@@ -57,6 +57,10 @@ return [
         'issuer_id' => env('APPLE_ISSUER_ID'),
         'key_id' => env('APPLE_KEY_ID'),
         'private_key_path' => env('APPLE_PRIVATE_KEY_PATH'),
+        'app_store_id' => env('APPLE_APP_STORE_ID', '6755874667'),
+        'app_store_url' => env('APPLE_APP_STORE_URL', 'https://apps.apple.com/us/app/vital-scan/id6755874667'),
     ],
+
+    'play_store_url' => env('PLAY_STORE_URL', 'https://play.google.com/store/apps/details?id=com.healthyproduct.app'),
 
 ];

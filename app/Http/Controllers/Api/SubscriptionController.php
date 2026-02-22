@@ -158,11 +158,22 @@ class SubscriptionController extends BaseController
                     $orderId = $purchaseInfo->orderId;
                 }
 
-                    $productColumn = $validated['platform'] === 'ios'
+                $productColumn = $validated['platform'] === 'ios'
                     ? 'product_id_for_purchase_apple'
                     : 'product_id_for_purchase';
 
+                Log::info('Looking up package', [
+                    'column' => $productColumn,
+                    'product_id' => $validated['product_id'],
+                ]);
+
                 $product = Packages::where($productColumn, $validated['product_id'])->firstOrFail();
+
+                Log::info('Package found', [
+                    'package_id' => $product->id,
+                    'package_name' => $product->name,
+                    'scan_count' => $product->scan_count,
+                ]);
 
                 DB::transaction(function () use ($user, $validated, $purchaseInfo, $product, $purchaseToken, $orderId) {
                     // ✅ Transaction içinde de ACTIVE kontrolü yap (pessimistic lock)

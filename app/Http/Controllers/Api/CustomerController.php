@@ -57,12 +57,15 @@ class CustomerController extends BaseController
 
         $getCustomer->makeHidden(['scan_results']);
 
-        // Find oldest active package with remaining scans (FIFO)
-        $activePackage = $user->packages()
+        // Most recent active package for display (newest purchase)
+        $displayPackage = $user->packages()
             ->where('status', SubscriptionStatus::ACTIVE->value)
             ->where('remaining_scans', '>', 0)
-            ->orderBy('id')
+            ->orderByDesc('id')
             ->first();
+
+        // Any active package exists (for permit_scan check)
+        $hasActivePackage = $displayPackage !== null;
 
         // Total remaining scans across all active packages
         $totalRemainingScans = $user->packages()
@@ -70,20 +73,20 @@ class CustomerController extends BaseController
             ->where('remaining_scans', '>', 0)
             ->sum('remaining_scans');
 
-        $activePackageArray = $activePackage ? $activePackage->toArray() : null;
+        $activePackageArray = $displayPackage ? $displayPackage->toArray() : null;
 
-        if ($activePackage) {
+        if ($displayPackage) {
             $activePackageArray['package'] = [
-                'id' => $activePackage->package->id,
-                'name' => $activePackage->package->getTranslation('name', $locale) ?? 'Unknown',
-                'color' => $activePackage->package->color,
-                'price' => $activePackage->package->price,
-                'scan_count' => $activePackage->package->scan_count,
-                'per_scan' => $activePackage->package->per_scan,
-                'saving' => $activePackage->package->saving,
-                'is_popular' => $activePackage->package->is_popular,
-                'created_at' => $activePackage->package->created_at,
-                'updated_at' => $activePackage->package->updated_at
+                'id' => $displayPackage->package->id,
+                'name' => $displayPackage->package->getTranslation('name', $locale) ?? 'Unknown',
+                'color' => $displayPackage->package->color,
+                'price' => $displayPackage->package->price,
+                'scan_count' => $displayPackage->package->scan_count,
+                'per_scan' => $displayPackage->package->per_scan,
+                'saving' => $displayPackage->package->saving,
+                'is_popular' => $displayPackage->package->is_popular,
+                'created_at' => $displayPackage->package->created_at,
+                'updated_at' => $displayPackage->package->updated_at
             ];
         }
 
@@ -97,7 +100,7 @@ class CustomerController extends BaseController
                 'usage_limit' => $allScans > config('services.free_package_limit') ? config('services.free_package_limit') : $allScans,
                 'active_package' => $activePackageArray,
                 'total_remaining_scans' => (int) $totalRemainingScans,
-                'permit_scan' => $activePackage !== null || $allScans < config('services.free_package_limit'),
+                'permit_scan' => $hasActivePackage || $allScans < config('services.free_package_limit'),
                 'average_health_score' => round($averageHealthScore) ?? 0,
             ]),
             'success'

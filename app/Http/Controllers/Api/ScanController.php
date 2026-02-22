@@ -11,14 +11,28 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use OpenAI;
 
 class ScanController extends BaseController
 {
+    public function scanTest(Request $request): JsonResponse
+    {
+        return $this->sendResponse([
+            'controller' => 'ScanController',
+            'user_id' => $request->user()?->id,
+            'openai_key_set' => !empty(config('services.openai.api_key')),
+            'free_limit' => config('services.free_package_limit'),
+            'php_version' => PHP_VERSION,
+        ], 'ScanController is reachable');
+    }
+
     public function scan(Request $request, GoogleVisionService $googleVisionService): JsonResponse
     {
+        Log::info('ScanController@scan reached', ['user_id' => $request->user()?->id]);
+
         try {
             $startTime = microtime(true);
 
@@ -78,7 +92,15 @@ class ScanController extends BaseController
 //                $image = base64_encode(file_get_contents($request->file('image')));
 
                 // Call OpenAI API
-                $openai = OpenAI::client(config('services.openai.api_key'));
+                $apiKey = config('services.openai.api_key');
+                if (empty($apiKey)) {
+                    Log::error('OpenAI API key is not configured', [
+                        'config_value' => $apiKey,
+                        'env_value' => env('OPENAI_API_KEY') ? 'SET' : 'NOT SET',
+                    ]);
+                    return $this->sendError('config_error', 'OpenAI API key is not configured. Please contact support.', 500);
+                }
+                $openai = OpenAI::client($apiKey);
 
 //                $aiResponse = $openai->chat()->create([
 //                    'model' => env('OPENAI_MODEL'),
@@ -232,10 +254,28 @@ Please make sure the product ingredients are read correctly. After several faile
 
             return $this->sendError('upload_error', 'No image file provided', 400);
 
-        } catch (\Exception $e) {
-            $log = new DebugWithTelegramService();
-            $log->debug($e->getMessage());
-            return $this->sendError('scan_result_error', "Scan result error - " . $e->getMessage(), 500);
+        } catch (\Throwable $e) {
+            Log::error('ScanController@scan error', [
+                'type' => get_class($e),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            error_log('ScanController@scan THROWABLE: ' . get_class($e) . ' - ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+
+            try {
+                $log = new DebugWithTelegramService();
+                $log->debug([
+                    'error' => 'ScanController@scan',
+                    'type' => get_class($e),
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile() . ':' . $e->getLine(),
+                ]);
+            } catch (\Throwable $telegramError) {
+                Log::warning('Failed to send scan error to Telegram', ['error' => $telegramError->getMessage()]);
+            }
+
+            return $this->sendError('scan_result_error', 'Scan result error - ' . $e->getMessage(), 500);
         }
     }
 

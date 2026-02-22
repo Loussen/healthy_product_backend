@@ -31,7 +31,7 @@ class ContentController extends BaseController
 
             return $this->sendResponse($categories,'success');
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
             return $this->sendError('get_category_error', "Category error - ".$e->getMessage(), 500);
@@ -61,7 +61,7 @@ class ContentController extends BaseController
 
             return $this->sendResponse($packages,'success');
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
             return $this->sendError('get_package_error', "Package error - ".$e->getMessage(), 500);

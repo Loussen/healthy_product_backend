@@ -10,6 +10,7 @@ use App\Models\DeviceToken;
 use App\Services\DebugWithTelegramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class CustomerController extends BaseController
@@ -132,7 +133,7 @@ class CustomerController extends BaseController
 
             return $this->sendResponse('success', 'Password changed', 201);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
             return $this->sendError('change_password', "Change password error - ".$e->getMessage(), 500);
@@ -169,7 +170,7 @@ class CustomerController extends BaseController
             $user->save();
 
             return $this->sendResponse('success', 'Set default category successfully');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
             return $this->sendError('set_default_category', "Set default category error - ".$e->getMessage(), 500);
@@ -193,7 +194,7 @@ class CustomerController extends BaseController
             $user->save();
 
             return $this->sendResponse('success', 'Set default language successfully');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
             return $this->sendError('set_default_category', "Set default language error - ".$e->getMessage(), 500);
@@ -217,7 +218,7 @@ class CustomerController extends BaseController
             $user->save();
 
             return $this->sendResponse('success', 'Set default country successfully');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
             return $this->sendError('set_default_country', "Set default country error - ".$e->getMessage(), 500);
@@ -259,7 +260,7 @@ class CustomerController extends BaseController
 
             return $this->sendResponse('success','Device token saved successfully');
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return $this->sendError('failed_to_save_device_token','Failed to save device token: ' . $e->getMessage(), 500);
         }
     }
@@ -301,7 +302,7 @@ class CustomerController extends BaseController
 
             return $this->sendError('upload_error', 'No image file provided', 400);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
             return $this->sendError('bug_report_error', "Bug report error - " . $e->getMessage(), 500);
@@ -338,7 +339,7 @@ class CustomerController extends BaseController
                 $bugReport
             ], 'Contact us created successfully');
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
             return $this->sendError('contact_us_error', "Contact us error - " . $e->getMessage(), 500);

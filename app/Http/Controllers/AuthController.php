@@ -228,7 +228,7 @@ class AuthController extends BaseController
                 ->getTargetUrl();
 
             return $this->sendResponse(['url' => $url], 'Login URL generated');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return $this->sendError('google_auth_error', $e->getMessage(), 500);
         }
     }
@@ -281,7 +281,7 @@ class AuthController extends BaseController
                 'token_type' => 'Bearer'
             ], 'Success login', 201);
 
-       } catch (\Exception $e) {
+       } catch (\Throwable $e) {
            return $this->sendError('google_auth_error', $e->getMessage(), 500);
        }
     }
@@ -335,7 +335,7 @@ class AuthController extends BaseController
                 'user' => $customer
             ], 'Success login');
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
             return $this->sendError('auth_failed', 'Authentication failed', 500);

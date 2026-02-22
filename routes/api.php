@@ -60,6 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Scan
     Route::name('scan.')->controller(ScanController::class)->group(function () {
+        Route::get('scan-test', 'scanTest')->name('test');
         Route::post('scan', 'scan')->name('scan');
         Route::post('analyze-product', 'scan')->name('analyzeProduct');
         Route::get('get-scan-history', 'getScanHistory')->name('history');

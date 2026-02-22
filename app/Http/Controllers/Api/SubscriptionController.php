@@ -82,8 +82,9 @@ class SubscriptionController extends BaseController
         } catch (\Illuminate\Validation\ValidationException $e) {
             return $this->sendError('validation_error', $e->errors(), 422);
 
-        } catch (\Exception $e) {
-            $log->debug('Error verifying subscription: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('verifySubscription error', ['type' => get_class($e), 'message' => $e->getMessage()]);
+            try { $log->debug('Error verifying subscription: ' . $e->getMessage()); } catch (\Throwable $ignore) {}
             return $this->sendError('payment_failed', 'An error occurred: ' . $e->getMessage(), 500);
         }
     }
@@ -202,12 +203,13 @@ class SubscriptionController extends BaseController
                 $lock->release();
             }
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if (str_contains($e->getMessage(), 'Duplicate')) {
                 return $this->sendResponse('already_exists', 'Purchase already exists.', 200);
             }
 
-            $log->debug('Error verifying purchase: ' . $e->getMessage());
+            Log::error('verifyPurchase error', ['type' => get_class($e), 'message' => $e->getMessage()]);
+            try { $log->debug('Error verifying purchase: ' . $e->getMessage()); } catch (\Throwable $ignore) {}
             return $this->sendError('purchase_failed', 'An error occurred: ' . $e->getMessage(), 500);
         }
     }
@@ -265,8 +267,9 @@ class SubscriptionController extends BaseController
 
             return $this->sendResponse('success', 'Webhook processed successfully.', 200);
 
-        } catch (\Exception $e) {
-            $log->debug('Error processing webhook: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('webhook error', ['type' => get_class($e), 'message' => $e->getMessage()]);
+            try { $log->debug('Error processing webhook: ' . $e->getMessage()); } catch (\Throwable $ignore) {}
             return $this->sendError('webhook_error', 'Error: ' . $e->getMessage(), 500);
         }
     }

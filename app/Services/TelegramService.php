@@ -156,10 +156,10 @@ class TelegramService
 
     public function getOpenAIResponse(string $imageUrl, string $categoryName, string $languageName)
     {
-        $openai = OpenAI::client(env('OPENAI_API_KEY'));
+        $openai = OpenAI::client(config('services.openai.api_key'));
 
         return $openai->chat()->create([
-            'model' => env('OPENAI_VISION_MODEL', 'gpt-4o-mini'),
+            'model' => config('services.openai.vision_model', 'gpt-4o-mini'),
             'temperature' => 0.0,
             'messages' => [
                 [
@@ -838,7 +838,7 @@ Category: **$categoryName**, Language: **$languageName**."
 
     public function sendSupportLink(int $chatId, string $languageCode): void
     {
-        $supportLink = env('TELEGRAM_SUPPORT_LINK', 'https://t.me/support_example'); // Öz support linkiniz
+        $supportLink = config('services.telegram_support_link', 'https://t.me/support_example');
 
         $messages = [
             'az' => "💬 *Dəstək:* Hər hansı sualınız, təklifiniz və ya probleminiz varsa, lütfən, birbaşa bizimlə əlaqə saxlayın 👇",

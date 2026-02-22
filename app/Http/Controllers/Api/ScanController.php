@@ -78,7 +78,7 @@ class ScanController extends BaseController
 //                $image = base64_encode(file_get_contents($request->file('image')));
 
                 // Call OpenAI API
-                $openai = OpenAI::client(env('OPENAI_API_KEY'));
+                $openai = OpenAI::client(config('services.openai.api_key'));
 
 //                $aiResponse = $openai->chat()->create([
 //                    'model' => env('OPENAI_MODEL'),
@@ -130,7 +130,7 @@ class ScanController extends BaseController
 //                ]);
 
                 $aiResponse = $openai->chat()->create([
-                    'model' => env('OPENAI_VISION_MODEL', 'gpt-4o-mini'),
+                    'model' => config('services.openai.vision_model', 'gpt-4o-mini'),
                     'temperature' => 0.0,
                     'messages' => [
                         [

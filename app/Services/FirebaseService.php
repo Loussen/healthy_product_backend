@@ -11,7 +11,7 @@ class FirebaseService
 
     public function __construct()
     {
-        $this->projectId = env('FIREBASE_PROJECT_ID');
+        $this->projectId = config('services.firebase.project_id');
         $this->accessToken = $this->getAccessToken();
     }
 

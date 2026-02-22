@@ -36,19 +36,17 @@ class AppStoreVerificationService
 
     public function verifyPurchase(string $receiptData, string $transactionId)
     {
-        // Sandbox mı Production mı?
-        $environment = config('app.env') === 'production'
-            ? 'https://api.storekit.itunes.apple.com'
-            : 'https://api.storekit-sandbox.itunes.apple.com';
+        $isSandbox = config('services.apple.sandbox');
 
-//        $environment = 'https://api.storekit-sandbox.itunes.apple.com';
+        $environment = $isSandbox
+            ? 'https://api.storekit-sandbox.itunes.apple.com'
+            : 'https://api.storekit.itunes.apple.com';
 
         $jwt = $this->generateJWT();
 
         Log::info('App Store API Request', [
-            'environment' => $environment,
+            'environment' => $isSandbox ? 'sandbox' : 'production',
             'transactionId' => $transactionId,
-            'app_env' => config('app.env'),
         ]);
 
         $client = new Client([
@@ -68,7 +66,6 @@ class AppStoreVerificationService
 
             Log::info('App Store API Response', ['data' => $data]);
 
-            // signedTransactionInfo'yu decode et
             $transactionInfo = $this->decodeJWS($data['signedTransactionInfo']);
 
             return (object) [
@@ -78,7 +75,7 @@ class AppStoreVerificationService
                 'productId' => $transactionInfo['productId'] ?? null,
                 'purchaseDate' => $transactionInfo['purchaseDate'] ?? null,
                 'expiresDate' => $transactionInfo['expiresDate'] ?? null,
-                'environment' => $transactionInfo['environment'] ?? 'Sandbox',
+                'environment' => $transactionInfo['environment'] ?? ($isSandbox ? 'Sandbox' : 'Production'),
             ];
 
         } catch (\GuzzleHttp\Exception\ClientException $e) {
@@ -92,7 +89,7 @@ class AppStoreVerificationService
 
             throw new \Exception("App Store API error ({$statusCode}): {$body}");
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('App Store verification failed', [
                 'error' => $e->getMessage(),
             ]);

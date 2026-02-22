@@ -37,9 +37,29 @@ return [
 
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
+        'play_json_path' => env('GOOGLE_PLAY_JSON_PATH'),
     ],
 
-    'free_package_limit' => 10,
+    'external_token' => env('EXTERNAL_TOKEN'),
+
+    'telegram_debug' => [
+        'token' => env('TELEGRAM_DEBUG_TOKEN'),
+        'chat_id' => env('TELEGRAM_DEBUG_CHAT_ID'),
+    ],
+
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o'),
+        'vision_model' => env('OPENAI_VISION_MODEL', 'gpt-4o'),
+    ],
+
+    'firebase' => [
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+    ],
+
+    'telegram_support_link' => env('TELEGRAM_SUPPORT_LINK'),
+
+    'free_package_limit' => env('FREE_PACKAGE_LIMIT', 10),
 
     'locales' => ['az' => 'Azərbaycan','en' => 'English', 'ru' => 'Русский', 'tr' => 'Türkçe', 'es_ES' => 'Español','de_DE' => 'Deutsch'],
 
@@ -62,5 +82,10 @@ return [
     ],
 
     'play_store_url' => env('PLAY_STORE_URL', 'https://play.google.com/store/apps/details?id=com.healthyproduct.app'),
+
+    'app_version' => [
+        'ios' => env('APP_VERSION_IOS', '1.0.0'),
+        'android' => env('APP_VERSION_ANDROID', '1.0.0'),
+    ],
 
 ];

@@ -9,7 +9,7 @@ class OtpService
 {
     public function sendOtpEmail(string $email, int $otp, $type = 'register'): bool
     {
-        $subject = $type = 'reset_password' ? 'Your OTP code for reset password' : 'Your OTP Code for registration';
+        $subject = $type === 'reset_password' ? 'Your OTP code for reset password' : 'Your OTP Code for registration';
         $siteUrl = config('app.url');
         $logoUrl = "$siteUrl/assets/images/logo_new.png";
 

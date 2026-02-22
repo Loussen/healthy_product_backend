@@ -302,33 +302,32 @@ class AuthController extends BaseController
                 return $this->sendError('google_auth_error', 'Invalid token', 401);
             }
 
-            // Kullanıcıyı bul veya oluştur
             $customer = Customers::updateOrCreate(
-                ['email' => $request->email],
+                ['email' => $payload['email']],
                 [
-                    'name' => $request->name,
-                    'surname' => $request->surname,
-                    'google_id' => $request->google_id,
+                    'name' => $payload['given_name'] ?? $request->name,
+                    'surname' => $payload['family_name'] ?? $request->surname,
+                    'google_id' => $payload['sub'] ?? $request->google_id,
                     'email_verified_at' => now(),
-//                    'password' => Str::random(16),
                 ]
             );
 
             // JWT token oluştur
             $token = $customer->createToken('auth_token')->plainTextToken;
 
-            // Google ile giriş yapan kullanıcılar için otomatik verify
-            Otp::create([
-                'email' => $request->email,
-                'otp' => '000000', // Dummy OTP
-                'expire_at' => now()->addMinutes(10),
-                'verified' => 1,
-                'user_data' => json_encode([
-                    'name' => $customer->name,
-                    'surname' => $customer->surname,
-                    'email' => $customer->email
-                ])
-            ]);
+            Otp::updateOrCreate(
+                ['email' => $customer->email, 'type' => 'register'],
+                [
+                    'otp' => '000000',
+                    'expire_at' => now()->addYears(10),
+                    'verified' => 1,
+                    'user_data' => json_encode([
+                        'name' => $customer->name,
+                        'surname' => $customer->surname,
+                        'email' => $customer->email
+                    ])
+                ]
+            );
 
             return $this->sendResponse([
                 'access_token' => $token,
@@ -339,24 +338,8 @@ class AuthController extends BaseController
         } catch (\Exception $e) {
             $log = new DebugWithTelegramService();
             $log->debug($e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Authentication failed',
-                'response' => $e->getMessage()
-            ], 500);
+            return $this->sendError('auth_failed', 'Authentication failed', 500);
         }
-    }
-
-    public function getBearerToken(Request $request)
-    {
-        $customer = Customers::where('email',$request->email)->firstOrFail();
-        $token = $customer->createToken('auth_token')->plainTextToken;
-
-        return $this->sendResponse([
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $customer
-        ], 'Success token');
     }
 
     public function forgetPassword(Request $request, OtpService $otpService): JsonResponse
@@ -486,17 +469,19 @@ class AuthController extends BaseController
 
             $token = $customer->createToken('auth_token')->plainTextToken;
 
-            Otp::create([
-                'email'      => $customer->email,
-                'otp'        => '000000',
-                'expire_at'  => now()->addMinutes(10),
-                'verified'   => 1,
-                'user_data'  => json_encode([
-                    'name'    => $customer->name,
-                    'surname' => $customer->surname,
-                    'email'   => $customer->email,
-                ]),
-            ]);
+            Otp::updateOrCreate(
+                ['email' => $customer->email, 'type' => 'register'],
+                [
+                    'otp'        => '000000',
+                    'expire_at'  => now()->addYears(10),
+                    'verified'   => 1,
+                    'user_data'  => json_encode([
+                        'name'    => $customer->name,
+                        'surname' => $customer->surname,
+                        'email'   => $customer->email,
+                    ]),
+                ]
+            );
 
             return $this->sendResponse([
                 'access_token' => $token,
@@ -505,12 +490,7 @@ class AuthController extends BaseController
             ], 'Apple login success');
         } catch (\Throwable $e) {
             report($e);
-
-            return response()->json([
-                'success'  => false,
-                'message'  => 'Authentication failed',
-                'response' => $e->getMessage(),
-            ], 500);
+            return $this->sendError('auth_failed', 'Authentication failed', 500);
         }
     }
 

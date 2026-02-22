@@ -27,8 +27,7 @@ class Customers extends Authenticatable
     // protected $primaryKey = 'id';
     // public $timestamps = false;
     protected $guarded = ['id'];
-    // protected $fillable = [];
-    // protected $hidden = [];
+    protected $hidden = ['password', 'remember_token'];
 
     /*
     |--------------------------------------------------------------------------
@@ -49,7 +48,7 @@ class Customers extends Authenticatable
 
     public function scan_results()
     {
-        return $this->hasMany(ScanResults::class,'customer_id')->where('check', 1);
+        return $this->hasMany(ScanResults::class,'customer_id');
     }
 
     public function favoriteScanResults()

@@ -4,8 +4,14 @@ namespace App\Services;
 
 class DebugWithTelegramService
 {
-    private string $token   =  '7732936567:AAFOoegW9Q1HfwkCAz99Kt7wAsOm4TnjtFo';
-    private string $chat_id =  '-1002296927964';
+    private string $token;
+    private string $chat_id;
+
+    public function __construct()
+    {
+        $this->token = config('services.telegram_debug.token', '');
+        $this->chat_id = config('services.telegram_debug.chat_id', '');
+    }
 
     public function debug($data): void
     {

@@ -19,7 +19,7 @@ class ExternalApi
      */
     public function handle(Request $request, Closure $next): JsonResponse|Response
     {
-        $token = env('EXTERNAL_TOKEN');
+        $token = config('services.external_token');
 
         $headerToken = $request->header('X-Api-Token');
 

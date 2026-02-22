@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 class Categories extends Model
 {
     use CrudTrait;
-    use Sluggable, Sluggable;
+    use Sluggable;
     use HasTranslations;
 
     /*

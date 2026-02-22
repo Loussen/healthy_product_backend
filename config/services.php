@@ -43,8 +43,8 @@ return [
     'external_token' => env('EXTERNAL_TOKEN'),
 
     'telegram_debug' => [
-        'token' => env('TELEGRAM_DEBUG_TOKEN'),
-        'chat_id' => env('TELEGRAM_DEBUG_CHAT_ID'),
+        'token' => env('TELEGRAM_DEBUG_TOKEN', ''),
+        'chat_id' => env('TELEGRAM_DEBUG_CHAT_ID', ''),
     ],
 
     'openai' => [

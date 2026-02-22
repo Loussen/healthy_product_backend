@@ -9,8 +9,8 @@ class DebugWithTelegramService
 
     public function __construct()
     {
-        $this->token = config('services.telegram_debug.token', '');
-        $this->chat_id = config('services.telegram_debug.chat_id', '');
+        $this->token = config('services.telegram_debug.token') ?? '';
+        $this->chat_id = config('services.telegram_debug.chat_id') ?? '';
     }
 
     public function debug($data): void

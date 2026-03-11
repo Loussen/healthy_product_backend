@@ -59,7 +59,7 @@ return [
 
     'telegram_support_link' => env('TELEGRAM_SUPPORT_LINK'),
 
-    'free_package_limit' => env('FREE_PACKAGE_LIMIT', 10),
+    'free_package_limit' => env('FREE_PACKAGE_LIMIT', 5),
 
     'locales' => ['az' => 'Azərbaycan','en' => 'English', 'ru' => 'Русский', 'tr' => 'Türkçe', 'es_ES' => 'Español','de_DE' => 'Deutsch'],
 

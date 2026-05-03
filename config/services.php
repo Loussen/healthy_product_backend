@@ -99,8 +99,8 @@ return [
     'play_store_url' => env('PLAY_STORE_URL', 'https://play.google.com/store/apps/details?id=com.healthyproduct.app'),
 
     'app_version' => [
-        'ios' => env('APP_VERSION_IOS', '1.0.0'),
-        'android' => env('APP_VERSION_ANDROID', '1.0.0'),
+        'ios' => env('APP_VERSION_IOS', '1.0.2'),
+        'android' => env('APP_VERSION_ANDROID', '1.0.2'),
     ],
 
 ];

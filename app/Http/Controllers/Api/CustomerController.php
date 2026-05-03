@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class CustomerController extends BaseController
 {
@@ -185,8 +186,11 @@ class CustomerController extends BaseController
         try {
             $user = $request->user();
 
-            $validator = validator($request->all(), [
-                'language' => 'required|in:'.implode(',', array_keys(config('backpack.crud.locales'))),
+            $validator = Validator::make($request->all(), [
+                'language' => [
+                    'required',
+                    Rule::in(array_keys(config('backpack.crud.locales'))),
+                ],
             ]);
 
             if ($validator->fails()) {

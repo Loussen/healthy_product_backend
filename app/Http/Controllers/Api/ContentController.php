@@ -89,7 +89,7 @@ class ContentController extends BaseController
     {
         $languages = config('backpack.crud.locales');
 
-        return $this->sendResponse($languages,'success');
+        return $this->sendResponse($languages, 'success');
     }
 
     public function getCountries(): JsonResponse

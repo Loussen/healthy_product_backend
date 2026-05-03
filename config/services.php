@@ -61,9 +61,23 @@ return [
 
     'free_package_limit' => env('FREE_PACKAGE_LIMIT', 5),
 
-    'locales' => ['az' => 'Azərbaycan','en' => 'English', 'ru' => 'Русский', 'tr' => 'Türkçe', 'es_ES' => 'Español','de_DE' => 'Deutsch'],
+    'locales' => [
+        'en' => 'English',
+        'nl' => 'Nederlands',
+        'fr' => 'Français',
+        'de_DE' => 'Deutsch',
+        'id' => 'Bahasa Indonesia',
+        'it' => 'Italiano',
+        'ja' => '日本語',
+        'pt_BR' => 'Português (Brasil)',
+        'ru' => 'Русский',
+        'es_ES' => 'Español',
+        'zh_Hans' => '简体中文',
+        'zh_Hant' => '繁體中文',
+        'tr' => 'Türkçe',
+    ],
 
-    'default_locale' => 'az',
+    'default_locale' => 'en',
 
     'wallet_pay' => [
         'base_url' => env('WALLET_PAY_BASE_URL','DEFAULT_URL'),

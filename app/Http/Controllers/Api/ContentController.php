@@ -107,13 +107,13 @@ class ContentController extends BaseController
 
         $latestVersions = [
             'ios' => [
-                'version' => config('services.app_version.ios', '1.0.2'),
+                'version' => config('services.app_version.ios', '1.0.13'),
                 'force_update' => false,
                 'store_url' => config('services.apple.app_store_url'),
                 'description' => 'Please update the app for new features and improvements.',
             ],
             'android' => [
-                'version' => config('services.app_version.android', '1.0.2'),
+                'version' => config('services.app_version.android', '1.0.13'),
                 'force_update' => false,
                 'store_url' => config('services.play_store_url'),
                 'description' => 'Please update the app for new features and improvements.',

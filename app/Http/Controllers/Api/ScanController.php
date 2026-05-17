@@ -231,7 +231,7 @@ class ScanController extends BaseController
                 ]);
 
                 if(!$aiResponseData['check']) {
-                    // Cache::put($key, $attempts + 1, now()->addMinutes(5));
+                    Cache::put($key, $attempts + 1, now()->addMinutes(5));
                     // Do NOT decrement remaining_scans for unclear/failed scans - only successful scans count
                     return $this->sendError("scan_unreached_error", "Warning!
 Please make sure the product ingredients are read correctly. After several failed attempts, the scanning process may be temporarily suspended.", 429);

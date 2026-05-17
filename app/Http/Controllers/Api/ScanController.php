@@ -7,7 +7,6 @@ use App\Models\Categories;
 use App\Models\ScanResults;
 use App\Services\DebugWithTelegramService;
 use App\Services\GoogleVisionService;
-use App\Services\ScanAiPromptService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -85,16 +84,9 @@ class ScanController extends BaseController
 
 //                $content = $googleVisionService->extractText($fullUrl);
 
-                // Category context for AI: compliance vs health depends on this lens
+                // Get category name
                 $category = Categories::find($request->category_id);
-                $categoryNameEn = $category->getTranslation('name', 'en')
-                    ?: $category->getTranslation('name', $language)
-                    ?: 'General';
-                $categorySlugEn = $category->getTranslation('slug', 'en')
-                    ?: ($category->slug ?? 'general');
-                $categoryDescriptionEn = strip_tags(
-                    $category->getTranslation('description', 'en') ?: ''
-                );
+                $categoryName = $category->getTranslation('name', 'en');
 
                 // Get image content as base64
 //                $image = base64_encode(file_get_contents($request->file('image')));
@@ -109,13 +101,6 @@ class ScanController extends BaseController
                     return $this->sendError('config_error', 'OpenAI API key is not configured. Please contact support.', 500);
                 }
                 $openai = OpenAI::client($apiKey);
-
-                $scanUserPrompt = ScanAiPromptService::userScanInstruction(
-                    $categoryNameEn,
-                    $categorySlugEn,
-                    $categoryDescriptionEn,
-                    $language,
-                );
 
 //                $aiResponse = $openai->chat()->create([
 //                    'model' => env('OPENAI_MODEL'),
@@ -172,14 +157,44 @@ class ScanController extends BaseController
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => ScanAiPromptService::systemPrompt(),
+                            'content' => <<<EOT
+                                You are a product analysis system.
+
+                                Analyze the image of the product label and return a structured JSON response.
+
+                                Rules:
+                                1. Detect the **actual product name** and **product category** from the label. Do NOT rely on or copy the category provided by the user. If product name or category cannot be determined, return `null` for them.
+                                2. Analyze the ingredients and dynamically calculate a **health score** according to the category specified by the user (e.g., Children, Adults, Diabetics, Allergic people). For example, a product that is healthy in general may be unhealthy for children or allergic individuals.
+                                3. Always respond in the **language specified by the user** (including product name, category, ingredients, score, etc.).
+                                4. If valid information is found, include `"check": true`. If important data is missing or cannot be interpreted, set `"check": false`.
+
+                                Return the result in this exact JSON format:
+                                {
+                                  "check": true or false,
+                                  "product_name": "Detected product name in the user's language or null",
+                                  "category": "Detected product category in the user's language or null",
+                                  "ingredients": ["List of all ingredients in the user's language"],
+                                  "worst_ingredients": ["List of worst ingredients for health, **based on the user's specified category**, in user's language"],
+                                  "best_ingredients": ["List of best ingredients for health, **based on the user's specified category**, in user's language"],
+                                  "health_score": "A percentage score **based on the specified category**, considering how suitable the ingredients are for that group",
+                                  "detail_text": "Detailed explanation in the user's language, summarizing health evaluation"
+                                }
+
+                                Adjust the health_score more strictly:
+                                    • If there are more than 3 worst_ingredients, reduce the health_score by at least 20%.
+                                    • If there are fewer than 2 best_ingredients, reduce the health_score by 10%.
+                                    • If the number of worst_ingredients is greater than the number of best_ingredients, reduce the health_score by 20%.
+
+                                EOT
                         ],
                         [
                             'role' => 'user',
                             'content' => [
                                 [
                                     'type' => 'text',
-                                    'text' => $scanUserPrompt,
+                                    'text' => "Analyze the contents of this product and respond in the specified JSON format.
+Write the ingredients (all, worst, best), health score (based on category: **$categoryName**), product name, product category, and detailed explanation in **$language**.
+Category: **$categoryName**, Language: **$language**."
                                 ],
                                 [
                                     'type' => 'image_url',
@@ -193,22 +208,7 @@ class ScanController extends BaseController
                     'response_format' => ['type' => 'json_object'],
                 ]);
 
-                $rawAiContent = $aiResponse->choices[0]->message->content ?? '';
-                $aiResponseData = json_decode($rawAiContent, true);
-
-                if (!is_array($aiResponseData)) {
-                    Log::error('Scan AI JSON decode failed', [
-                        'snippet' => substr($rawAiContent, 0, 1000),
-                    ]);
-
-                    return $this->sendError(
-                        'scan_result_error',
-                        'Invalid AI response format',
-                        500
-                    );
-                }
-
-                $this->normalizeAiScanCheckFlags($aiResponseData);
+                $aiResponseData = json_decode($aiResponse->choices[0]->message->content, true);
 
                 $endTime = microtime(true);
                 $responseTimeMs = (int)(($endTime - $startTime) * 1000); // milliseconds
@@ -277,58 +277,6 @@ Please make sure the product ingredients are read correctly. After several faile
 
             return $this->sendError('scan_result_error', 'Scan result error - ' . $e->getMessage(), 500);
         }
-    }
-
-    /**
-     * Models often return check=false when partial OCR is still usable. Align `check` with parsed output.
-     */
-    private function normalizeAiScanCheckFlags(array &$data): void
-    {
-        $ingredients = $data['ingredients'] ?? [];
-        $hasIngredients = false;
-        if (is_array($ingredients)) {
-            foreach ($ingredients as $item) {
-                if ($item === null) {
-                    continue;
-                }
-                if (trim((string) $item) !== '') {
-                    $hasIngredients = true;
-                    break;
-                }
-            }
-        }
-
-        $raw = $data['check'] ?? null;
-        $explicit = null;
-        if (is_bool($raw)) {
-            $explicit = $raw;
-        } elseif (is_string($raw)) {
-            $lower = strtolower(trim($raw));
-            if (in_array($lower, ['true', '1', 'yes'], true)) {
-                $explicit = true;
-            } elseif (in_array($lower, ['false', '0', 'no'], true)) {
-                $explicit = false;
-            }
-        } elseif (is_int($raw) || is_float($raw)) {
-            $explicit = (bool) $raw;
-        }
-
-        if ($explicit === false && $hasIngredients) {
-            Log::warning('Scan AI returned check=false with non-empty ingredients; forcing check=true', [
-                'ingredient_count' => is_array($ingredients) ? count($ingredients) : 0,
-            ]);
-            $data['check'] = true;
-
-            return;
-        }
-
-        if ($explicit === null) {
-            $data['check'] = $hasIngredients;
-
-            return;
-        }
-
-        $data['check'] = $explicit;
     }
 
     public function getScanResult($scanId,Request $request): JsonResponse

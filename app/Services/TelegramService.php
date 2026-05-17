@@ -154,9 +154,21 @@ class TelegramService
 
     // --- B. AI VƏ SKAN MƏNTİQİ ---
 
-    public function getOpenAIResponse(string $imageUrl, string $categoryName, string $languageName)
-    {
+    public function getOpenAIResponse(
+        string $imageUrl,
+        string $categoryNameEn,
+        string $categorySlug,
+        string $categoryDescriptionEn,
+        string $languageCode,
+    ) {
         $openai = OpenAI::client(config('services.openai.api_key'));
+
+        $scanUserPrompt = ScanAiPromptService::userScanInstruction(
+            $categoryNameEn,
+            $categorySlug,
+            $categoryDescriptionEn,
+            $languageCode,
+        );
 
         return $openai->chat()->create([
             'model' => config('services.openai.vision_model', 'gpt-4o-mini'),
@@ -164,53 +176,23 @@ class TelegramService
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => <<<EOT
-                                You are a product analysis system.
-
-                                Analyze the image of the product label and return a structured JSON response.
-
-                                Rules:
-                                1. Detect the **actual product name** and **product category** from the label. Do NOT rely on or copy the category provided by the user. If product name or category cannot be determined, return `null` for them.
-                                2. Analyze the ingredients and dynamically calculate a **health score** according to the category specified by the user (e.g., Children, Adults, Diabetics, Allergic people). For example, a product that is healthy in general may be unhealthy for children or allergic individuals.
-                                3. Always respond in the **language specified by the user** (including product name, category, ingredients, score, etc.).
-                                4. If valid information is found, include `"check": true`. If important data is missing or cannot be interpreted, set `"check": false`.
-
-                                Return the result in this exact JSON format:
-                                {
-                                  "check": true or false,
-                                  "product_name": "Detected product name in the user's language or null",
-                                  "category": "Detected product category in the user's language or null",
-                                  "ingredients": ["List of all ingredients in the user's language"],
-                                  "worst_ingredients": ["List of worst ingredients for health, **based on the user's specified category**, in user's language"],
-                                  "best_ingredients": ["List of best ingredients for health, **based on the user's specified category**, in user's language"],
-                                  "health_score": "A percentage score **based on the specified category**, considering how suitable the ingredients are for that group",
-                                  "detail_text": "Detailed explanation in the user's language, summarizing health evaluation"
-                                }
-
-                                Adjust the health_score more strictly:
-                                    • If there are more than 3 worst_ingredients, reduce the health_score by at least 20%.
-                                    • If there are fewer than 2 best_ingredients, reduce the health_score by 10%.
-                                    • If the number of worst_ingredients is greater than the number of best_ingredients, reduce the health_score by 20%.
-
-                                EOT
+                    'content' => ScanAiPromptService::systemPrompt(),
                 ],
                 [
                     'role' => 'user',
                     'content' => [
                         [
                             'type' => 'text',
-                            'text' => "Analyze the contents of this product and respond in the specified JSON format.
-Write the ingredients (all, worst, best), health score (based on category: **$categoryName**), product name, product category, and detailed explanation in **$languageName**.
-Category: **$categoryName**, Language: **$languageName**."
+                            'text' => $scanUserPrompt,
                         ],
                         [
                             'type' => 'image_url',
                             'image_url' => [
-                                'url' => $imageUrl
-                            ]
-                        ]
-                    ]
-                ]
+                                'url' => $imageUrl,
+                            ],
+                        ],
+                    ],
+                ],
             ],
             'response_format' => ['type' => 'json_object'],
         ]);
@@ -247,7 +229,6 @@ Category: **$categoryName**, Language: **$languageName**."
         $startTime = microtime(true);
         $customer = $this->getCustomerByFrom($from);
         $languageCode = $customer->language ?? TelegramConstants::DEFAULT_LANGUAGE;
-        $languageName = $this->mapLangNameToCode($languageCode, true);
 
         $activePackage = $customer->packages()
             ->where('remaining_scans', '>', 0)
@@ -294,7 +275,18 @@ Category: **$categoryName**, Language: **$languageName**."
         $fullUrl = asset('storage/' . $path);
 
         $category = Categories::find($customer->default_category_id);
-        $categoryName = $category->getTranslation('name', $languageCode);
+        if (!$category) {
+            $category = Categories::query()->first();
+        }
+
+        $categoryNameEn = $category->getTranslation('name', 'en')
+            ?: $category->getTranslation('name', $languageCode)
+            ?: 'General';
+        $categorySlugEn = $category->getTranslation('slug', 'en')
+            ?: ($category->slug ?? 'general');
+        $categoryDescriptionEn = strip_tags(
+            $category->getTranslation('description', 'en') ?: ''
+        );
 
         $getWord = $this->translate('please_wait', [], $languageCode);
         $sentMessage = Telegram::sendMessage([
@@ -307,7 +299,13 @@ Category: **$categoryName**, Language: **$languageName**."
 
         // 3. AI Analiz
         try {
-            $aiResponse = $this->getOpenAIResponse($fullUrl, $categoryName, $languageName);
+            $aiResponse = $this->getOpenAIResponse(
+                $fullUrl,
+                $categoryNameEn,
+                $categorySlugEn,
+                $categoryDescriptionEn,
+                $languageCode,
+            );
             $aiResponseData = json_decode($aiResponse->choices[0]->message->content, true);
         } catch (\Exception $e) {
             $log = new DebugWithTelegramService();

@@ -7,6 +7,7 @@ use App\Models\Categories;
 use App\Models\ScanResults;
 use App\Services\DebugWithTelegramService;
 use App\Services\GoogleVisionService;
+use App\Services\ScanAiPromptService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -84,9 +85,16 @@ class ScanController extends BaseController
 
 //                $content = $googleVisionService->extractText($fullUrl);
 
-                // Get category name
+                // Category context for AI: compliance vs health depends on this lens
                 $category = Categories::find($request->category_id);
-                $categoryName = $category->getTranslation('name', 'en');
+                $categoryNameEn = $category->getTranslation('name', 'en')
+                    ?: $category->getTranslation('name', $language)
+                    ?: 'General';
+                $categorySlugEn = $category->getTranslation('slug', 'en')
+                    ?: ($category->slug ?? 'general');
+                $categoryDescriptionEn = strip_tags(
+                    $category->getTranslation('description', 'en') ?: ''
+                );
 
                 // Get image content as base64
 //                $image = base64_encode(file_get_contents($request->file('image')));
@@ -101,6 +109,13 @@ class ScanController extends BaseController
                     return $this->sendError('config_error', 'OpenAI API key is not configured. Please contact support.', 500);
                 }
                 $openai = OpenAI::client($apiKey);
+
+                $scanUserPrompt = ScanAiPromptService::userScanInstruction(
+                    $categoryNameEn,
+                    $categorySlugEn,
+                    $categoryDescriptionEn,
+                    $language,
+                );
 
 //                $aiResponse = $openai->chat()->create([
 //                    'model' => env('OPENAI_MODEL'),
@@ -157,44 +172,14 @@ class ScanController extends BaseController
                     'messages' => [
                         [
                             'role' => 'system',
-                            'content' => <<<EOT
-                                You are a product analysis system.
-
-                                Analyze the image of the product label and return a structured JSON response.
-
-                                Rules:
-                                1. Detect the **actual product name** and **product category** from the label. Do NOT rely on or copy the category provided by the user. If product name or category cannot be determined, return `null` for them.
-                                2. Analyze the ingredients and dynamically calculate a **health score** according to the category specified by the user (e.g., Children, Adults, Diabetics, Allergic people). For example, a product that is healthy in general may be unhealthy for children or allergic individuals.
-                                3. Always respond in the **language specified by the user** (including product name, category, ingredients, score, etc.).
-                                4. If valid information is found, include `"check": true`. If important data is missing or cannot be interpreted, set `"check": false`.
-
-                                Return the result in this exact JSON format:
-                                {
-                                  "check": true or false,
-                                  "product_name": "Detected product name in the user's language or null",
-                                  "category": "Detected product category in the user's language or null",
-                                  "ingredients": ["List of all ingredients in the user's language"],
-                                  "worst_ingredients": ["List of worst ingredients for health, **based on the user's specified category**, in user's language"],
-                                  "best_ingredients": ["List of best ingredients for health, **based on the user's specified category**, in user's language"],
-                                  "health_score": "A percentage score **based on the specified category**, considering how suitable the ingredients are for that group",
-                                  "detail_text": "Detailed explanation in the user's language, summarizing health evaluation"
-                                }
-
-                                Adjust the health_score more strictly:
-                                    • If there are more than 3 worst_ingredients, reduce the health_score by at least 20%.
-                                    • If there are fewer than 2 best_ingredients, reduce the health_score by 10%.
-                                    • If the number of worst_ingredients is greater than the number of best_ingredients, reduce the health_score by 20%.
-
-                                EOT
+                            'content' => ScanAiPromptService::systemPrompt(),
                         ],
                         [
                             'role' => 'user',
                             'content' => [
                                 [
                                     'type' => 'text',
-                                    'text' => "Analyze the contents of this product and respond in the specified JSON format.
-Write the ingredients (all, worst, best), health score (based on category: **$categoryName**), product name, product category, and detailed explanation in **$language**.
-Category: **$categoryName**, Language: **$language**."
+                                    'text' => $scanUserPrompt,
                                 ],
                                 [
                                     'type' => 'image_url',

@@ -51,8 +51,9 @@ JSON field meanings:
 • `health_score` = 0–100 (numeric or string, `%` optional) meaning **alignment with the active scan category** (compliance, dietary ethics, or health fit — whichever matches the lens).
 • `detail_text` = short rationale using **the same lens** as worst/best/score.
 
-Quality checks:
-• If label unreadable or ingredients missing → `"check": false`.
+When to set `"check"`:
+• `"check": true` — Use whenever **any ingredient line or list text** from the label is readable enough to classify **under the selected scan category** (partial OCR is OK; guessed spellings OK if reasonable). Product name may be `null`. Empty `worst_ingredients` / `best_ingredients` arrays are allowed when nothing qualifies under that lens.
+• `"check": false` — **Only** for unusable inputs: not a product label, photo is blank/unrelated, or **zero** ingredient text can be read despite the image appearing to be a label.
 
 Return exactly:
 {

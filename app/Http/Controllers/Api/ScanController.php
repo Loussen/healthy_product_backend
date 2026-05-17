@@ -193,7 +193,22 @@ class ScanController extends BaseController
                     'response_format' => ['type' => 'json_object'],
                 ]);
 
-                $aiResponseData = json_decode($aiResponse->choices[0]->message->content, true);
+                $rawAiContent = $aiResponse->choices[0]->message->content ?? '';
+                $aiResponseData = json_decode($rawAiContent, true);
+
+                if (!is_array($aiResponseData)) {
+                    Log::error('Scan AI JSON decode failed', [
+                        'snippet' => substr($rawAiContent, 0, 1000),
+                    ]);
+
+                    return $this->sendError(
+                        'scan_result_error',
+                        'Invalid AI response format',
+                        500
+                    );
+                }
+
+                $this->normalizeAiScanCheckFlags($aiResponseData);
 
                 $endTime = microtime(true);
                 $responseTimeMs = (int)(($endTime - $startTime) * 1000); // milliseconds
@@ -262,6 +277,58 @@ Please make sure the product ingredients are read correctly. After several faile
 
             return $this->sendError('scan_result_error', 'Scan result error - ' . $e->getMessage(), 500);
         }
+    }
+
+    /**
+     * Models often return check=false when partial OCR is still usable. Align `check` with parsed output.
+     */
+    private function normalizeAiScanCheckFlags(array &$data): void
+    {
+        $ingredients = $data['ingredients'] ?? [];
+        $hasIngredients = false;
+        if (is_array($ingredients)) {
+            foreach ($ingredients as $item) {
+                if ($item === null) {
+                    continue;
+                }
+                if (trim((string) $item) !== '') {
+                    $hasIngredients = true;
+                    break;
+                }
+            }
+        }
+
+        $raw = $data['check'] ?? null;
+        $explicit = null;
+        if (is_bool($raw)) {
+            $explicit = $raw;
+        } elseif (is_string($raw)) {
+            $lower = strtolower(trim($raw));
+            if (in_array($lower, ['true', '1', 'yes'], true)) {
+                $explicit = true;
+            } elseif (in_array($lower, ['false', '0', 'no'], true)) {
+                $explicit = false;
+            }
+        } elseif (is_int($raw) || is_float($raw)) {
+            $explicit = (bool) $raw;
+        }
+
+        if ($explicit === false && $hasIngredients) {
+            Log::warning('Scan AI returned check=false with non-empty ingredients; forcing check=true', [
+                'ingredient_count' => is_array($ingredients) ? count($ingredients) : 0,
+            ]);
+            $data['check'] = true;
+
+            return;
+        }
+
+        if ($explicit === null) {
+            $data['check'] = $hasIngredients;
+
+            return;
+        }
+
+        $data['check'] = $explicit;
     }
 
     public function getScanResult($scanId,Request $request): JsonResponse

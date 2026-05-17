@@ -84,9 +84,15 @@ class ScanController extends BaseController
 
 //                $content = $googleVisionService->extractText($fullUrl);
 
-                // Get category name
                 $category = Categories::find($request->category_id);
-                $categoryName = $category->getTranslation('name', 'en');
+                $categoryName = $category->getTranslation('name', 'en')
+                    ?: $category->getTranslation('name', $language)
+                    ?: 'General';
+                $categorySlug = $category->getTranslation('slug', 'en')
+                    ?: ($category->slug ?? 'general');
+                $categoryDescription = strip_tags(
+                    $category->getTranslation('description', 'en') ?: ''
+                );
 
                 // Get image content as base64
 //                $image = base64_encode(file_get_contents($request->file('image')));
@@ -151,6 +157,10 @@ class ScanController extends BaseController
 //                    'response_format' => ['type' => 'json_object'],
 //                ]);
 
+                $categoryGuidanceBlock = $categoryDescription !== ''
+                    ? "\nCategory guidance from app:\n{$categoryDescription}\n"
+                    : '';
+
                 $aiResponse = $openai->chat()->create([
                     'model' => config('services.openai.vision_model', 'gpt-4o-mini'),
                     'temperature' => 0.0,
@@ -158,32 +168,40 @@ class ScanController extends BaseController
                         [
                             'role' => 'system',
                             'content' => <<<EOT
-                                You are a product analysis system.
+                                You are a product label analyst. Analyze the image and return one JSON object.
 
-                                Analyze the image of the product label and return a structured JSON response.
+                                SCAN MODE (from user message): The user picks a **scan category** (e.g. Halal, Pregnancy, Vegetarian, Diabetic, Children, Allergy). That category is the **only rubric** for `worst_ingredients`, `best_ingredients`, `health_score`, and `detail_text`.
 
-                                Rules:
-                                1. Detect the **actual product name** and **product category** from the label. Do NOT rely on or copy the category provided by the user. If product name or category cannot be determined, return `null` for them.
-                                2. Analyze the ingredients and dynamically calculate a **health score** according to the category specified by the user (e.g., Children, Adults, Diabetics, Allergic people). For example, a product that is healthy in general may be unhealthy for children or allergic individuals.
-                                3. Always respond in the **language specified by the user** (including product name, category, ingredients, score, etc.).
-                                4. If valid information is found, include `"check": true`. If important data is missing or cannot be interpreted, set `"check": false`.
+                                Ingredient classification rules:
+                                • Classify each ingredient as worst or best **only if it matters for THIS scan category** — not generic "healthy eating".
+                                • The same ingredient can be worst in one category and neutral or positive in another (e.g. sugar may be worst for Pregnancy/diabetes but not for Halal or Vegetarian unless it violates that diet).
+                                • Halal / Kosher / similar: worst = haram, doubtful, or non-compliant sources (pork, alcohol as ingredient, non-halal gelatin, etc.). Do NOT list sugar, salt, or palm oil as worst unless they break that religious rule.
+                                • Vegetarian / Vegan: worst = animal-derived items (gelatin, animal fats, meat, fish, non-vegan dairy/eggs as applicable). Do NOT list plant sugars as worst for vegetarian-only scans.
+                                • Pregnancy, children, diabetic, allergy, heart health, etc.: worst/best = clinical or nutritional fit **for that group** (e.g. added sugar for gestational/diabetic; allergens for allergy mode).
+                                • If nothing qualifies as worst or best under this lens, use empty arrays — do not pad with unrelated items.
 
-                                Return the result in this exact JSON format:
+                                Other rules:
+                                1. `product_name` and JSON field `category` = **product type on the label** (e.g. "yogurt"), not the user's scan category. Use null if unknown.
+                                2. `ingredients` = full list read from the label, in the user's response language.
+                                3. Respond in the user's requested language for all user-facing strings.
+                                4. `"check": true` when ingredient text from the label can be read and analyzed (partial OCR is OK). `"check": false` only if the image is unusable (not a label, blank, or no readable ingredients).
+
+                                Return exactly:
                                 {
                                   "check": true or false,
-                                  "product_name": "Detected product name in the user's language or null",
-                                  "category": "Detected product category in the user's language or null",
-                                  "ingredients": ["List of all ingredients in the user's language"],
-                                  "worst_ingredients": ["List of worst ingredients for health, **based on the user's specified category**, in user's language"],
-                                  "best_ingredients": ["List of best ingredients for health, **based on the user's specified category**, in user's language"],
-                                  "health_score": "A percentage score **based on the specified category**, considering how suitable the ingredients are for that group",
-                                  "detail_text": "Detailed explanation in the user's language, summarizing health evaluation"
+                                  "product_name": "... or null",
+                                  "category": "... product type on label, or null",
+                                  "ingredients": ["..."],
+                                  "worst_ingredients": ["... for THIS scan category only"],
+                                  "best_ingredients": ["... for THIS scan category only"],
+                                  "health_score": "0-100, how well the product fits THIS scan category",
+                                  "detail_text": "short summary using the same lens as worst/best/score"
                                 }
 
-                                Adjust the health_score more strictly:
-                                    • If there are more than 3 worst_ingredients, reduce the health_score by at least 20%.
-                                    • If there are fewer than 2 best_ingredients, reduce the health_score by 10%.
-                                    • If the number of worst_ingredients is greater than the number of best_ingredients, reduce the health_score by 20%.
+                                After base score for this scan category:
+                                    • If more than 3 worst_ingredients, reduce health_score by at least 20%.
+                                    • If fewer than 2 best_ingredients, reduce by 10%.
+                                    • If count(worst) > count(best), reduce by 20%.
 
                                 EOT
                         ],
@@ -192,9 +210,15 @@ class ScanController extends BaseController
                             'content' => [
                                 [
                                     'type' => 'text',
-                                    'text' => "Analyze the contents of this product and respond in the specified JSON format.
-Write the ingredients (all, worst, best), health score (based on category: **$categoryName**), product name, product category, and detailed explanation in **$language**.
-Category: **$categoryName**, Language: **$language**."
+                                    'text' => "Analyze this product label image. Return JSON only.
+
+User-selected scan category (evaluate worst_ingredients, best_ingredients, and health_score ONLY for this):
+• Name: {$categoryName}
+• Slug: {$categorySlug}
+{$categoryGuidanceBlock}
+Response language: {$language}
+
+Write product_name, label product type in `category`, all ingredient strings, worst_ingredients, best_ingredients, health_score, and detail_text in {$language}."
                                 ],
                                 [
                                     'type' => 'image_url',

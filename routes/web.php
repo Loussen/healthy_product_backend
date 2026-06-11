@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\Front\BlogController;
+use App\Http\Controllers\Front\LlmsTxtController;
 use App\Http\Controllers\Front\MainController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/llms.txt', LlmsTxtController::class)->name('llms');
 
 $locales = implode('|', array_keys(config('services.locales')));
 

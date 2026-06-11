@@ -68,4 +68,14 @@ trait PageTemplates
             'placeholder' => trans('backpack::pagemanager.content_placeholder'),
         ]);
     }
+
+    private function blog_article()
+    {
+        $this->crud->addField([
+            'name' => 'content',
+            'label' => trans('backpack::pagemanager.content'),
+            'type' => 'summernote',
+            'placeholder' => trans('backpack::pagemanager.content_placeholder'),
+        ]);
+    }
 }

@@ -27,7 +27,7 @@ class MainController extends Controller
 
         $page = Page::where('slug', $slug)->first();
 
-        if (!$page) {
+        if (!$page || $page->isBlogArticle()) {
             abort(404);
         }
 

@@ -84,6 +84,21 @@ class Page extends Model
     |--------------------------------------------------------------------------
     */
 
+    public function scopeBlogArticles($query)
+    {
+        return $query->where('template', 'blog_article');
+    }
+
+    public function isBlogArticle(): bool
+    {
+        return $this->template === 'blog_article';
+    }
+
+    public function getExcerpt(int $limit = 160): string
+    {
+        return \Illuminate\Support\Str::limit(strip_tags($this->content), $limit);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | ACCESORS

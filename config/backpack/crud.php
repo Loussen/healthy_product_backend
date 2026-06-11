@@ -132,6 +132,7 @@ return [
         // "en_GB" => "English (United Kingdom)",
         // "en_US" => "English (United States)",
         // "en_ZW" => "English (Zimbabwe)",
+        'az' => 'Azerbaijani',
         'en' => 'English',
         'nl' => 'Dutch',
         'fr' => 'French',

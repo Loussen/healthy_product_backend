@@ -16,6 +16,9 @@
                     <a class="nav-link" href="{{ route('home',['locale' => \Illuminate\Support\Facades\App::getLocale()]) }}#how-it-works">{{ __('messages.menus.top_menu.how_it_works') }}</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="{{ route('blog.index', ['locale' => \Illuminate\Support\Facades\App::getLocale()]) }}">{{ __('messages.menus.top_menu.blog') }}</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="{{ route('home',['locale' => \Illuminate\Support\Facades\App::getLocale()]) }}#download">{{ __('messages.menus.top_menu.download') }}</a>
                 </li>
                 <li class="nav-item d-lg-none">

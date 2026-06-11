@@ -143,6 +143,81 @@
         </div>
     </section>
 
+    @php
+        $latestArticles = \App\Models\Page::blogArticles()->orderByDesc('updated_at')->limit(3)->get();
+    @endphp
+    @if($latestArticles->isNotEmpty())
+    <!-- Blog Section -->
+    <section id="blog" class="features">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2>{{ __('messages.blog.home_section_title') }}</h2>
+                <p class="lead">{{ __('messages.blog.home_section_text') }}</p>
+            </div>
+            <div class="row g-4">
+                @foreach($latestArticles as $article)
+                    <div class="col-md-4">
+                        <article class="blog-card h-100">
+                            <div class="blog-card-body">
+                                <time class="blog-date" datetime="{{ $article->updated_at->toIso8601String() }}">
+                                    {{ $article->updated_at->translatedFormat('F d, Y') }}
+                                </time>
+                                <h3 class="blog-card-title">
+                                    <a href="{{ route('blog.show', ['locale' => app()->getLocale(), 'slug' => $article->slug]) }}">
+                                        {{ $article->title }}
+                                    </a>
+                                </h3>
+                                <p class="blog-excerpt">{{ $article->getExcerpt(120) }}</p>
+                                <a href="{{ route('blog.show', ['locale' => app()->getLocale(), 'slug' => $article->slug]) }}"
+                                   class="blog-read-more">
+                                    {{ __('messages.blog.read_more') }} &rarr;
+                                </a>
+                            </div>
+                        </article>
+                    </div>
+                @endforeach
+            </div>
+            <div class="text-center mt-4">
+                <a href="{{ route('blog.index', ['locale' => app()->getLocale()]) }}" class="btn btn-outline-primary">
+                    {{ __('messages.blog.view_all') }}
+                </a>
+            </div>
+        </div>
+    </section>
+    @endif
+
+    <!-- FAQ Section -->
+    <section id="faq" class="how-it-works">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2>{{ __('messages.faq.title') }}</h2>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="accordion" id="faqAccordion">
+                        @foreach(['q1', 'q2', 'q3', 'q4'] as $i => $key)
+                            <div class="accordion-item">
+                                <h3 class="accordion-header" id="faqHeading{{ $i }}">
+                                    <button class="accordion-button {{ $i > 0 ? 'collapsed' : '' }}" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#faqCollapse{{ $i }}"
+                                            aria-expanded="{{ $i === 0 ? 'true' : 'false' }}" aria-controls="faqCollapse{{ $i }}">
+                                        {{ __('messages.faq.' . $key) }}
+                                    </button>
+                                </h3>
+                                <div id="faqCollapse{{ $i }}" class="accordion-collapse collapse {{ $i === 0 ? 'show' : '' }}"
+                                     aria-labelledby="faqHeading{{ $i }}" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        {{ __('messages.faq.a' . ($i + 1)) }}
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Download Section -->
     <section id="download" class="download">
         <div class="container">
@@ -168,5 +243,26 @@
         </div>
     </section>
 @endsection
+
+@push('jsonld')
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        @foreach(['q1', 'q2', 'q3', 'q4'] as $i => $key)
+        {
+            "@type": "Question",
+            "name": "{{ addslashes(__('messages.faq.' . $key)) }}",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "{{ addslashes(__('messages.faq.a' . ($i + 1))) }}"
+            }
+        }@if($i < 3),@endif
+        @endforeach
+    ]
+}
+</script>
+@endpush
 
 

@@ -25,6 +25,7 @@
                 <h5>{{ __('messages.menus.footer_menu.company') }}</h5>
                 <ul class="list-unstyled">
                     <li><a href="{{ route('page',['slug' => 'about-us', 'locale' => \Illuminate\Support\Facades\App::getLocale()]) }}">{{ __('messages.menus.footer_menu.about_us') }}</a></li>
+                    <li><a href="{{ route('blog.index', ['locale' => \Illuminate\Support\Facades\App::getLocale()]) }}">{{ __('messages.menus.footer_menu.blog') }}</a></li>
                     <li><a href="{{ route('home',['locale' => \Illuminate\Support\Facades\App::getLocale()]) }}#download">{{ __('messages.menus.footer_menu.contact') }}</a></li>
                 </ul>
             </div>

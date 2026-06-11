@@ -62,6 +62,7 @@ return [
     'free_package_limit' => env('FREE_PACKAGE_LIMIT', 5),
 
     'locales' => [
+        'az' => 'Azərbaycan',
         'en' => 'English',
         'nl' => 'Nederlands',
         'fr' => 'Français',

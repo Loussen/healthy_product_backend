@@ -4,6 +4,29 @@
 
 @section('meta_description', Str::limit(strip_tags($page->content), 160))
 
+@push('jsonld')
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Vital Scan",
+            "item": "{{ route('home', ['locale' => app()->getLocale()]) }}"
+        },
+        {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "{{ addslashes($page->title) }}",
+            "item": "{{ route('page', ['locale' => app()->getLocale(), 'slug' => $page->slug]) }}"
+        }
+    ]
+}
+</script>
+@endpush
+
 @section('content')
     <!-- Hero Section -->
     <section class="hero">

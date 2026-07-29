@@ -98,7 +98,7 @@
                 "operatingSystem": "iOS",
                 "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
                 "description": "{{ addslashes(__('messages.meta.description')) }}",
-                "downloadUrl": "{{ config('services.apple.app_store_url', 'https://apps.apple.com/us/app/vital-scan/id6755874667') }}"
+                "downloadUrl": "{{ config('services.apple.app_store_url', 'https://apps.apple.com/us/app/id6755874667') }}"
             },
             {
                 "@type": "SoftwareApplication",

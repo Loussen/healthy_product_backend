@@ -12,7 +12,7 @@
                         <a target="_blank" href="https://play.google.com/store/apps/details?id=com.healthyproduct.app" class="">
                             <img src="{{ asset('assets/images/playstore.png') }}" alt="Download Vital Scan on Google Play Store" class="playstore">
                         </a>
-                        <a href="https://apps.apple.com/us/app/vital-scan/id6755874667" target="_blank" class="">
+                        <a href="{{ config('services.apple.app_store_url') }}" target="_blank" class="">
                             <img src="{{ asset('assets/images/appstore.png') }}" alt="Download Vital Scan on Apple App Store" class="appstore">
                         </a>
                     </div>
@@ -229,7 +229,7 @@
                         <a target="_blank" href="https://play.google.com/store/apps/details?id=com.healthyproduct.app" class="store-badge">
                             <img src="{{ asset('assets/images/playstore.png') }}" alt="Download Vital Scan on Google Play Store">
                         </a>
-                        <a href="https://apps.apple.com/us/app/vital-scan/id6755874667" target="_blank" class="store-badge">
+                        <a href="{{ config('services.apple.app_store_url') }}" target="_blank" class="store-badge">
                             <img src="{{ asset('assets/images/appstore.png') }}" alt="Download Vital Scan on Apple App Store">
                         </a>
                     </div>

@@ -23,7 +23,7 @@ class LlmsTxtController extends Controller
             '',
             '## App Downloads',
             '',
-            '- iOS: ' . config('services.apple.app_store_url', 'https://apps.apple.com/us/app/vital-scan/id6755874667'),
+            '- iOS: ' . config('services.apple.app_store_url', 'https://apps.apple.com/us/app/id6755874667'),
             '- Android: ' . config('services.play_store_url', 'https://play.google.com/store/apps/details?id=com.healthyproduct.app'),
             '',
             '## Contact',

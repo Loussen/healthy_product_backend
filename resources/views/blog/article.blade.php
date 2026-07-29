@@ -49,7 +49,7 @@
                                 <a target="_blank" href="https://play.google.com/store/apps/details?id=com.healthyproduct.app">
                                     <img src="{{ asset('assets/images/playstore.png') }}" alt="Download Vital Scan on Google Play" class="playstore">
                                 </a>
-                                <a target="_blank" href="https://apps.apple.com/us/app/vital-scan/id6755874667">
+                                <a target="_blank" href="{{ config('services.apple.app_store_url') }}">
                                     <img src="{{ asset('assets/images/appstore.png') }}" alt="Download Vital Scan on App Store" class="appstore">
                                 </a>
                             </div>

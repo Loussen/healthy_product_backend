@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: 'api/v1'
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Hosting serves via public/; /public/... would otherwise stick in the browser URL.
+        $middleware->prepend(\App\Http\Middleware\StripPublicUrlPrefix::class);
+
         $middleware->alias([
             'external.api' => ExternalApi::class,
             'locale' => \App\Http\Middleware\Locale::class,

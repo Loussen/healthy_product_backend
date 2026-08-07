@@ -491,6 +491,9 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     border: 1px solid rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .blog-card:hover {
@@ -498,8 +501,23 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
 }
 
+.blog-card-cover-link {
+    display: block;
+    line-height: 0;
+}
+
+.blog-card-cover {
+    width: 100%;
+    aspect-ratio: 1200 / 630;
+    object-fit: cover;
+    display: block;
+}
+
 .blog-card-body {
     padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .blog-date {
@@ -549,7 +567,21 @@ h1, h2, h3, h4, h5, h6 {
 .blog-meta {
     color: var(--text-light);
     font-size: 0.9rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.25rem;
+}
+
+.blog-cover-figure {
+    margin: 0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.blog-cover-image {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1200 / 630;
+    object-fit: cover;
+    display: block;
 }
 
 .blog-content {
@@ -597,12 +629,23 @@ h1, h2, h3, h4, h5, h6 {
     background: var(--bg-light);
     text-decoration: none;
     color: var(--text-dark);
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .related-card:hover {
     background: var(--primary-light);
     color: var(--primary-dark);
+}
+
+.related-card-cover {
+    width: 100%;
+    aspect-ratio: 1200 / 630;
+    object-fit: cover;
+    display: block;
+}
+
+.related-card-title {
+    color: inherit;
 }
 
 .blog-breadcrumb .breadcrumb {

@@ -2,6 +2,7 @@
 
 @section('title', ' - ' . $article->title)
 @section('meta_description', $article->getExcerpt(160))
+@section('og_image', $article->getCoverImageUrl())
 
 @push('meta')
     <meta property="og:type" content="article">
@@ -36,6 +37,19 @@
                                     {{ $article->updated_at->translatedFormat('F d, Y') }}
                                 </time>
                             </div>
+                            @if($article->hasCoverImage())
+                                <figure class="blog-cover-figure mb-4">
+                                    <img src="{{ $article->getCoverImageUrl() }}"
+                                         alt="{{ $article->title }}"
+                                         class="blog-cover-image"
+                                         width="1200"
+                                         height="630"
+                                         itemprop="image"
+                                         loading="eager"
+                                         decoding="async"
+                                         fetchpriority="high">
+                                </figure>
+                            @endif
                         </header>
 
                         <div class="blog-content" itemprop="articleBody">
@@ -63,8 +77,17 @@
                                 @foreach($related as $relatedArticle)
                                     <div class="col-md-4">
                                         <a href="{{ route('blog.show', ['locale' => app()->getLocale(), 'slug' => $relatedArticle->slug]) }}"
-                                           class="related-card d-block p-3 rounded">
-                                            <strong>{{ $relatedArticle->title }}</strong>
+                                           class="related-card d-block rounded overflow-hidden">
+                                            <img src="{{ $relatedArticle->getCoverImageUrl() }}"
+                                                 alt="{{ $relatedArticle->title }}"
+                                                 class="related-card-cover"
+                                                 width="400"
+                                                 height="210"
+                                                 loading="lazy"
+                                                 decoding="async">
+                                            <span class="related-card-title d-block p-3">
+                                                <strong>{{ $relatedArticle->title }}</strong>
+                                            </span>
                                         </a>
                                     </div>
                                 @endforeach
@@ -84,7 +107,7 @@
     "@type": "Article",
     "headline": "{{ addslashes($article->title) }}",
     "description": "{{ addslashes($article->getExcerpt(160)) }}",
-    "image": "{{ asset('assets/images/graphic.jpeg') }}",
+    "image": "{{ $article->getCoverImageUrl() }}",
     "datePublished": "{{ $article->created_at->toIso8601String() }}",
     "dateModified": "{{ $article->updated_at->toIso8601String() }}",
     "author": {

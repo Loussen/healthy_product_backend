@@ -99,6 +99,35 @@ class Page extends Model
         return \Illuminate\Support\Str::limit(strip_tags($this->content), $limit);
     }
 
+    /**
+     * Local cover at public/assets/images/blog/{slug}.jpg (or .webp/.png).
+     */
+    public function getCoverImagePath(): ?string
+    {
+        foreach (['jpg', 'jpeg', 'webp', 'png'] as $ext) {
+            $relative = "assets/images/blog/{$this->slug}.{$ext}";
+            if (is_file(public_path($relative))) {
+                return $relative;
+            }
+        }
+
+        return null;
+    }
+
+    public function getCoverImageUrl(): string
+    {
+        $path = $this->getCoverImagePath();
+
+        return $path
+            ? asset($path)
+            : asset('assets/images/graphic.jpeg');
+    }
+
+    public function hasCoverImage(): bool
+    {
+        return $this->getCoverImagePath() !== null;
+    }
+
     /*
     |--------------------------------------------------------------------------
     | ACCESORS

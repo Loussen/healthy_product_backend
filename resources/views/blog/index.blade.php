@@ -16,6 +16,16 @@
                 @forelse($articles as $article)
                     <div class="col-md-6 col-lg-4">
                         <article class="blog-card h-100">
+                            <a href="{{ route('blog.show', ['locale' => app()->getLocale(), 'slug' => $article->slug]) }}"
+                               class="blog-card-cover-link">
+                                <img src="{{ $article->getCoverImageUrl() }}"
+                                     alt="{{ $article->title }}"
+                                     class="blog-card-cover"
+                                     width="1200"
+                                     height="630"
+                                     loading="lazy"
+                                     decoding="async">
+                            </a>
                             <div class="blog-card-body">
                                 <time class="blog-date" datetime="{{ $article->updated_at->toIso8601String() }}">
                                     {{ $article->updated_at->translatedFormat('F d, Y') }}

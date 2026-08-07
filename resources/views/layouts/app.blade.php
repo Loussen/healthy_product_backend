@@ -33,7 +33,7 @@
     <meta property="og:url" content="{{ $currentUrl }}">
     <meta property="og:title" content="Vital Scan - Your vital scan compass @yield('title', '')">
     <meta property="og:description" content="@yield('meta_description', __('messages.meta.description'))">
-    <meta property="og:image" content="{{ asset('assets/images/graphic.jpeg') }}">
+    <meta property="og:image" content="@yield('og_image', asset('assets/images/graphic.jpeg'))">
     <meta property="og:locale" content="{{ str_replace('-', '_', app()->getLocale()) }}">
     <meta property="og:site_name" content="Vital Scan">
 
@@ -42,7 +42,7 @@
     <meta name="twitter:url" content="{{ $currentUrl }}">
     <meta name="twitter:title" content="Vital Scan - Your vital scan compass @yield('title', '')">
     <meta name="twitter:description" content="@yield('meta_description', __('messages.meta.description'))">
-    <meta name="twitter:image" content="{{ asset('assets/images/graphic.jpeg') }}">
+    <meta name="twitter:image" content="@yield('og_image', asset('assets/images/graphic.jpeg'))">
 
     @stack('meta')
 

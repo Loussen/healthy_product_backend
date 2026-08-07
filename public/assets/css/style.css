@@ -494,6 +494,7 @@ h1, h2, h3, h4, h5, h6 {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
 .blog-card:hover {
@@ -501,23 +502,46 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
 }
 
+/* Fixed 16:9 cover so every card aligns in the grid */
 .blog-card-cover-link {
     display: block;
+    position: relative;
+    width: 100%;
+    flex: 0 0 auto;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #eef1f3;
     line-height: 0;
 }
 
+@supports not (aspect-ratio: 16 / 9) {
+    .blog-card-cover-link::before {
+        content: "";
+        display: block;
+        padding-bottom: 56.25%;
+    }
+}
+
 .blog-card-cover {
-    width: 100%;
-    aspect-ratio: 1200 / 630;
-    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    object-fit: cover !important;
+    object-position: center center;
     display: block;
 }
 
 .blog-card-body {
-    padding: 1.5rem;
-    flex: 1;
+    padding: 1.25rem 1.5rem 1.5rem;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
+    min-height: 0;
 }
 
 .blog-date {
@@ -574,13 +598,20 @@ h1, h2, h3, h4, h5, h6 {
     margin: 0;
     border-radius: 12px;
     overflow: hidden;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #eef1f3;
 }
 
 .blog-cover-image {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1200 / 630;
-    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center center;
     display: block;
 }
 
@@ -639,8 +670,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .related-card-cover {
     width: 100%;
-    aspect-ratio: 1200 / 630;
+    height: 120px;
     object-fit: cover;
+    object-position: center center;
     display: block;
 }
 

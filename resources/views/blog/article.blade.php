@@ -43,7 +43,7 @@
                                          alt="{{ $article->title }}"
                                          class="blog-cover-image"
                                          width="1200"
-                                         height="630"
+                                         height="675"
                                          itemprop="image"
                                          loading="eager"
                                          decoding="async"

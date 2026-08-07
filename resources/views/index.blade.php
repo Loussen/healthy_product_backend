@@ -163,8 +163,8 @@
                                 <img src="{{ $article->getCoverImageUrl() }}"
                                      alt="{{ $article->title }}"
                                      class="blog-card-cover"
-                                     width="1200"
-                                     height="630"
+                                     width="640"
+                                     height="360"
                                      loading="lazy"
                                      decoding="async">
                             </a>
